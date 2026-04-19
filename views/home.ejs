@@ -5,147 +5,143 @@
 </div>
 
 <div class="row g-3">
-  <!-- Left Panel: Prompt & Settings -->
-  <div class="col-lg-3 col-md-4">
-    <div class="content-left">
-      <div class="prompt-panel mb-3">
-        <h6>Query</h6>
-        <form action="/dashboard/generate" method="POST" id="promptForm">
-          <div class="mb-3">
-            <textarea class="form-control" name="prompt" rows="4"
-              placeholder="e.g., Show employee count by department" required></textarea>
-          </div>
 
-          <div class="mb-3">
-            <label class="form-label">Source</label>
-            <select class="form-select form-select-sm" name="dataSourceId">
-              <option value="">Internal Database</option>
-              <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
-                <% sources.forEach(function(s) { %>
-                  <option value="<%= s.id %>"><%= s.name %></option>
-                <% }); %>
-              <% } %>
-            </select>
-          </div>
+  <!-- Left Panel: Secondary info -->
+  <div class="col-lg-4">
 
-          <div class="mb-3">
-            <label class="form-label">Visualization</label>
-            <select class="form-select form-select-sm" name="chartType">
-              <% if (typeof chartTypes !== 'undefined') { %>
-                <% chartTypes.forEach(function(ct) { %>
-                  <option value="<%= ct %>" <%= ct === 'auto' ? 'selected' : '' %>><%= ct.charAt(0).toUpperCase() + ct.slice(1) %></option>
-                <% }); %>
-              <% } %>
-            </select>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-sm w-100">
-            Generate
-          </button>
-        </form>
-      </div>
-
-      <!-- Sample Prompts -->
-      <div class="prompt-panel">
-        <h6>Examples</h6>
-        <div class="d-flex flex-wrap gap-1">
-          <% if (typeof samplePrompts !== 'undefined') { %>
-            <% samplePrompts.forEach(function(sp) { %>
-              <button type="button" class="btn btn-sm sample-prompt-btn" onclick="document.querySelector('textarea[name=prompt]').value = this.textContent.trim()">
-                <%= sp %>
-              </button>
+    <!-- Saved Dashboards -->
+    <div class="card mb-3">
+      <div class="card-header">Saved Dashboards</div>
+      <div class="card-body p-0">
+        <% if (typeof recentDashboards !== 'undefined' && recentDashboards.length > 0) { %>
+          <div class="list-group list-group-flush">
+            <% recentDashboards.forEach(function(d) { %>
+              <a href="/dashboard/<%= d.id %>" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="text-truncate me-2"><%= d.title %></span>
+                  <small class="text-muted text-nowrap"><%= new Date(d.createdAt).toLocaleDateString() %></small>
+                </div>
+              </a>
             <% }); %>
-          <% } %>
-        </div>
+          </div>
+        <% } else { %>
+          <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No dashboards yet. Type a prompt and hit Generate.</p>
+        <% } %>
       </div>
-    </div>
-  </div>
-
-  <!-- Right Panel: Overview -->
-  <div class="col-lg-9 col-md-8">
-
-    <!-- Recent Dashboards & Sources row -->
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <div class="card h-100">
-          <div class="card-header">Saved Dashboards</div>
-          <div class="card-body p-0">
-            <% if (typeof recentDashboards !== 'undefined' && recentDashboards.length > 0) { %>
-              <div class="list-group list-group-flush">
-                <% recentDashboards.forEach(function(d) { %>
-                  <a href="/dashboard/<%= d.id %>" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span><%= d.title %></span>
-                      <small class="text-muted"><%= new Date(d.createdAt).toLocaleDateString() %></small>
-                    </div>
-                  </a>
-                <% }); %>
-              </div>
-            <% } else { %>
-              <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No dashboards yet. Type a prompt and hit Generate.</p>
-            <% } %>
-          </div>
-          <div class="card-footer">
-            <a href="/dashboard/history" class="btn btn-sm btn-outline-secondary">View all</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card h-100">
-          <div class="card-header">Data Sources</div>
-          <div class="card-body p-0">
-            <% if (typeof recentSources !== 'undefined' && recentSources.length > 0) { %>
-              <div class="list-group list-group-flush">
-                <% recentSources.forEach(function(s) { %>
-                  <a href="/sources/<%= s.id %>" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span><%= s.name %></span>
-                      <span class="badge bg-<%= s.status === 'active' ? 'success' : 'secondary' %>"><%= s.status %></span>
-                    </div>
-                  </a>
-                <% }); %>
-              </div>
-            <% } else { %>
-              <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No sources configured.</p>
-            <% } %>
-          </div>
-          <div class="card-footer">
-            <a href="/sources/new" class="btn btn-sm btn-outline-secondary me-2">Add</a>
-            <a href="/sources" class="btn btn-sm btn-outline-secondary">View all</a>
-          </div>
-        </div>
+      <div class="card-footer">
+        <a href="/dashboard/history" class="btn btn-sm btn-outline-secondary">View all</a>
       </div>
     </div>
 
-    <!-- Recent Prompts -->
+    <!-- Data Sources -->
+    <div class="card mb-3">
+      <div class="card-header">Data Sources</div>
+      <div class="card-body p-0">
+        <% if (typeof recentSources !== 'undefined' && recentSources.length > 0) { %>
+          <div class="list-group list-group-flush">
+            <% recentSources.forEach(function(s) { %>
+              <a href="/sources/<%= s.id %>" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="text-truncate me-2"><%= s.name %></span>
+                  <span class="badge bg-<%= s.status === 'active' ? 'success' : 'secondary' %>"><%= s.status %></span>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No sources configured.</p>
+        <% } %>
+      </div>
+      <div class="card-footer">
+        <a href="/sources/new" class="btn btn-sm btn-outline-secondary me-2">Add</a>
+        <a href="/sources" class="btn btn-sm btn-outline-secondary">View all</a>
+      </div>
+    </div>
+
+    <!-- Recent Queries -->
     <% if (typeof recentPrompts !== 'undefined' && recentPrompts.length > 0) { %>
     <div class="card">
       <div class="card-header">Recent Queries</div>
       <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover mb-0">
-            <thead>
-              <tr>
-                <th>Prompt</th>
-                <th>Chart</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% recentPrompts.forEach(function(p) { %>
-              <tr>
-                <td><%= p.promptText %></td>
-                <td><span class="badge bg-secondary"><%= p.selectedChartType || 'auto' %></span></td>
-                <td><small class="text-muted"><%= new Date(p.createdAt).toLocaleDateString() %></small></td>
-              </tr>
-              <% }); %>
-            </tbody>
-          </table>
+        <div class="list-group list-group-flush">
+          <% recentPrompts.forEach(function(p) { %>
+          <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <span style="font-size:0.82rem" class="text-truncate me-2"><%= p.promptText %></span>
+              <span class="badge bg-secondary text-nowrap"><%= p.selectedChartType || 'auto' %></span>
+            </div>
+            <small class="text-muted"><%= new Date(p.createdAt).toLocaleDateString() %></small>
+          </div>
+          <% }); %>
         </div>
       </div>
     </div>
     <% } %>
 
   </div>
+
+  <!-- Right Panel: Main Query (primary feature) -->
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header">
+        <span style="font-weight:600">Ask a Question</span>
+        <span class="text-muted ms-2" style="font-size:0.8rem">Type in plain English — AI will generate the dashboard</span>
+      </div>
+      <div class="card-body d-flex flex-column p-4">
+        <form action="/dashboard/generate" method="POST" id="promptForm" class="d-flex flex-column flex-grow-1">
+
+          <textarea class="form-control flex-grow-1 mb-4" name="prompt" rows="8"
+            style="font-size:1rem; resize:vertical; min-height:180px"
+            placeholder="e.g., Show me employees with low productivity this month&#10;e.g., Compare project budgets by department&#10;e.g., Top 10 tickets by priority" required></textarea>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label">Source</label>
+              <select class="form-select" name="dataSourceId">
+                <option value="">Internal Database</option>
+                <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
+                  <% sources.forEach(function(s) { %>
+                    <option value="<%= s.id %>"><%= s.name %></option>
+                  <% }); %>
+                <% } %>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Visualization</label>
+              <select class="form-select" name="chartType">
+                <% if (typeof chartTypes !== 'undefined') { %>
+                  <% chartTypes.forEach(function(ct) { %>
+                    <option value="<%= ct %>" <%= ct === 'auto' ? 'selected' : '' %>><%= ct.charAt(0).toUpperCase() + ct.slice(1) %></option>
+                  <% }); %>
+                <% } %>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" style="padding: 0.65rem; font-size:0.95rem">
+            Generate Dashboard
+          </button>
+
+        </form>
+
+        <!-- Examples -->
+        <div class="mt-4 pt-3 border-top">
+          <p class="text-muted mb-2" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px">Try these examples</p>
+          <div class="d-flex flex-wrap gap-2">
+            <% if (typeof samplePrompts !== 'undefined') { %>
+              <% samplePrompts.forEach(function(sp) { %>
+                <button type="button" class="btn btn-sm sample-prompt-btn"
+                  onclick="document.querySelector('textarea[name=prompt]').value = this.textContent.trim()">
+                  <%= sp %>
+                </button>
+              <% }); %>
+            <% } %>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
 </div>
