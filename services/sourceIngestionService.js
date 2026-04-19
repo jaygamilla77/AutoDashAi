@@ -42,9 +42,34 @@ async function ingest(source) {
       throw new Error(`Unsupported source type: ${source.sourceType}`);
   }
 
-  const { columns, rows } = parsed;
+  const { columns, rows, multiSheet, sheets } = parsed;
 
-  // Profile the data
+  // --- Multi-sheet Excel: one DataSourceSchema per sheet ---
+  if (multiSheet && sheets) {
+    // Remove stale schemas for this source before reinserting
+    await db.DataSourceSchema.destroy({ where: { dataSourceId: source.id } });
+
+    const results = [];
+    for (const sheet of sheets) {
+      if (sheet.columns.length === 0) continue; // skip empty sheets
+
+      const { schema, profile } = schemaProfilerService.profileData(sheet.columns, sheet.rows);
+
+      await db.DataSourceSchema.create({
+        dataSourceId: source.id,
+        datasetName: sheet.sheetName,
+        schemaJson: JSON.stringify(schema),
+        profileJson: JSON.stringify(profile),
+        previewJson: JSON.stringify(sheet.rows.slice(0, 50)),
+      });
+
+      results.push({ sheetName: sheet.sheetName, schema, profile, preview: sheet.rows.slice(0, 50) });
+    }
+
+    return { multiSheet: true, sheets: results };
+  }
+
+  // --- Single dataset (CSV, JSON, API, database) ---
   const { schema, profile } = schemaProfilerService.profileData(columns, rows);
 
   // Upsert DataSourceSchema

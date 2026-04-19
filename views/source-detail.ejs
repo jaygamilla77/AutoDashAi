@@ -25,15 +25,77 @@
 </div>
 <% } %>
 
-<!-- Schema / Profile -->
-<% if (typeof schemaData !== 'undefined' && schemaData && schemaData.length > 0) { %>
-<div class="row mb-4">
-  <div class="col-12">
-    <div class="card">
+<!-- Schema / Profile — tabbed per dataset/sheet -->
+<% if (typeof datasets !== 'undefined' && datasets && datasets.length > 0) { %>
+
+<% if (datasets.length > 1) { %>
+<!-- Tab navigation (multi-sheet Excel) -->
+<div class="card mb-3">
+  <div class="card-header bg-white p-0">
+    <ul class="nav nav-tabs border-0 px-3" id="sheetTabs" role="tablist">
+      <% datasets.forEach(function(ds, i) { %>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link <%= i === 0 ? 'active' : '' %>" id="tab-<%= i %>"
+            data-bs-toggle="tab" data-bs-target="#panel-<%= i %>"
+            type="button" role="tab">
+            <%= ds.datasetName %>
+          </button>
+        </li>
+      <% }); %>
+    </ul>
+  </div>
+</div>
+<% } %>
+
+<div class="tab-content" id="sheetTabsContent">
+  <% datasets.forEach(function(ds, i) { %>
+  <div class="tab-pane fade <%= i === 0 ? 'show active' : '' %>" id="panel-<%= i %>" role="tabpanel">
+
+    <!-- Profile Stats -->
+    <% if (ds.profileData) { %>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-3">
+            <h3 class="kpi-value"><%= ds.profileData.totalRows || 0 %></h3>
+            <p class="kpi-label mb-0">Rows</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-3">
+            <h3 class="kpi-value"><%= ds.profileData.totalColumns || 0 %></h3>
+            <p class="kpi-label mb-0">Columns</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-3">
+            <h3 class="kpi-value"><%= (ds.profileData.measures || []).length %></h3>
+            <p class="kpi-label mb-0">Measures</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center">
+          <div class="card-body py-3">
+            <h3 class="kpi-value"><%= (ds.profileData.dateFields || []).length %></h3>
+            <p class="kpi-label mb-0">Date Fields</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Schema Table -->
+    <% if (ds.schemaData && ds.schemaData.length > 0) { %>
+    <div class="card mb-4">
       <div class="card-header bg-white">
         <h6 class="mb-0">Schema</h6>
       </div>
-      <div class="card-body">
+      <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-hover mb-0">
             <thead>
@@ -47,18 +109,14 @@
               </tr>
             </thead>
             <tbody>
-              <% schemaData.forEach(function(field) { %>
+              <% ds.schemaData.forEach(function(field) { %>
               <tr>
                 <td><strong><%= field.name %></strong></td>
                 <td><span class="badge bg-secondary"><%= field.type %></span></td>
-                <td>
-                  <span class="badge bg-<%= field.role === 'measure' ? 'primary' : (field.role === 'date' ? 'warning' : (field.role === 'identifier' ? 'dark' : 'info')) %>">
-                    <%= field.role %>
-                  </span>
-                </td>
+                <td><span class="badge bg-secondary"><%= field.role %></span></td>
                 <td><%= field.distinctCount %></td>
                 <td><%= field.nullCount %></td>
-                <td><small><%= (field.sampleValues || []).slice(0, 3).join(', ') %></small></td>
+                <td><small class="text-muted"><%= (field.sampleValues || []).slice(0, 3).join(', ') %></small></td>
               </tr>
               <% }); %>
             </tbody>
@@ -66,71 +124,29 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
-<% } %>
+    <% } %>
 
-<!-- Profile Summary -->
-<% if (typeof profileData !== 'undefined' && profileData) { %>
-<div class="row mb-4 g-3">
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <h3 class="text-primary"><%= profileData.totalRows || 0 %></h3>
-        <p class="text-muted mb-0">Total Rows</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <h3 class="text-info"><%= profileData.totalColumns || 0 %></h3>
-        <p class="text-muted mb-0">Total Columns</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <h3 class="text-success"><%= (profileData.measures || []).length %></h3>
-        <p class="text-muted mb-0">Measures</p>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-3">
-    <div class="card text-center">
-      <div class="card-body">
-        <h3 class="text-warning"><%= (profileData.dateFields || []).length %></h3>
-        <p class="text-muted mb-0">Date Fields</p>
-      </div>
-    </div>
-  </div>
-</div>
-<% } %>
-
-<!-- Preview Data -->
-<% if (typeof previewData !== 'undefined' && previewData && previewData.length > 0) { %>
-<div class="row mb-4">
-  <div class="col-12">
-    <div class="card">
+    <!-- Preview Table -->
+    <% if (ds.previewData && ds.previewData.length > 0) { %>
+    <div class="card mb-4">
       <div class="card-header bg-white">
-        <h6 class="mb-0">Preview (<%= previewData.length %> rows)</h6>
+        <h6 class="mb-0">Preview — <%= ds.previewData.length %> rows</h6>
       </div>
-      <div class="card-body">
+      <div class="card-body p-0">
         <div class="table-responsive">
           <table class="table table-striped table-hover table-sm mb-0">
             <thead class="table-dark">
               <tr>
-                <% Object.keys(previewData[0]).forEach(function(key) { %>
+                <% Object.keys(ds.previewData[0]).forEach(function(key) { %>
                   <th><%= key %></th>
                 <% }); %>
               </tr>
             </thead>
             <tbody>
-              <% previewData.slice(0, 20).forEach(function(row) { %>
+              <% ds.previewData.slice(0, 50).forEach(function(row) { %>
               <tr>
-                <% Object.keys(previewData[0]).forEach(function(key) { %>
-                  <td><small><%= row[key] != null ? String(row[key]).substring(0, 50) : '-' %></small></td>
+                <% Object.keys(ds.previewData[0]).forEach(function(key) { %>
+                  <td><small><%= row[key] != null ? String(row[key]).substring(0, 60) : '-' %></small></td>
                 <% }); %>
               </tr>
               <% }); %>
@@ -139,8 +155,12 @@
         </div>
       </div>
     </div>
+    <% } %>
+
   </div>
+  <% }); %>
 </div>
+
 <% } %>
 
 <% } else { %>

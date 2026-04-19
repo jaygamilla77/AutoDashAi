@@ -105,18 +105,27 @@ exports.detail = async (req, res) => {
       return res.redirect('/sources');
     }
 
-    const schema = source.DataSourceSchemas && source.DataSourceSchemas[0];
-    const schemaData = schema ? safeJsonParse(schema.schemaJson) : null;
-    const profileData = schema ? safeJsonParse(schema.profileJson) : null;
-    const previewData = schema ? safeJsonParse(schema.previewJson) : null;
+    const schemas = source.DataSourceSchemas || [];
     const config = safeJsonParse(source.configJson);
+
+    // Build per-sheet datasets for the view
+    const datasets = schemas.map((s) => ({
+      datasetName: s.datasetName,
+      schemaData: safeJsonParse(s.schemaJson),
+      profileData: safeJsonParse(s.profileJson),
+      previewData: safeJsonParse(s.previewJson),
+    }));
+
+    // Backwards-compat: first dataset exposed as flat vars for non-multi views
+    const first = datasets[0] || {};
 
     res.render('source-detail', {
       title: `Source: ${source.name}`,
       source,
-      schemaData,
-      profileData,
-      previewData,
+      datasets,                          // all sheets / datasets
+      schemaData: first.schemaData,      // single-dataset compat
+      profileData: first.profileData,
+      previewData: first.previewData,
       config,
     });
   } catch (err) {
