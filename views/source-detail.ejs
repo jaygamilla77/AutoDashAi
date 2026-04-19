@@ -38,10 +38,28 @@
           <button class="nav-link <%= i === 0 ? 'active' : '' %>" id="tab-<%= i %>"
             data-bs-toggle="tab" data-bs-target="#panel-<%= i %>"
             type="button" role="tab">
-            <%= ds.datasetName %>
+            <i class="bi bi-table me-1"></i><%= ds.datasetName %>
           </button>
         </li>
       <% }); %>
+      <% if (unifiedDataset) { %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-unified"
+          data-bs-toggle="tab" data-bs-target="#panel-unified"
+          type="button" role="tab">
+          <i class="bi bi-layers me-1"></i>Unified Table
+        </button>
+      </li>
+      <% } %>
+      <% if (analysis) { %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-analysis"
+          data-bs-toggle="tab" data-bs-target="#panel-analysis"
+          type="button" role="tab">
+          <i class="bi bi-lightbulb me-1"></i>Analysis & Prompts
+        </button>
+      </li>
+      <% } %>
     </ul>
   </div>
 </div>
@@ -160,6 +178,180 @@
   </div>
   <% }); %>
 </div>
+
+<!-- Unified Table Panel -->
+<% if (unifiedDataset && unifiedDataset.previewData && unifiedDataset.previewData.length > 0) { %>
+<div class="tab-pane fade" id="panel-unified" role="tabpanel">
+  <div class="row g-3 mb-4">
+    <% if (unifiedDataset.profileData) { %>
+    <div class="col-6 col-md-3">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <h3 class="kpi-value"><%= unifiedDataset.profileData.totalRows || unifiedDataset.previewData.length %></h3>
+          <p class="kpi-label mb-0">Total Rows</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <h3 class="kpi-value"><%= unifiedDataset.profileData.totalColumns || 0 %></h3>
+          <p class="kpi-label mb-0">Columns</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <h3 class="kpi-value"><%= (unifiedDataset.profileData.measures || []).length %></h3>
+          <p class="kpi-label mb-0">Measures</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center">
+        <div class="card-body py-3">
+          <h3 class="kpi-value"><%= datasets.length %></h3>
+          <p class="kpi-label mb-0">Sheets Merged</p>
+        </div>
+      </div>
+    </div>
+    <% } %>
+  </div>
+
+  <div class="alert" style="background:#f0f9ff;border-color:#bae6fd;color:#075985;font-size:0.82rem">
+    <i class="bi bi-info-circle me-1"></i>
+    All sheets are merged into one table. The <code>_sheet</code> column identifies the origin sheet for each row.
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">Unified Preview — <%= unifiedDataset.previewData.length %> rows shown</div>
+    <div class="card-body p-0">
+      <div class="table-responsive" style="max-height:400px;overflow:auto">
+        <table class="table table-striped table-hover table-sm mb-0">
+          <thead class="table-dark" style="position:sticky;top:0">
+            <tr>
+              <% Object.keys(unifiedDataset.previewData[0]).forEach(function(key) { %>
+                <th style="white-space:nowrap"><%= key %></th>
+              <% }); %>
+            </tr>
+          </thead>
+          <tbody>
+            <% unifiedDataset.previewData.forEach(function(row) { %>
+            <tr>
+              <% Object.keys(unifiedDataset.previewData[0]).forEach(function(key) { %>
+                <td>
+                  <% if (key === '_sheet') { %>
+                    <span class="badge bg-secondary" style="font-size:0.65rem"><%= row[key] %></span>
+                  <% } else { %>
+                    <small><%= row[key] != null ? String(row[key]).substring(0, 60) : '-' %></small>
+                  <% } %>
+                </td>
+              <% }); %>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- Analysis & Prompts Panel -->
+<% if (analysis) { %>
+<div class="tab-pane fade" id="panel-analysis" role="tabpanel">
+
+  <!-- Relationship Map -->
+  <% if (analysis.relationships && analysis.relationships.length > 0) { %>
+  <div class="card mb-4">
+    <div class="card-header"><i class="bi bi-diagram-3 me-1"></i>Detected Relationships</div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Sheet A</th>
+            <th>Sheet B</th>
+            <th>Common Columns (Potential Join Keys)</th>
+            <th>Strength</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% analysis.relationships.forEach(function(rel) { %>
+          <tr>
+            <td><span class="badge bg-secondary"><%= rel.sheetA %></span></td>
+            <td><span class="badge bg-secondary"><%= rel.sheetB %></span></td>
+            <td>
+              <% rel.sharedColumns.forEach(function(col) { %>
+                <code style="font-size:0.78rem;margin-right:4px"><%= col %></code>
+              <% }); %>
+            </td>
+            <td>
+              <span class="badge" style="background:<%= rel.type === 'strong' ? '#15803d' : '#b45309' %>;font-size:0.65rem">
+                <%= rel.type === 'strong' ? 'Strong' : 'Possible' %>
+              </span>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <% } else { %>
+  <div class="alert mb-4" style="background:#f9fafb;border-color:#e5e7eb;color:#6b7280;font-size:0.82rem">
+    <i class="bi bi-info-circle me-1"></i>No column-level relationships detected between sheets.
+  </div>
+  <% } %>
+
+  <!-- Suggested Prompts -->
+  <% if (analysis.suggestedPrompts && analysis.suggestedPrompts.length > 0) { %>
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-lightbulb me-1"></i>Suggested Dashboard Prompts</span>
+      <span class="text-muted" style="font-size:0.75rem"><%= analysis.suggestedPrompts.length %> ideas generated</span>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-3" style="font-size:0.8rem">
+        Click any prompt to open the dashboard builder with it pre-filled and this data source selected.
+      </p>
+
+      <%
+        var categories = [];
+        analysis.suggestedPrompts.forEach(function(p) {
+          if (!categories.includes(p.category)) categories.push(p.category);
+        });
+        var catColors = {
+          'Trend': '#1d4ed8', 'Comparison': '#7c3aed', 'Breakdown': '#0891b2',
+          'Ranking': '#be123c', 'Distribution': '#15803d', 'Summary': '#374151',
+          'KPI': '#b45309', 'Cross-Sheet': '#6d28d9', 'General': '#4b5563'
+        };
+      %>
+
+      <% categories.forEach(function(cat) { %>
+        <div class="mb-4">
+          <p class="mb-2" style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:<%= catColors[cat] || '#374151' %>">
+            <%= cat %>
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <% analysis.suggestedPrompts.filter(function(p) { return p.category === cat; }).forEach(function(p) { %>
+              <a href="/?prompt=<%= encodeURIComponent(p.text) %>&sourceId=<%= source.id %>"
+                 class="btn btn-sm"
+                 style="font-size:0.78rem;border:1px solid #e5e7eb;background:#fff;color:#374151;border-radius:4px"
+                 title="Click to open dashboard builder with this prompt">
+                <i class="bi bi-arrow-right-circle me-1" style="color:<%= catColors[cat] || '#374151' %>"></i>
+                <%= p.text %>
+              </a>
+            <% }); %>
+          </div>
+        </div>
+      <% }); %>
+
+    </div>
+  </div>
+  <% } %>
+
+</div>
+<% } %>
 
 <% } %>
 

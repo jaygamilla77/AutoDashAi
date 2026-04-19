@@ -75,6 +75,25 @@
             </div>
           </div>
 
+          <!-- Preferred Chart Types -->
+          <% var ALL_CHART_TYPES = ['bar','line','pie','doughnut','scatter','table']; %>
+          <% var savedChartTypes = []; %>
+          <% if (isEdit && template.preferredChartTypes) { try { savedChartTypes = JSON.parse(template.preferredChartTypes); } catch(e) {} } %>
+          <div class="mb-4">
+            <label class="form-label">Preferred Chart Types <span class="text-muted fw-normal">(select all that suit this theme)</span></label>
+            <div class="d-flex flex-wrap gap-2">
+              <% ALL_CHART_TYPES.forEach(function(ct) { %>
+                <% var checked = savedChartTypes.includes(ct); %>
+                <label class="chart-type-toggle d-flex align-items-center gap-1 px-3 py-2 border rounded" style="cursor:pointer;font-size:0.8rem;user-select:none;background:<%= checked ? 'var(--accent)' : '#fff' %>;color:<%= checked ? '#fff' : 'inherit' %>">
+                  <input type="checkbox" name="chartTypes" value="<%= ct %>" class="chart-type-cb d-none" <%= checked ? 'checked' : '' %>>
+                  <i class="bi bi-<%= ct === 'bar' ? 'bar-chart' : ct === 'line' ? 'graph-up' : ct === 'pie' ? 'pie-chart' : ct === 'doughnut' ? 'pie-chart-fill' : ct === 'scatter' ? 'diagram-3' : 'table' %>"></i>
+                  <%= ct.charAt(0).toUpperCase() + ct.slice(1) %>
+                </label>
+              <% }); %>
+            </div>
+            <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">When a user selects this template, the chart type dropdown auto-filters to these options.</p>
+          </div>
+
           <!-- Live Preview -->
           <div class="mb-4">
             <label class="form-label">Live Preview</label>
@@ -157,6 +176,17 @@
   accentInput.addEventListener('input', updateAccent);
   document.querySelectorAll('.palette-color').forEach(function(p) {
     p.addEventListener('input', updateSwatches);
+  });
+
+  // Chart type toggle buttons
+  document.querySelectorAll('.chart-type-toggle').forEach(function(label) {
+    label.addEventListener('click', function(e) {
+      e.preventDefault();
+      var cb = label.querySelector('.chart-type-cb');
+      cb.checked = !cb.checked;
+      label.style.background = cb.checked ? '#333' : '#fff';
+      label.style.color = cb.checked ? '#fff' : '';
+    });
   });
 
   // Init

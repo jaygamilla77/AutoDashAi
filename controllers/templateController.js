@@ -48,12 +48,17 @@ exports.create = async (req, res) => {
       return res.redirect('/templates/new');
     }
 
+    const chartTypesRaw = Array.isArray(req.body.chartTypes)
+      ? req.body.chartTypes
+      : req.body.chartTypes ? [req.body.chartTypes] : [];
+
     await db.DashboardTemplate.create({
       name: name.trim(),
       description: description ? description.trim() : null,
       fontFamily: fontFamily || 'Inter',
       colorPalette: JSON.stringify(colors),
       accentColor: accentColor || colors[0] || '#111827',
+      preferredChartTypes: chartTypesRaw.length ? JSON.stringify(chartTypesRaw) : null,
       isBuiltIn: false,
     });
 
@@ -85,12 +90,17 @@ exports.update = async (req, res) => {
       req.body.c4, req.body.c5, req.body.c6, req.body.c7,
     ].filter(Boolean);
 
+    const chartTypesRaw = Array.isArray(req.body.chartTypes)
+      ? req.body.chartTypes
+      : req.body.chartTypes ? [req.body.chartTypes] : [];
+
     await template.update({
       name: name ? name.trim() : template.name,
       description: description ? description.trim() : template.description,
       fontFamily: fontFamily || template.fontFamily,
       colorPalette: colors.length >= 2 ? JSON.stringify(colors) : template.colorPalette,
       accentColor: accentColor || template.accentColor,
+      preferredChartTypes: chartTypesRaw.length ? JSON.stringify(chartTypesRaw) : template.preferredChartTypes,
     });
 
     req.flash('success', 'Template updated.');

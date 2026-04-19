@@ -39,6 +39,18 @@
             <% }); %>
           </div>
 
+          <!-- Chart type badges -->
+          <% var chartTypes = []; try { if (t.preferredChartTypes) chartTypes = JSON.parse(t.preferredChartTypes); } catch(e) {} %>
+          <% if (chartTypes.length > 0) { %>
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            <% chartTypes.forEach(function(ct) { %>
+              <span class="badge rounded-pill" style="background:#f3f4f6;color:#374151;font-size:0.65rem;font-weight:500;border:1px solid #e5e7eb">
+                <%= ct %>
+              </span>
+            <% }); %>
+          </div>
+          <% } %>
+
           <!-- Font preview -->
           <p class="mb-0" style="font-family:<%= t.fontFamily %>, sans-serif; font-size:0.82rem; color:#6b7280">
             Aa — <%= t.fontFamily %>

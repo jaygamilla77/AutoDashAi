@@ -41,6 +41,17 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
     template = await db.DashboardTemplate.findByPk(templateId);
   }
 
+  // If template has preferred chart types and current chartPreference is 'auto',
+  // use the first preferred type from the template.
+  if (template && template.preferredChartTypes && structuredRequest.chartPreference === 'auto') {
+    try {
+      const preferred = JSON.parse(template.preferredChartTypes);
+      if (Array.isArray(preferred) && preferred.length > 0) {
+        structuredRequest.chartPreference = preferred[0];
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
   // 3. Query data
   const queryResult = await queryService.execute(structuredRequest, dataSource);
 
@@ -73,6 +84,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
       fontFamily: template.fontFamily,
       accentColor: template.accentColor,
       colorPalette: template.colorPalette,
+      preferredChartTypes: template.preferredChartTypes,
     } : null,
     tableData: {
       columns: queryResult.columns,

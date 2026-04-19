@@ -28,6 +28,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    // JSON array of preferred chart types, e.g. ["bar","line","pie"]
+    preferredChartTypes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
   }, {
     tableName: 'dashboard_templates',
   });

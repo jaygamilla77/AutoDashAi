@@ -90,7 +90,7 @@
       <div class="card-body d-flex flex-column p-4">
         <form action="/dashboard/generate" method="POST" id="promptForm" class="d-flex flex-column flex-grow-1">
 
-          <textarea class="form-control flex-grow-1 mb-4" name="prompt" rows="8"
+          <textarea class="form-control flex-grow-1 mb-4" name="prompt" id="promptTextarea" rows="8"
             style="font-size:1rem; resize:vertical; min-height:180px"
             placeholder="e.g., Show me employees with low productivity this month&#10;e.g., Compare project budgets by department&#10;e.g., Top 10 tickets by priority" required></textarea>
 
@@ -122,7 +122,11 @@
                 <option value="">Default (no theme)</option>
                 <% if (typeof templates !== 'undefined' && templates.length > 0) { %>
                   <% templates.forEach(function(t) { %>
-                    <option value="<%= t.id %>" data-accent="<%= t.accentColor %>" data-font="<%= t.fontFamily %>">
+                    <% var tCharts = ''; try { if (t.preferredChartTypes) tCharts = t.preferredChartTypes; } catch(e) {} %>
+                    <option value="<%= t.id %>"
+                      data-accent="<%= t.accentColor %>"
+                      data-font="<%= t.fontFamily %>"
+                      data-charttypes="<%= tCharts %>">
                       <%= t.name %>
                     </option>
                   <% }); %>
@@ -162,18 +166,74 @@
 
 <script>
 (function () {
+  // Pre-fill prompt + source from URL query params (used by Analysis tab prompt links)
+  var urlParams = new URLSearchParams(window.location.search);
+  var prePrompt = urlParams.get('prompt');
+  var preSource = urlParams.get('sourceId');
+  if (prePrompt) {
+    var ta = document.getElementById('promptTextarea');
+    if (ta) ta.value = decodeURIComponent(prePrompt);
+  }
+  if (preSource) {
+    var srcSel = document.querySelector('select[name="dataSourceId"]');
+    if (srcSel) {
+      for (var i = 0; i < srcSel.options.length; i++) {
+        if (String(srcSel.options[i].value) === String(preSource)) {
+          srcSel.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  // Template dropdown logic
   var sel = document.getElementById('templateSelect');
   var hint = document.getElementById('templateHint');
+  var chartSel = document.querySelector('select[name="chartType"]');
   if (!sel) return;
+
+  // Store original chart options order
+  var allChartOptions = chartSel ? Array.from(chartSel.options).map(function(o) {
+    return { value: o.value, text: o.text };
+  }) : [];
+
   sel.addEventListener('change', function () {
     var opt = sel.options[sel.selectedIndex];
     var accent = opt.dataset.accent;
     var font = opt.dataset.font;
+    var chartTypesRaw = opt.dataset.charttypes || '';
+
+    // Update hint label
     if (accent && font) {
       hint.textContent = font + ' · ' + accent;
       hint.style.color = accent;
     } else {
       hint.textContent = '';
+    }
+
+    // Rebuild chart type dropdown filtered to template's preferred types
+    if (chartSel) {
+      var preferred = [];
+      try { if (chartTypesRaw) preferred = JSON.parse(chartTypesRaw); } catch(e) {}
+      chartSel.innerHTML = '';
+      allChartOptions.forEach(function(o) {
+        if (!preferred.length || preferred.includes(o.value)) {
+          var newOpt = document.createElement('option');
+          newOpt.value = o.value;
+          newOpt.textContent = o.text;
+          if (o.value === preferred[0]) newOpt.selected = true;
+          chartSel.appendChild(newOpt);
+        }
+      });
+      // if nothing matched restore all
+      if (chartSel.options.length === 0) {
+        allChartOptions.forEach(function(o) {
+          var newOpt = document.createElement('option');
+          newOpt.value = o.value;
+          newOpt.textContent = o.text;
+          chartSel.appendChild(newOpt);
+        });
+      }
     }
   });
 })();

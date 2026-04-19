@@ -9,8 +9,7 @@
 const db = require('../models');
 const fileParserService = require('./fileParserService');
 const apiIngestionService = require('./apiIngestionService');
-const schemaProfilerService = require('./schemaProfilerService');
-const { safeJsonParse } = require('../utils/helpers');
+const schemaProfilerService = require('./schemaProfilerService');const { safeJsonParse } = require('../utils/helpers');
 
 /**
  * Ingest a data source: parse, profile, and store schema/preview.
@@ -65,6 +64,32 @@ async function ingest(source) {
 
       results.push({ sheetName: sheet.sheetName, schema, profile, preview: sheet.rows.slice(0, 50) });
     }
+
+    // Build unified table (all sheets merged into one with _sheet column)
+    const unified = fileParserService.buildUnifiedTable(sheets);
+
+    // Also store unified as a special DataSourceSchema entry
+    if (unified.columns.length > 0) {
+      const { schema: uSchema, profile: uProfile } = schemaProfilerService.profileData(
+        unified.columns,
+        unified.rows
+      );
+      await db.DataSourceSchema.create({
+        dataSourceId: source.id,
+        datasetName: '__unified__',
+        schemaJson: JSON.stringify(uSchema),
+        profileJson: JSON.stringify(uProfile),
+        previewJson: JSON.stringify(unified.rows.slice(0, 100)),
+      });
+    }
+
+    // Run analysis: relationships + suggested prompts
+    const { relationships, suggestedPrompts } = fileParserService.analyzeSheets(sheets, source.name);
+
+    // Save analysis to source record
+    await source.update({
+      analysisJson: JSON.stringify({ relationships, suggestedPrompts, unifiedColumns: unified.columns, unifiedTotalRows: unified.totalRows }),
+    });
 
     return { multiSheet: true, sheets: results };
   }

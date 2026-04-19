@@ -107,14 +107,25 @@ exports.detail = async (req, res) => {
 
     const schemas = source.DataSourceSchemas || [];
     const config = safeJsonParse(source.configJson);
+    const analysis = safeJsonParse(source.analysisJson);
 
-    // Build per-sheet datasets for the view
-    const datasets = schemas.map((s) => ({
-      datasetName: s.datasetName,
-      schemaData: safeJsonParse(s.schemaJson),
-      profileData: safeJsonParse(s.profileJson),
-      previewData: safeJsonParse(s.previewJson),
-    }));
+    // Build per-sheet datasets for the view (exclude the __unified__ virtual sheet)
+    const datasets = schemas
+      .filter((s) => s.datasetName !== '__unified__')
+      .map((s) => ({
+        datasetName: s.datasetName,
+        schemaData: safeJsonParse(s.schemaJson),
+        profileData: safeJsonParse(s.profileJson),
+        previewData: safeJsonParse(s.previewJson),
+      }));
+
+    // Unified dataset (all sheets merged)
+    const unifiedSchema = schemas.find((s) => s.datasetName === '__unified__');
+    const unifiedDataset = unifiedSchema ? {
+      previewData: safeJsonParse(unifiedSchema.previewJson),
+      schemaData: safeJsonParse(unifiedSchema.schemaJson),
+      profileData: safeJsonParse(unifiedSchema.profileJson),
+    } : null;
 
     // Backwards-compat: first dataset exposed as flat vars for non-multi views
     const first = datasets[0] || {};
@@ -123,6 +134,8 @@ exports.detail = async (req, res) => {
       title: `Source: ${source.name}`,
       source,
       datasets,                          // all sheets / datasets
+      unifiedDataset,                    // merged all-sheets table
+      analysis,                          // relationships + suggestedPrompts
       schemaData: first.schemaData,      // single-dataset compat
       profileData: first.profileData,
       previewData: first.previewData,

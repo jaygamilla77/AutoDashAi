@@ -39,6 +39,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // JSON blob: { unified, relationships, suggestedPrompts } — set after Excel multi-sheet ingest
+    analysisJson: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   }, {
     tableName: 'data_sources',
   });
