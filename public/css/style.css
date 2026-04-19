@@ -1,0 +1,507 @@
+/* ===== BI-Tool Layout Styles ===== */
+
+:root {
+  --sidebar-w: 56px;
+  --sidebar-bg: #1e1e1e;
+  --sidebar-hover: #2d2d2d;
+  --sidebar-active: #3a3a3a;
+  --sidebar-text: #999;
+  --sidebar-text-active: #fff;
+  --bg: #f3f2f1;
+  --card-bg: #fff;
+  --border: #e1dfdd;
+  --text: #252423;
+  --text-secondary: #605e5c;
+  --text-muted: #a19f9d;
+  --accent: #333;
+  --radius: 4px;
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ========== Sidebar ========== */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.sidebar-brand {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #333;
+}
+
+.sidebar-brand a {
+  color: #fff;
+  font-size: 1.2rem;
+  text-decoration: none;
+}
+
+.sidebar-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+
+.sidebar-bottom {
+  border-top: 1px solid #333;
+}
+
+.sidebar-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+
+.sidebar-link i {
+  font-size: 1.15rem;
+  margin-bottom: 2px;
+}
+
+.sidebar-link:hover {
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-active);
+}
+
+.sidebar-link.active {
+  background: var(--sidebar-active);
+  color: var(--sidebar-text-active);
+}
+
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: #fff;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ========== Main Content ========== */
+.main-wrapper {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px 24px;
+}
+
+/* ========== Page Header ========== */
+.page-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.page-header p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+/* ========== Prompt Panel (Home) ========== */
+.prompt-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  height: 100%;
+}
+
+.prompt-panel h6 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.prompt-panel textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.prompt-panel textarea:focus {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+.prompt-panel .form-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.prompt-panel .form-select,
+.prompt-panel .form-control {
+  font-size: 0.8125rem;
+  border-radius: var(--radius);
+}
+
+/* ========== Cards ========== */
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: none;
+  background: var(--card-bg);
+}
+
+.card:hover {
+  box-shadow: none;
+}
+
+.card-header {
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  background: var(--card-bg);
+}
+
+.card-body {
+  padding: 14px;
+}
+
+.card-footer {
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+}
+
+/* ========== KPI Cards ========== */
+.kpi-card {
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.kpi-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ========== Tables ========== */
+.table {
+  font-size: 0.8125rem;
+  margin-bottom: 0;
+}
+
+.table thead th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  background: #faf9f8;
+}
+
+.table td {
+  vertical-align: middle;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0efee;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #faf9f8;
+}
+
+.table-dark {
+  --bs-table-bg: #323130;
+  --bs-table-color: #fff;
+}
+
+.table-dark th {
+  color: #fff;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ========== Badges ========== */
+.badge {
+  font-weight: 500;
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  border-radius: 2px;
+  letter-spacing: 0.2px;
+}
+
+/* ========== Buttons ========== */
+.btn {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--radius);
+  padding: 6px 14px;
+}
+
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: #444;
+  border-color: #444;
+}
+
+.btn-outline-secondary {
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.btn-outline-secondary:hover {
+  background: #f5f4f3;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ========== Sample Prompts ========== */
+.sample-prompt-btn {
+  font-size: 0.7rem;
+  border-radius: 2px;
+  border-color: var(--border);
+  color: var(--text-secondary);
+  padding: 3px 10px;
+  background: #faf9f8;
+}
+
+.sample-prompt-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ========== Chart ========== */
+.chart-container {
+  min-height: 300px;
+}
+
+/* ========== List Groups ========== */
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #f0efee;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+/* ========== Alerts ========== */
+.alert {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  margin: 12px 24px 0;
+}
+
+/* ========== Pre/Code ========== */
+pre {
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  background: #faf9f8;
+  border: 1px solid var(--border);
+}
+
+/* ========== Forms ========== */
+.form-control, .form-select {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+.form-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-secondary);
+}
+
+/* ========== Section Labels ========== */
+.section-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* ========== Page Title ========== */
+h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* ========== Content Panel (for left/right split) ========== */
+.content-left {
+  position: sticky;
+  top: 20px;
+  align-self: flex-start;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    flex-direction: row;
+  }
+
+  .sidebar-brand {
+    height: auto;
+    border-bottom: none;
+    border-right: 1px solid #333;
+    padding: 8px 12px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    padding-top: 0;
+    overflow-x: auto;
+  }
+
+  .sidebar-bottom {
+    border-top: none;
+    border-left: 1px solid #333;
+    display: flex;
+  }
+
+  .sidebar-link {
+    padding: 8px 12px;
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .sidebar-link i {
+    margin-bottom: 0;
+    font-size: 1rem;
+  }
+
+  .sidebar-link.active::before {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    height: 3px;
+    border-radius: 2px 2px 0 0;
+  }
+
+  .main-wrapper {
+    margin-left: 0;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
+  .content-left {
+    position: static;
+  }
+
+  .kpi-value {
+    font-size: 1.25rem;
+  }
+
+  .chart-container {
+    min-height: 250px;
+  }
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d2d0ce;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a19f9d;
+}

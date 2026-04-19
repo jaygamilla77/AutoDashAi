@@ -1,0 +1,85 @@
+<div class="page-header">
+  <h1>History</h1>
+  <p>Saved dashboards and past queries</p>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header bg-white">
+    <h6 class="mb-0">Saved Dashboards</h6>
+  </div>
+  <div class="card-body">
+    <% if (typeof dashboards !== 'undefined' && dashboards.length > 0) { %>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title</th>
+            <th>Prompt</th>
+            <th>Source</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% dashboards.forEach(function(d, idx) { %>
+          <tr>
+            <td><%= idx + 1 %></td>
+            <td><strong><%= d.title %></strong></td>
+            <td><small><%= d.promptText ? d.promptText.substring(0, 60) : '-' %></small></td>
+            <td><%= d.DataSource ? d.DataSource.name : 'Internal' %></td>
+            <td><small><%= new Date(d.createdAt).toLocaleString() %></small></td>
+            <td>
+              <a href="/dashboard/<%= d.id %>" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye me-1"></i>View
+              </a>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <p class="text-muted mb-0">No saved dashboards yet.</p>
+    <% } %>
+  </div>
+</div>
+
+<!-- Prompt History -->
+<div class="card">
+  <div class="card-header bg-white">
+    <h6 class="mb-0">Prompt History</h6>
+  </div>
+  <div class="card-body">
+    <% if (typeof prompts !== 'undefined' && prompts.length > 0) { %>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Prompt</th>
+            <th>Chart</th>
+            <th>Intent</th>
+            <th>Title</th>
+            <th>Source</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% prompts.forEach(function(p) { %>
+          <tr>
+            <td><%= p.promptText %></td>
+            <td><span class="badge bg-info"><%= p.selectedChartType || 'auto' %></span></td>
+            <td><%= p.interpretedIntent || '-' %></td>
+            <td><small><%= p.generatedTitle || '-' %></small></td>
+            <td><small><%= p.DataSource ? p.DataSource.name : 'Internal' %></small></td>
+            <td><small class="text-muted"><%= new Date(p.createdAt).toLocaleString() %></small></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <p class="text-muted mb-0">No prompt history yet.</p>
+    <% } %>
+  </div>
+</div>

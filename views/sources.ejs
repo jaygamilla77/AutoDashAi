@@ -1,0 +1,65 @@
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Data Sources</h1>
+    <p>Manage connected data sources</p>
+  </div>
+  <a href="/sources/new" class="btn btn-primary btn-sm">Add Source</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>File</th>
+            <th>Last Sync</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% sources.forEach(function(s, idx) { %>
+          <tr>
+            <td><%= idx + 1 %></td>
+            <td><strong><%= s.name %></strong></td>
+            <td>
+              <span class="badge bg-<%= s.sourceType === 'database' ? 'primary' : (s.sourceType === 'api' ? 'warning' : 'info') %>">
+                <%= s.sourceType %>
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-<%= s.status === 'active' ? 'success' : (s.status === 'error' ? 'danger' : 'secondary') %>">
+                <%= s.status %>
+              </span>
+            </td>
+            <td><small><%= s.originalFileName || '-' %></small></td>
+            <td><small><%= s.lastSyncedAt ? new Date(s.lastSyncedAt).toLocaleString() : 'Never' %></small></td>
+            <td>
+              <a href="/sources/<%= s.id %>" class="btn btn-sm btn-outline-primary me-1">
+                <i class="bi bi-eye"></i>
+              </a>
+              <form action="/sources/<%= s.id %>/test" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Test / Refresh">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+      <div class="text-center py-5">
+        <i class="bi bi-database-add fs-2 text-muted"></i>
+        <p class="text-muted mt-3">No data sources yet.</p>
+        <a href="/sources/new" class="btn btn-primary btn-sm">Add Source</a>
+      </div>
+    <% } %>
+  </div>
+</div>

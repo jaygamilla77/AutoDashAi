@@ -1,0 +1,87 @@
+<div class="page-header">
+  <h1>Add Data Source</h1>
+  <p>Connect a new file, API, or database</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body p-4">
+        <form action="/sources" method="POST" enctype="multipart/form-data" id="sourceForm">
+
+          <!-- Source Name -->
+          <div class="mb-3">
+            <label for="name" class="form-label">Source Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="name" name="name" required
+              placeholder="e.g., Sales Data Q4, Employee CSV, External API">
+          </div>
+
+          <!-- Source Type -->
+          <div class="mb-3">
+            <label for="sourceType" class="form-label">Source Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="sourceType" name="sourceType" required onchange="toggleSourceFields()">
+              <option value="">Select type...</option>
+              <% if (typeof sourceTypes !== 'undefined') { %>
+                <% sourceTypes.forEach(function(st) { %>
+                  <option value="<%= st %>"><%= st.charAt(0).toUpperCase() + st.slice(1) %></option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
+
+          <!-- File Upload (for excel, csv, json) -->
+          <div class="mb-3 d-none" id="fileSection">
+            <label for="file" class="form-label">Upload File <span class="text-danger">*</span></label>
+            <input type="file" class="form-control" id="file" name="file"
+              accept=".csv,.xlsx,.json">
+            <div class="form-text">Accepted: .csv, .xlsx, .json (max 10 MB)</div>
+          </div>
+
+          <!-- API Config (for api type) -->
+          <div class="d-none" id="apiSection">
+            <div class="mb-3">
+              <label for="apiUrl" class="form-label">API Endpoint URL <span class="text-danger">*</span></label>
+              <input type="url" class="form-control" id="apiUrl" name="apiUrl"
+                placeholder="https://api.example.com/data">
+            </div>
+            <div class="mb-3">
+              <label for="apiHeaders" class="form-label">Headers (JSON, optional)</label>
+              <textarea class="form-control" id="apiHeaders" name="apiHeaders" rows="2"
+                placeholder='{"Authorization": "Bearer token123"}'></textarea>
+              <div class="form-text">Provide as valid JSON object.</div>
+            </div>
+            <div class="mb-3">
+              <label for="apiParams" class="form-label">Query Params (JSON, optional)</label>
+              <textarea class="form-control" id="apiParams" name="apiParams" rows="2"
+                placeholder='{"page": 1, "limit": 100}'></textarea>
+            </div>
+          </div>
+
+          <!-- Database Info (for database type) -->
+          <div class="d-none" id="dbSection">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-1"></i>
+              Database source will use the internal application database with demo data.
+              External database connections will be supported in future versions.
+            </div>
+          </div>
+
+          <hr>
+          <button type="submit" class="btn btn-primary">
+            Create Source
+          </button>
+          <a href="/sources" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSourceFields() {
+  var type = document.getElementById('sourceType').value;
+  document.getElementById('fileSection').classList.toggle('d-none', !['excel', 'csv', 'json'].includes(type));
+  document.getElementById('apiSection').classList.toggle('d-none', type !== 'api');
+  document.getElementById('dbSection').classList.toggle('d-none', type !== 'database');
+}
+</script>

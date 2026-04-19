@@ -1,0 +1,151 @@
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><%= source.name %></h1>
+    <p><%= source.sourceType %> &middot; <%= source.status %> &middot; Created <%= new Date(source.createdAt).toLocaleDateString() %></p>
+  </div>
+  <form action="/sources/<%= source.id %>/test" method="POST">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">Refresh</button>
+  </form>
+</div>
+
+<% if (typeof source !== 'undefined' && source) { %>
+
+<% if (typeof config !== 'undefined' && config) { %>
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">Configuration</div>
+        <h6 class="mb-0">Configuration</h6>
+      </div>
+      <div class="card-body">
+        <pre class="bg-light p-3 rounded mb-0"><code><%= JSON.stringify(config, null, 2) %></code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- Schema / Profile -->
+<% if (typeof schemaData !== 'undefined' && schemaData && schemaData.length > 0) { %>
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-white">
+        <h6 class="mb-0">Schema</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Role</th>
+                <th>Distinct</th>
+                <th>Nulls</th>
+                <th>Sample Values</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% schemaData.forEach(function(field) { %>
+              <tr>
+                <td><strong><%= field.name %></strong></td>
+                <td><span class="badge bg-secondary"><%= field.type %></span></td>
+                <td>
+                  <span class="badge bg-<%= field.role === 'measure' ? 'primary' : (field.role === 'date' ? 'warning' : (field.role === 'identifier' ? 'dark' : 'info')) %>">
+                    <%= field.role %>
+                  </span>
+                </td>
+                <td><%= field.distinctCount %></td>
+                <td><%= field.nullCount %></td>
+                <td><small><%= (field.sampleValues || []).slice(0, 3).join(', ') %></small></td>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- Profile Summary -->
+<% if (typeof profileData !== 'undefined' && profileData) { %>
+<div class="row mb-4 g-3">
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-primary"><%= profileData.totalRows || 0 %></h3>
+        <p class="text-muted mb-0">Total Rows</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-info"><%= profileData.totalColumns || 0 %></h3>
+        <p class="text-muted mb-0">Total Columns</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-success"><%= (profileData.measures || []).length %></h3>
+        <p class="text-muted mb-0">Measures</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center">
+      <div class="card-body">
+        <h3 class="text-warning"><%= (profileData.dateFields || []).length %></h3>
+        <p class="text-muted mb-0">Date Fields</p>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- Preview Data -->
+<% if (typeof previewData !== 'undefined' && previewData && previewData.length > 0) { %>
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-white">
+        <h6 class="mb-0">Preview (<%= previewData.length %> rows)</h6>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped table-hover table-sm mb-0">
+            <thead class="table-dark">
+              <tr>
+                <% Object.keys(previewData[0]).forEach(function(key) { %>
+                  <th><%= key %></th>
+                <% }); %>
+              </tr>
+            </thead>
+            <tbody>
+              <% previewData.slice(0, 20).forEach(function(row) { %>
+              <tr>
+                <% Object.keys(previewData[0]).forEach(function(key) { %>
+                  <td><small><%= row[key] != null ? String(row[key]).substring(0, 50) : '-' %></small></td>
+                <% }); %>
+              </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<% } else { %>
+  <div class="text-center py-5">
+    <p class="text-muted">Source not found.</p>
+    <a href="/sources" class="btn btn-primary">Back to Sources</a>
+  </div>
+<% } %>
