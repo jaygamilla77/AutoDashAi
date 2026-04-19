@@ -25,6 +25,10 @@ exports.index = async (req, res) => {
       order: [['name', 'ASC']],
     });
 
+    const templates = await db.DashboardTemplate.findAll({
+      order: [['isBuiltIn', 'DESC'], ['name', 'ASC']],
+    });
+
     res.render('home', {
       title: 'AI Auto-Dashboard Builder',
       samplePrompts: take(SAMPLE_PROMPTS, 10),
@@ -33,6 +37,7 @@ exports.index = async (req, res) => {
       recentSources,
       recentPrompts,
       sources,
+      templates,
     });
   } catch (err) {
     console.error('Home page error:', err);
@@ -45,6 +50,7 @@ exports.index = async (req, res) => {
       recentSources: [],
       recentPrompts: [],
       sources: [],
+      templates: [],
     });
   }
 };

@@ -19,10 +19,10 @@ const chartService = require('./chartService');
 
 /**
  * Generate a complete dashboard from a prompt.
- * @param {{ prompt: string, chartType: string, dataSourceId: number|null }} options
+ * @param {{ prompt: string, chartType: string, dataSourceId: number|null, templateId: number|null }} options
  * @returns {object} dashboard result
  */
-async function generate({ prompt, chartType, dataSourceId }) {
+async function generate({ prompt, chartType, dataSourceId, templateId }) {
   // 1. Parse prompt
   const structuredRequest = promptParserService.parse(prompt, chartType);
   if (!structuredRequest) {
@@ -33,6 +33,12 @@ async function generate({ prompt, chartType, dataSourceId }) {
   let dataSource = null;
   if (dataSourceId) {
     dataSource = await db.DataSource.findByPk(dataSourceId);
+  }
+
+  // 2b. Load template if provided
+  let template = null;
+  if (templateId) {
+    template = await db.DashboardTemplate.findByPk(templateId);
   }
 
   // 3. Query data
@@ -46,7 +52,8 @@ async function generate({ prompt, chartType, dataSourceId }) {
     queryResult.labels,
     queryResult.values,
     structuredRequest.chartPreference,
-    structuredRequest.title
+    structuredRequest.title,
+    template
   );
 
   // 6. Assemble dashboard
@@ -60,6 +67,13 @@ async function generate({ prompt, chartType, dataSourceId }) {
     structuredRequest,
     kpis,
     chartConfig,
+    template: template ? {
+      id: template.id,
+      name: template.name,
+      fontFamily: template.fontFamily,
+      accentColor: template.accentColor,
+      colorPalette: template.colorPalette,
+    } : null,
     tableData: {
       columns: queryResult.columns,
       rows: queryResult.rows,

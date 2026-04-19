@@ -4,35 +4,45 @@
  * Converts normalized query output into Chart.js configuration.
  */
 
-// Color palette for charts
-const COLORS = [
-  'rgba(54, 162, 235, 0.8)',
-  'rgba(255, 99, 132, 0.8)',
-  'rgba(255, 206, 86, 0.8)',
-  'rgba(75, 192, 192, 0.8)',
-  'rgba(153, 102, 255, 0.8)',
-  'rgba(255, 159, 64, 0.8)',
-  'rgba(46, 204, 113, 0.8)',
-  'rgba(231, 76, 60, 0.8)',
-  'rgba(52, 152, 219, 0.8)',
-  'rgba(155, 89, 182, 0.8)',
-  'rgba(241, 196, 15, 0.8)',
-  'rgba(26, 188, 156, 0.8)',
+// Default color palette for charts
+const DEFAULT_COLORS = [
+  '#3b82f6','#ef4444','#f59e0b','#22c55e',
+  '#8b5cf6','#f97316','#06b6d4','#e11d48',
+  '#10b981','#a78bfa','#fbbf24','#14b8a6',
 ];
 
-const BORDER_COLORS = COLORS.map((c) => c.replace('0.8', '1'));
+function toRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 /**
- * Build a Chart.js config from labels, values, and chart type.
+ * Build a Chart.js config from labels, values, chart type, title, and optional template.
  */
-function buildChartConfig(labels, values, chartType, title) {
+function buildChartConfig(labels, values, chartType, title, template) {
   if (!labels || labels.length === 0) return null;
 
   const type = chartType === 'table' ? null : (chartType || 'bar');
   if (!type) return null;
 
-  const colors = labels.map((_, i) => COLORS[i % COLORS.length]);
-  const borderColors = labels.map((_, i) => BORDER_COLORS[i % BORDER_COLORS.length]);
+  // Use template palette if provided, else default
+  let baseColors = DEFAULT_COLORS;
+  if (template && template.colorPalette) {
+    try {
+      const parsed = typeof template.colorPalette === 'string'
+        ? JSON.parse(template.colorPalette)
+        : template.colorPalette;
+      if (Array.isArray(parsed) && parsed.length > 0) baseColors = parsed;
+    } catch { /* fall back to default */ }
+  }
+
+  const colors = labels.map((_, i) => toRgba(baseColors[i % baseColors.length], 0.82));
+  const borderColors = labels.map((_, i) => toRgba(baseColors[i % baseColors.length], 1));
+
+  // Font family from template
+  const fontFamily = (template && template.fontFamily) ? template.fontFamily : 'Inter';
 
   const config = {
     type,
@@ -41,8 +51,8 @@ function buildChartConfig(labels, values, chartType, title) {
       datasets: [{
         label: title || 'Value',
         data: values,
-        backgroundColor: type === 'line' ? COLORS[0] : colors,
-        borderColor: type === 'line' ? BORDER_COLORS[0] : borderColors,
+        backgroundColor: type === 'line' ? colors[0] : colors,
+        borderColor: type === 'line' ? borderColors[0] : borderColors,
         borderWidth: type === 'line' ? 2 : 1,
         fill: type === 'line' ? false : undefined,
         tension: type === 'line' ? 0.3 : undefined,
@@ -55,19 +65,18 @@ function buildChartConfig(labels, values, chartType, title) {
         title: {
           display: !!title,
           text: title || '',
-          font: { size: 16 },
+          font: { size: 16, family: fontFamily },
         },
         legend: {
           display: ['pie', 'doughnut'].includes(type),
           position: 'bottom',
+          labels: { font: { family: fontFamily } },
         },
       },
       scales: ['bar', 'line'].includes(type)
         ? {
-            y: {
-              beginAtZero: true,
-              ticks: { precision: 0 },
-            },
+            x: { ticks: { font: { family: fontFamily } } },
+            y: { beginAtZero: true, ticks: { precision: 0, font: { family: fontFamily } } },
           }
         : undefined,
     },

@@ -1,0 +1,166 @@
+<div class="page-header">
+  <h1><%= typeof template !== 'undefined' && template ? 'Edit Template' : 'New Template' %></h1>
+  <p>Define a color palette and font to apply to your generated dashboards.</p>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <% var isEdit = typeof template !== 'undefined' && template; %>
+    <% var action = isEdit ? '/templates/' + template.id : '/templates'; %>
+    <% var palette = isEdit ? JSON.parse(template.colorPalette || '[]') : ['#1e40af','#2563eb','#3b82f6','#60a5fa','#93c5fd','#bfdbfe','#1e3a8a','#dbeafe']; %>
+    <% while (palette.length < 8) { palette.push('#cccccc'); } %>
+
+    <div class="card mb-4">
+      <div class="card-header">Template Settings</div>
+      <div class="card-body p-4">
+        <form action="<%= action %>" method="POST" id="templateForm">
+
+          <div class="mb-3">
+            <label class="form-label">Template Name</label>
+            <input type="text" class="form-control" name="name" required
+              value="<%= isEdit ? template.name : '' %>"
+              placeholder="e.g., Corporate Blue, Warm Sunset">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <input type="text" class="form-control" name="description"
+              value="<%= isEdit ? (template.description || '') : '' %>"
+              placeholder="Short description of this theme">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label">Font Family</label>
+            <select class="form-select" name="fontFamily" id="fontSelect">
+              <% var fonts = ['Inter','Lato','Roboto','Merriweather','Georgia','Trebuchet MS']; %>
+              <% fonts.forEach(function(f) { %>
+                <option value="<%= f %>" <%= (isEdit && template.fontFamily === f) ? 'selected' : (!isEdit && f === 'Inter' ? 'selected' : '') %>>
+                  <%= f %>
+                </option>
+              <% }); %>
+            </select>
+            <p id="fontPreview" class="mt-2 text-muted mb-0" style="font-size:1rem">
+              The quick brown fox jumps over the lazy dog.
+            </p>
+          </div>
+
+          <!-- Color Palette -->
+          <div class="mb-4">
+            <label class="form-label">Color Palette <span class="text-muted fw-normal">(8 colors for chart data)</span></label>
+            <div class="row g-2" id="colorPickers">
+              <% for (var i = 0; i < 8; i++) { %>
+              <div class="col-6 col-md-3">
+                <div class="color-picker-cell d-flex align-items-center gap-2 p-2 border rounded">
+                  <input type="color" class="form-control form-control-color palette-color flex-shrink-0"
+                    name="c<%= i %>" id="c<%= i %>"
+                    value="<%= palette[i] %>" title="Color <%= i + 1 %>">
+                  <div>
+                    <div class="text-muted" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.3px">Color <%= i + 1 %></div>
+                    <div class="color-hex" style="font-size:0.78rem;font-family:monospace"><%= palette[i] %></div>
+                  </div>
+                </div>
+              </div>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Accent Color -->
+          <div class="mb-4">
+            <label class="form-label">Accent Color <span class="text-muted fw-normal">(used for KPI values and headings)</span></label>
+            <div class="d-flex align-items-center gap-3">
+              <input type="color" class="form-control form-control-color" name="accentColor" id="accentColor"
+                value="<%= isEdit ? template.accentColor : '#1e40af' %>" style="width:60px;height:38px">
+              <span class="text-muted" style="font-size:0.85rem">Primary accent</span>
+            </div>
+          </div>
+
+          <!-- Live Preview -->
+          <div class="mb-4">
+            <label class="form-label">Live Preview</label>
+            <div id="templatePreview" class="border rounded p-3" style="background:#fafafa">
+              <!-- Color bar -->
+              <div id="previewBar" class="d-flex mb-3" style="height:6px;border-radius:3px;overflow:hidden">
+                <% for (var j = 0; j < 8; j++) { %>
+                  <div class="preview-swatch" style="flex:1;background:<%= palette[j] %>"></div>
+                <% } %>
+              </div>
+              <!-- KPI mock -->
+              <div class="d-flex gap-3 mb-3">
+                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
+                  <div id="previewKpi" style="font-size:1.25rem;font-weight:700;color:#111">1,234</div>
+                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Total Records</div>
+                </div>
+                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
+                  <div id="previewKpi2" style="font-size:1.25rem;font-weight:700;color:#111">56.7%</div>
+                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Average Score</div>
+                </div>
+                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
+                  <div id="previewKpi3" style="font-size:1.25rem;font-weight:700;color:#111">42</div>
+                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Active Items</div>
+                </div>
+              </div>
+              <!-- Font preview -->
+              <p id="previewText" class="mb-0" style="font-size:0.9rem;color:#444">
+                Dashboard title in <strong id="previewFontName">Inter</strong> — data visualization powered by AutoDash AI.
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><%= isEdit ? 'Save Changes' : 'Create Template' %></button>
+            <a href="/templates" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const fontSelect = document.getElementById('fontSelect');
+  const previewText = document.getElementById('previewText');
+  const previewFontName = document.getElementById('previewFontName');
+  const accentInput = document.getElementById('accentColor');
+  const kpiEls = [
+    document.getElementById('previewKpi'),
+    document.getElementById('previewKpi2'),
+    document.getElementById('previewKpi3'),
+  ];
+
+  function updateFont() {
+    const f = fontSelect.value;
+    previewText.style.fontFamily = f + ', sans-serif';
+    previewFontName.textContent = f;
+  }
+
+  function updateAccent() {
+    kpiEls.forEach(function(el) { if (el) el.style.color = accentInput.value; });
+  }
+
+  function updateSwatches() {
+    const swatches = document.querySelectorAll('.preview-swatch');
+    const pickers = document.querySelectorAll('.palette-color');
+    pickers.forEach(function(picker, i) {
+      if (swatches[i]) swatches[i].style.background = picker.value;
+      // update hex label
+      const hexEl = picker.closest('.color-picker-cell').querySelector('.color-hex');
+      if (hexEl) hexEl.textContent = picker.value;
+    });
+  }
+
+  // Bind events
+  fontSelect.addEventListener('change', updateFont);
+  accentInput.addEventListener('input', updateAccent);
+  document.querySelectorAll('.palette-color').forEach(function(p) {
+    p.addEventListener('input', updateSwatches);
+  });
+
+  // Init
+  updateFont();
+  updateAccent();
+})();
+</script>

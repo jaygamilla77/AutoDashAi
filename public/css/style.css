@@ -505,3 +505,71 @@ h2 {
 ::-webkit-scrollbar-thumb:hover {
   background: #a19f9d;
 }
+
+/* ========== Template Cards ========== */
+.template-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  overflow: hidden;
+  transition: box-shadow 0.12s, border-color 0.12s;
+  cursor: default;
+}
+
+.template-card:hover {
+  border-color: #aaa;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.template-color-bar {
+  display: flex;
+  height: 8px;
+  width: 100%;
+}
+
+.template-color-bar > div {
+  flex: 1;
+}
+
+.template-card .card-body {
+  padding: 14px 16px;
+}
+
+.template-card .template-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+
+.template-card .template-meta {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.template-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.template-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.08);
+  flex-shrink: 0;
+}
+
+.color-picker-cell {
+  background: #fff;
+}
+
+.color-picker-cell input[type="color"] {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: var(--radius);
+}

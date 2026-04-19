@@ -6,6 +6,7 @@ const homeController = require('../controllers/homeController');
 const sourceController = require('../controllers/sourceController');
 const dashboardController = require('../controllers/dashboardController');
 const historyController = require('../controllers/historyController');
+const templateController = require('../controllers/templateController');
 
 // Home
 router.get('/', homeController.index);
@@ -22,6 +23,14 @@ router.post('/dashboard/generate', dashboardController.generate);
 router.post('/dashboard/save', dashboardController.save);
 router.get('/dashboard/history', historyController.index);
 router.get('/dashboard/:id', dashboardController.detail);
+
+// Templates
+router.get('/templates', templateController.list);
+router.get('/templates/new', templateController.showForm);
+router.post('/templates', templateController.create);
+router.get('/templates/:id/edit', templateController.showForm);
+router.post('/templates/:id', templateController.update);
+router.post('/templates/:id/delete', templateController.destroy);
 
 // Health check
 router.get('/health', (req, res) => {

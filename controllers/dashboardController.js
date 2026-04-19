@@ -4,7 +4,7 @@ const { safeJsonParse } = require('../utils/helpers');
 
 exports.generate = async (req, res) => {
   try {
-    const { prompt, chartType, dataSourceId } = req.body;
+    const { prompt, chartType, dataSourceId, templateId } = req.body;
 
     if (!prompt || !prompt.trim()) {
       req.flash('error', 'Please enter a prompt.');
@@ -15,6 +15,7 @@ exports.generate = async (req, res) => {
       prompt: prompt.trim(),
       chartType: chartType || 'auto',
       dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
+      templateId: templateId ? parseInt(templateId, 10) : null,
     });
 
     // Fetch sources for the form

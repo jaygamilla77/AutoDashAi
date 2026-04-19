@@ -1,0 +1,67 @@
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Templates</h1>
+    <p>Choose a visual theme for your dashboards — colors, fonts, and chart style.</p>
+  </div>
+  <a href="/templates/new" class="btn btn-primary btn-sm">Create Template</a>
+</div>
+
+<% if (typeof templates !== 'undefined' && templates.length > 0) { %>
+<div class="row g-3">
+  <% templates.forEach(function(t) { %>
+    <% var palette = JSON.parse(t.colorPalette || '[]'); %>
+    <div class="col-lg-3 col-md-4 col-sm-6">
+      <div class="card template-card h-100">
+        <!-- Color bar preview -->
+        <div class="template-color-bar d-flex" style="height:8px; border-radius:6px 6px 0 0; overflow:hidden;">
+          <% palette.forEach(function(c) { %>
+            <div style="flex:1; background:<%= c %>"></div>
+          <% }); %>
+        </div>
+
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="mb-0" style="font-family:<%= t.fontFamily %>, sans-serif; color:<%= t.accentColor %>"><%= t.name %></h6>
+            <% if (t.isBuiltIn) { %>
+              <span class="badge bg-secondary" style="font-size:0.65rem">Built-in</span>
+            <% } else { %>
+              <span class="badge" style="background:#e5e7eb;color:#374151;font-size:0.65rem">Custom</span>
+            <% } %>
+          </div>
+
+          <p class="text-muted mb-3" style="font-size:0.78rem"><%= t.description || 'No description.' %></p>
+
+          <!-- Color swatches -->
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            <% palette.forEach(function(c) { %>
+              <div style="width:22px;height:22px;border-radius:50%;background:<%= c %>;border:1px solid rgba(0,0,0,0.08)"
+                   title="<%= c %>"></div>
+            <% }); %>
+          </div>
+
+          <!-- Font preview -->
+          <p class="mb-0" style="font-family:<%= t.fontFamily %>, sans-serif; font-size:0.82rem; color:#6b7280">
+            Aa — <%= t.fontFamily %>
+          </p>
+        </div>
+
+        <div class="card-footer bg-white d-flex gap-2">
+          <% if (!t.isBuiltIn) { %>
+            <a href="/templates/<%= t.id %>/edit" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <form action="/templates/<%= t.id %>/delete" method="POST" onsubmit="return confirm('Delete this template?')">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">Delete</button>
+            </form>
+          <% } else { %>
+            <span class="text-muted" style="font-size:0.75rem;line-height:2">Read-only</span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+</div>
+<% } else { %>
+<div class="text-center py-5">
+  <p class="text-muted">No templates yet.</p>
+  <a href="/templates/new" class="btn btn-primary btn-sm">Create your first template</a>
+</div>
+<% } %>

@@ -95,7 +95,7 @@
             placeholder="e.g., Show me employees with low productivity this month&#10;e.g., Compare project budgets by department&#10;e.g., Top 10 tickets by priority" required></textarea>
 
           <div class="row g-3 mb-4">
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label">Source</label>
               <select class="form-select" name="dataSourceId">
                 <option value="">Internal Database</option>
@@ -106,7 +106,7 @@
                 <% } %>
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label">Visualization</label>
               <select class="form-select" name="chartType">
                 <% if (typeof chartTypes !== 'undefined') { %>
@@ -115,6 +115,20 @@
                   <% }); %>
                 <% } %>
               </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Template</label>
+              <select class="form-select" name="templateId" id="templateSelect">
+                <option value="">Default (no theme)</option>
+                <% if (typeof templates !== 'undefined' && templates.length > 0) { %>
+                  <% templates.forEach(function(t) { %>
+                    <option value="<%= t.id %>" data-accent="<%= t.accentColor %>" data-font="<%= t.fontFamily %>">
+                      <%= t.name %>
+                    </option>
+                  <% }); %>
+                <% } %>
+              </select>
+              <div id="templateHint" class="mt-1" style="font-size:0.75rem;color:#888"></div>
             </div>
           </div>
 
@@ -145,3 +159,23 @@
 
 </div>
 </div>
+
+<script>
+(function () {
+  var sel = document.getElementById('templateSelect');
+  var hint = document.getElementById('templateHint');
+  if (!sel) return;
+  sel.addEventListener('change', function () {
+    var opt = sel.options[sel.selectedIndex];
+    var accent = opt.dataset.accent;
+    var font = opt.dataset.font;
+    if (accent && font) {
+      hint.textContent = font + ' · ' + accent;
+      hint.style.color = accent;
+    } else {
+      hint.textContent = '';
+    }
+  });
+})();
+</script>
+
