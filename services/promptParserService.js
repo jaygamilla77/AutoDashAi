@@ -2,12 +2,12 @@
  * Prompt Parser Service
  *
  * Converts natural language prompts into structured dashboard requests.
- * Uses rule-based keyword matching (no external AI needed for local mode).
- * Architecture supports future OpenAI integration.
+ * Uses Azure OpenAI when available, falls back to rule-based keyword matching.
  */
 
 const { CHART_TYPES, KNOWN_ENTITIES } = require('../utils/constants');
 const dateFilterService = require('./dateFilterService');
+const aiService = require('./aiService');
 
 // Entity detection patterns
 const ENTITY_PATTERNS = {
@@ -213,4 +213,51 @@ function generateTitle(prompt) {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
 
-module.exports = { parse };
+// ========== AI-Powered Parsing ==========
+
+const AI_PARSE_SYSTEM_PROMPT = `You are a data analytics assistant that converts natural language questions into structured dashboard requests.
+
+Given a user's question about data, return a JSON object with these fields:
+- "goal": always "build_dashboard"
+- "focusArea": the main entity/topic (e.g. "employee", "ticket", "project", "productivity", "department", or "generic")
+- "metrics": array of metrics to compute (e.g. ["count"], ["avg"], ["sum", "budget"], ["avg_productivity_score"])
+- "dimensions": array of grouping dimensions (e.g. ["department"], ["status"], ["month"])
+- "filters": object of filters (e.g. {"status":"open"}, {"priority":"high"}, {"isActive":true})
+- "sort": null or {"field":"<metric>","direction":"desc"|"asc"}
+- "limit": null or a number (e.g. 10 for "top 10")
+- "chartPreference": best chart type ("bar", "line", "pie", "doughnut", "table")
+- "title": a short descriptive title for the dashboard panel
+
+Think about what visualization best answers the question. Use "line" for trends over time, "pie" for distributions/proportions, "bar" for comparisons, "table" for detailed listings.`;
+
+/**
+ * AI-powered prompt parsing — uses Azure OpenAI to interpret natural language.
+ * Returns the same structure as the rule-based parse, or null on failure.
+ */
+async function parseWithAI(prompt, chartTypeHint, schemaContext) {
+  if (!aiService.isAvailable()) return null;
+
+  let userMsg = `User question: "${prompt}"`;
+  if (chartTypeHint && chartTypeHint !== 'auto') {
+    userMsg += `\nPreferred chart type: ${chartTypeHint}`;
+  }
+  if (schemaContext) {
+    userMsg += `\n\nAvailable data schema:\n${schemaContext}`;
+  }
+
+  const result = await aiService.chatJSON(AI_PARSE_SYSTEM_PROMPT, userMsg);
+  if (!result || !result.goal) return null;
+
+  // Ensure required fields
+  result.originalPrompt = prompt;
+  result.focusArea = result.focusArea || 'generic';
+  result.metrics = result.metrics || ['count'];
+  result.dimensions = result.dimensions || [];
+  result.filters = result.filters || {};
+  result.chartPreference = result.chartPreference || 'bar';
+  result.title = result.title || generateTitle(prompt);
+
+  return result;
+}
+
+module.exports = { parse, parseWithAI };

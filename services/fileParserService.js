@@ -52,10 +52,55 @@ function parseCSV(filePath) {
 }
 
 /**
+ * Convert an Excel date serial number to an ISO date string (YYYY-MM-DD).
+ * Excel epoch: Dec 30 1899. Includes the "Lotus 1-2-3 leap year bug" offset.
+ */
+function excelSerialToDate(serial) {
+  if (typeof serial !== 'number' || serial < 1) return serial;
+  const utcMs = Math.round((serial - 25569) * 86400 * 1000);
+  return new Date(utcMs).toISOString().slice(0, 10);
+}
+
+/**
+ * Column name patterns that indicate a date field.
+ */
+const DATE_COL_PATTERN = /date|week|month|year|period|quarter|created|updated|start|end|time|_at$/i;
+
+/**
+ * Excel serial numbers cluster in the range 30000–60000 (roughly 1982–2064).
+ * Detects whether a value looks like an Excel date serial.
+ */
+function looksLikeExcelSerial(v) {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 30000 && v <= 60000;
+}
+
+/**
+ * Post-process rows from sheet_to_json: convert any remaining Excel date serials
+ * in date-named columns to ISO strings. Also converts JS Date objects.
+ */
+function normalizeExcelDates(columns, rows) {
+  const dateCols = columns.filter((col) => DATE_COL_PATTERN.test(col));
+  if (dateCols.length === 0) return rows;
+
+  return rows.map((row) => {
+    const out = Object.assign({}, row);
+    dateCols.forEach((col) => {
+      const v = out[col];
+      if (v instanceof Date) {
+        out[col] = v.toISOString().slice(0, 10);
+      } else if (looksLikeExcelSerial(v)) {
+        out[col] = excelSerialToDate(v);
+      }
+    });
+    return out;
+  });
+}
+
+/**
  * Parse Excel file — reads ALL sheets and returns one dataset per sheet.
  */
 function parseExcel(filePath) {
-  const workbook = XLSX.readFile(filePath);
+  const workbook = XLSX.readFile(filePath, { cellDates: true });
 
   if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
     throw new Error('Excel file contains no sheets.');
@@ -63,14 +108,15 @@ function parseExcel(filePath) {
 
   const sheets = workbook.SheetNames.map((sheetName) => {
     const sheet = workbook.Sheets[sheetName];
-    const records = XLSX.utils.sheet_to_json(sheet, { defval: null });
+    const records = XLSX.utils.sheet_to_json(sheet, { defval: null, dateNF: 'yyyy-mm-dd' });
 
     if (!records || records.length === 0) {
       return { sheetName, columns: [], rows: [], totalRows: 0 };
     }
 
     const columns = Object.keys(records[0]);
-    const rows = records.slice(0, appConfig.previewRowLimit);
+    const allRows = normalizeExcelDates(columns, records);
+    const rows = allRows.slice(0, appConfig.previewRowLimit);
     return { sheetName, columns, rows, totalRows: records.length };
   });
 

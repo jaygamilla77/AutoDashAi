@@ -161,11 +161,83 @@ exports.test = async (req, res) => {
     source.status = 'active';
     await source.save();
 
-    req.flash('success', 'Data source tested and refreshed successfully.');
+    req.flash('success', 'Data source refreshed and re-analyzed successfully.');
     res.redirect(`/sources/${source.id}`);
   } catch (err) {
     console.error('Source test error:', err);
-    req.flash('error', `Source test failed: ${err.message}`);
+    req.flash('error', `Source refresh failed: ${err.message}`);
     res.redirect(`/sources/${req.params.id}`);
+  }
+};
+
+/**
+ * Re-run analysis only (relationships + prompt suggestions) without re-ingesting data.
+ */
+exports.analyze = async (req, res) => {
+  try {
+    const source = await db.DataSource.findByPk(req.params.id, {
+      include: [{ model: db.DataSourceSchema }],
+    });
+    if (!source) {
+      req.flash('error', 'Data source not found.');
+      return res.redirect('/sources');
+    }
+
+    const { analyzeSheets, buildUnifiedTable } = require('../services/fileParserService');
+    const schemas = (source.DataSourceSchemas || []).filter((s) => s.datasetName !== '__unified__');
+
+    if (schemas.length === 0) {
+      req.flash('warning', 'No schema data found. Please refresh the source first.');
+      return res.redirect(`/sources/${source.id}`);
+    }
+
+    // Reconstruct sheet-like objects from stored schemas
+    const sheets = schemas.map((s) => ({
+      sheetName: s.datasetName,
+      columns: (() => { try { const sc = JSON.parse(s.schemaJson); return sc.map((f) => f.name); } catch { return []; } })(),
+      rows: (() => { try { return JSON.parse(s.previewJson); } catch { return []; } })(),
+    }));
+
+    const { relationships, suggestedPrompts } = analyzeSheets(sheets, source.name);
+    const unified = buildUnifiedTable(sheets);
+
+    await source.update({
+      analysisJson: JSON.stringify({
+        relationships,
+        suggestedPrompts,
+        unifiedColumns: unified.columns,
+        unifiedTotalRows: unified.totalRows,
+      }),
+    });
+
+    req.flash('success', `Analysis complete — ${suggestedPrompts.length} prompt suggestions generated.`);
+    res.redirect(`/sources/${source.id}`);
+  } catch (err) {
+    console.error('Source analyze error:', err);
+    req.flash('error', `Analysis failed: ${err.message}`);
+    res.redirect(`/sources/${req.params.id}`);
+  }
+};
+
+exports.destroy = async (req, res) => {
+  try {
+    const source = await db.DataSource.findByPk(req.params.id);
+    if (!source) {
+      req.flash('error', 'Data source not found.');
+      return res.redirect('/sources');
+    }
+    const id = source.id;
+    const name = source.name;
+    // Use raw SQL in explicit order to avoid SQLite FK constraint failures
+    await db.sequelize.query('DELETE FROM `data_source_schemas` WHERE `dataSourceId` = ?', { replacements: [id] });
+    await db.sequelize.query('DELETE FROM `prompt_history` WHERE `dataSourceId` = ?', { replacements: [id] });
+    await db.sequelize.query('DELETE FROM `saved_dashboards` WHERE `dataSourceId` = ?', { replacements: [id] });
+    await db.sequelize.query('DELETE FROM `data_sources` WHERE `id` = ?', { replacements: [id] });
+    req.flash('success', `"${name}" deleted successfully.`);
+    res.redirect('/sources');
+  } catch (err) {
+    console.error('Source delete error:', err);
+    req.flash('error', 'Failed to delete source: ' + err.message);
+    res.redirect('/sources');
   }
 };

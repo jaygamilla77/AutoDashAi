@@ -53,8 +53,8 @@ function inferType(columnName, values) {
     return { type: 'integer', role: 'identifier' };
   }
 
-  // Check for date patterns
-  if (/date|created|updated|time|_at$|At$|timestamp/i.test(name)) {
+  // Check for date patterns — broad match including Week/Month/Year/Period/Start/End
+  if (/date|week|month|year|period|quarter|created|updated|time|_at$|At$|timestamp|start|end/i.test(name)) {
     return { type: 'date', role: 'date' };
   }
 

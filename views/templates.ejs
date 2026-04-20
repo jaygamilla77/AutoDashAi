@@ -12,11 +12,67 @@
     <% var palette = JSON.parse(t.colorPalette || '[]'); %>
     <div class="col-lg-3 col-md-4 col-sm-6">
       <div class="card template-card h-100">
-        <!-- Color bar preview -->
-        <div class="template-color-bar d-flex" style="height:8px; border-radius:6px 6px 0 0; overflow:hidden;">
-          <% palette.forEach(function(c) { %>
-            <div style="flex:1; background:<%= c %>"></div>
-          <% }); %>
+        <!-- Mini dashboard preview -->
+        <div style="font-family:'<%= t.fontFamily %>',sans-serif;background:#f0f2f5;border-bottom:1px solid #e5e7eb">
+          <!-- Window chrome -->
+          <div style="background:#1e1e1e;padding:5px 8px;display:flex;align-items:center;gap:5px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#ff5f57"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#febc2e"></div>
+            <div style="width:6px;height:6px;border-radius:50%;background:#28c840"></div>
+            <span style="font-size:0.38rem;color:#888;margin-left:5px;letter-spacing:0.5px"><%= t.name %></span>
+          </div>
+          <!-- Toolbar -->
+          <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:4px 7px;display:flex;gap:5px;align-items:center">
+            <div style="width:38px;height:4px;background:#e5e7eb;border-radius:2px"></div>
+            <div style="width:38px;height:4px;background:#e5e7eb;border-radius:2px"></div>
+            <div style="flex:1"></div>
+            <div style="width:22px;height:10px;background:<%= palette[0]||'#333' %>;border-radius:2px;opacity:0.85"></div>
+            <div style="width:22px;height:10px;background:<%= palette[1]||'#555' %>;border-radius:2px;opacity:0.85"></div>
+          </div>
+          <!-- KPI cards -->
+          <div style="display:flex;gap:4px;padding:6px 7px 3px">
+            <% [{l:'Total Hrs',v:'1,260'},{l:'Employees',v:'26'},{l:'Projects',v:'6'},{l:'Avg Hrs/Wk',v:'12.1'}].forEach(function(kpi,i){ %>
+            <div style="flex:1;background:<%= palette[i]||palette[0] %>;border-radius:3px;padding:4px 5px">
+              <div style="font-size:0.29rem;color:rgba(255,255,255,0.72);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:1px"><%= kpi.l %></div>
+              <div style="font-size:0.62rem;font-weight:700;color:#fff"><%= kpi.v %></div>
+              <div style="font-size:0.27rem;color:rgba(255,255,255,0.55);margin-top:1px">&#9650; 8.5%</div>
+            </div>
+            <% }); %>
+          </div>
+          <!-- Charts -->
+          <div style="display:flex;gap:4px;padding:2px 7px 3px">
+            <div style="flex:2;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb">
+              <div style="font-size:0.28rem;color:#9ca3af;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.3px">Productivity Trend</div>
+              <div style="display:flex;align-items:flex-end;gap:1px;height:38px">
+                <% [82,55,67,90,48,72,55,78,65,85,43,70].forEach(function(h,i){ %>
+                <div style="flex:1;background:<%= palette[i%palette.length]||palette[0] %>;height:<%= h %>%;border-radius:1px 1px 0 0;opacity:0.82"></div>
+                <% }); %>
+              </div>
+            </div>
+            <div style="flex:1;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb;display:flex;flex-direction:column;align-items:center">
+              <div style="font-size:0.28rem;color:#9ca3af;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.3px;align-self:flex-start">By WBS</div>
+              <div style="width:32px;height:32px;border-radius:50%;background:conic-gradient(<%= palette[0]||'#333' %> 0% 28%, <%= palette[1]||'#555' %> 28% 52%, <%= palette[2]||'#777' %> 52% 68%, <%= palette[3]||'#999' %> 68% 79%, <%= palette[4]||'#bbb' %> 79% 88%, <%= palette[5]||'#ddd' %> 88% 100%);position:relative;flex-shrink:0">
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;background:#fff"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Mini table -->
+          <div style="padding:2px 7px 7px">
+            <div style="background:#fff;border-radius:3px;border:1px solid #e5e7eb;overflow:hidden">
+              <div style="display:flex;padding:2px 5px;background:#f9fafb;border-bottom:1px solid #e5e7eb">
+                <div style="flex:2;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Employee</div>
+                <div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Hours</div>
+                <div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Status</div>
+              </div>
+              <% [['Alice Martin','98.5',0],['Bob Chen','76.0',1],['Carol Wu','54.2',2]].forEach(function(row){ %>
+              <div style="display:flex;align-items:center;padding:2px 5px;border-bottom:1px solid #f3f4f6">
+                <div style="flex:2;font-size:0.3rem;color:#374151"><%= row[0] %></div>
+                <div style="flex:1;font-size:0.3rem;color:#374151"><%= row[1] %></div>
+                <div style="flex:1"><span style="font-size:0.26rem;background:<%= palette[row[2]]||palette[0] %>;color:#fff;border-radius:2px;padding:1px 3px">Active</span></div>
+              </div>
+              <% }); %>
+            </div>
+          </div>
         </div>
 
         <div class="card-body">
@@ -30,14 +86,6 @@
           </div>
 
           <p class="text-muted mb-3" style="font-size:0.78rem"><%= t.description || 'No description.' %></p>
-
-          <!-- Color swatches -->
-          <div class="d-flex flex-wrap gap-1 mb-3">
-            <% palette.forEach(function(c) { %>
-              <div style="width:22px;height:22px;border-radius:50%;background:<%= c %>;border:1px solid rgba(0,0,0,0.08)"
-                   title="<%= c %>"></div>
-            <% }); %>
-          </div>
 
           <!-- Chart type badges -->
           <% var chartTypes = []; try { if (t.preferredChartTypes) chartTypes = JSON.parse(t.preferredChartTypes); } catch(e) {} %>

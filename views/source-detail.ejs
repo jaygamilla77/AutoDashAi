@@ -3,9 +3,18 @@
     <h1><%= source.name %></h1>
     <p><%= source.sourceType %> &middot; <%= source.status %> &middot; Created <%= new Date(source.createdAt).toLocaleDateString() %></p>
   </div>
-  <form action="/sources/<%= source.id %>/test" method="POST">
-    <button type="submit" class="btn btn-outline-secondary btn-sm">Refresh</button>
-  </form>
+  <div class="d-flex gap-2">
+    <form action="/sources/<%= source.id %>/analyze" method="POST">
+      <button type="submit" class="btn btn-outline-secondary btn-sm" title="Re-run relationship detection and prompt suggestions">
+        <i class="bi bi-lightbulb me-1"></i>Analyze
+      </button>
+    </form>
+    <form action="/sources/<%= source.id %>/test" method="POST">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+      </button>
+    </form>
+  </div>
 </div>
 
 <% if (typeof source !== 'undefined' && source) { %>
@@ -177,7 +186,6 @@
 
   </div>
   <% }); %>
-</div>
 
 <!-- Unified Table Panel -->
 <% if (unifiedDataset && unifiedDataset.previewData && unifiedDataset.previewData.length > 0) { %>
@@ -350,7 +358,8 @@
   </div>
   <% } %>
 
-</div>
+</div><!-- /tab-pane analysis -->
+</div><!-- /tab-content -->
 <% } %>
 
 <% } %>

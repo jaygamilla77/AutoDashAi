@@ -1,0 +1,1064 @@
+<% var tmpl = (typeof panels !== 'undefined' && panels.length && panels[0].template) ? panels[0].template : null; %>
+<% var isExecDash = (typeof isFullDashboard !== 'undefined' && isFullDashboard); %>
+<% if (tmpl) { %>
+<style>
+  .dash-multi-wrapper { font-family: '<%= tmpl.fontFamily %>', sans-serif; }
+  .dash-multi-wrapper .kpi-value { color: <%= tmpl.accentColor %>; }
+  .dash-multi-wrapper h1, .dash-multi-wrapper h2, .dash-multi-wrapper h3 { color: <%= tmpl.accentColor %>; }
+</style>
+<% } %>
+
+<% if (isExecDash) { %>
+<style>
+  /* ── Executive 1-page dashboard compact styles ── */
+  .exec-dash { max-width: 1400px; margin: 0 auto; }
+  .exec-header { padding: 10px 0 6px; margin-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  .exec-header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; color: #1e293b; }
+  .exec-header .sub { font-size: 0.72rem; color: #6b7280; }
+
+  /* KPI strip */
+  .exec-kpi-strip { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .exec-kpi-card {
+    flex: 1; min-width: 120px; max-width: 220px;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 12px 14px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: transform 0.15s;
+  }
+  .exec-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .exec-kpi-icon {
+    width: 32px; height: 32px; border-radius: 8px; margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: #fff;
+  }
+  .exec-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1.1; }
+  .exec-kpi-label { font-size: 0.65rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+  .exec-kpi-trend { font-size: 0.62rem; margin-top: 2px; font-weight: 600; }
+
+  /* Executive summary compact */
+  .exec-summary { font-size: 0.75rem; color: #374151; line-height: 1.55; padding: 8px 14px; margin-bottom: 10px;
+    background: linear-gradient(90deg,#f5f3ff,#ede9fe); border-radius: 8px; border-left: 3px solid #7c3aed; }
+  .exec-summary .label { font-size: 0.7rem; color: #4c1d95; font-weight: 700; }
+
+  /* Chart grid compact */
+  .exec-chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (min-width: 1200px) {
+    .exec-chart-grid.g3 { grid-template-columns: repeat(3, 1fr); }
+  }
+  .exec-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .exec-panel-hdr {
+    padding: 8px 12px; font-size: 0.78rem; font-weight: 600; color: #1e293b;
+    border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;
+  }
+  .exec-panel-hdr .badge { font-size: 0.58rem; }
+  .exec-panel-body { padding: 6px 10px 10px; }
+  .exec-panel .exec-chart-wrap { position: relative; height: 200px; }
+  .exec-panel .exec-insight {
+    font-size: 0.68rem; color: #4c1d95; padding: 5px 10px;
+    background: linear-gradient(90deg,#f5f3ff,#ede9fe); border-top: 1px solid #e2e8f0;
+    line-height: 1.4;
+  }
+  .exec-panel .exec-kpi-footer {
+    display: flex; border-top: 1px solid #e5e7eb;
+  }
+  .exec-panel .exec-kpi-footer .kpi-item {
+    flex: 1; text-align: center; padding: 5px 2px; border-right: 1px solid #f1f5f9;
+  }
+  .exec-panel .exec-kpi-footer .kpi-item:last-child { border-right: none; }
+  .exec-panel .exec-kpi-footer .kpi-item .val { font-size: 0.82rem; font-weight: 700; }
+  .exec-panel .exec-kpi-footer .kpi-item .lbl { font-size: 0.55rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* Print-friendly */
+  @media print {
+    .exec-header .actions, .exec-filter { display: none !important; }
+    .exec-panel { break-inside: avoid; }
+  }
+</style>
+<% } %>
+
+<div class="<%= tmpl ? 'dash-multi-wrapper' : '' %>">
+
+<% if (isExecDash) { %>
+<!-- ═══════ EXECUTIVE 1-PAGE DASHBOARD ═══════ -->
+<div class="exec-dash">
+
+  <!-- Header -->
+  <div class="exec-header d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-speedometer2 me-2" style="color:#6366f1"></i><%= title || 'Executive Dashboard' %></h1>
+      <div class="sub">
+        <%= panels.length %> panel<%= panels.length === 1 ? '' : 's' %>
+        <% if (tmpl) { %> &middot; <span style="color:<%= tmpl.accentColor %>"><%= tmpl.name %></span><% } %>
+        &middot; Generated <%= new Date().toLocaleDateString() %>
+      </div>
+    </div>
+    <div class="actions d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()" title="Print">
+        <i class="bi bi-printer"></i>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="saveDashboard()">
+        <i class="bi bi-bookmark"></i> Save
+      </button>
+      <a href="/" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg"></i> New
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <% var kpiPalRaw = (typeof palette !== 'undefined' && palette && palette.length >= 2) ? palette : null; %>
+  <% var kpiColors = kpiPalRaw || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']; %>
+  <% if (typeof kpiData !== 'undefined' && kpiData && kpiData.length) { %>
+  <div class="exec-kpi-strip">
+    <% kpiData.forEach(function(kpi, ki) { %>
+    <div class="exec-kpi-card">
+      <div class="exec-kpi-icon" style="background:<%= kpiColors[ki % kpiColors.length] %>">
+        <i class="bi <%= kpi.icon || 'bi-bar-chart' %>"></i>
+      </div>
+      <div class="exec-kpi-val" style="color:<%= kpiColors[ki % kpiColors.length] %>"><%= kpi.value %></div>
+      <div class="exec-kpi-label"><%= kpi.label %></div>
+      <% if (kpi.trend) { %>
+      <div class="exec-kpi-trend" style="color:<%= String(kpi.trend).indexOf('-') === 0 ? '#ef4444' : (String(kpi.trend).indexOf('+') === 0 ? '#22c55e' : '#6b7280') %>">
+        <%= kpi.trend %>
+      </div>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+
+  <!-- Executive Summary -->
+  <% if (typeof executiveSummary !== 'undefined' && executiveSummary && executiveSummary.length > 50) { %>
+  <div class="exec-summary">
+    <span class="label"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span>
+    <%= executiveSummary %>
+  </div>
+  <% } %>
+
+  <!-- Chart Grid -->
+  <div class="exec-chart-grid<%= panels.length >= 6 ? ' g3' : '' %>" id="panelGrid">
+    <% panels.forEach(function(panel, idx) { %>
+    <% var isTableDefault = panel.chartType === 'table' || !panel.chartConfig; %>
+    <% var isCardsDefault = panel.chartType === 'cards'; %>
+    <div class="exec-panel" id="panel-col-<%= idx %>">
+
+      <!-- Panel header -->
+      <div class="exec-panel-hdr">
+        <span class="text-truncate" title="<%= panel.originalPrompt %>"><%= panel.title %></span>
+        <% if (panel.hasData) { %>
+        <div class="d-flex gap-1 flex-shrink-0" role="group">
+          <% [
+            {type:'bar',icon:'bi-bar-chart'},{type:'line',icon:'bi-graph-up'},
+            {type:'pie',icon:'bi-pie-chart'},{type:'doughnut',icon:'bi-pie-chart-fill'},
+            {type:'table',icon:'bi-table'},{type:'cards',icon:'bi-grid-1x2-fill'},
+          ].forEach(function(ct) {
+            var active = panel.chartType === ct.type || (isTableDefault && ct.type === 'table' && !panel.chartConfig);
+          %>
+          <button type="button"
+            class="btn chart-switch-btn <%= active ? 'btn-secondary' : 'btn-outline-secondary' %>"
+            data-panel="<%= idx %>" data-type="<%= ct.type %>"
+            onclick="switchChartType(<%= idx %>, '<%= ct.type %>')"
+            title="<%= ct.type %>" style="padding:2px 5px;font-size:0.62rem;line-height:1.4">
+            <i class="bi <%= ct.icon %>"></i>
+          </button>
+          <% }); %>
+        </div>
+        <% } %>
+      </div>
+
+      <div class="exec-panel-body">
+        <% if (!panel.hasData) { %>
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-bar-chart" style="font-size:1.8rem;opacity:0.2"></i>
+          <p class="mt-2 mb-0" style="font-size:0.75rem">No data</p>
+        </div>
+        <% } else { %>
+
+        <!-- Chart -->
+        <div id="chart-wrapper-<%= idx %>" style="display:<%= (isTableDefault || isCardsDefault) ? 'none' : 'block' %>">
+          <% if (panel.chartConfig) { %>
+          <div class="exec-chart-wrap">
+            <canvas id="chart-<%= idx %>"></canvas>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Cards view -->
+        <div id="cards-wrapper-<%= idx %>" style="display:<%= isCardsDefault ? 'flex' : 'none' %>;flex-wrap:wrap;gap:6px;padding:2px 0"></div>
+
+        <!-- Table view -->
+        <div id="table-wrapper-<%= idx %>" style="display:<%= (isTableDefault && !isCardsDefault) ? 'block' : 'none' %>">
+          <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
+          <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+            <table class="table table-sm table-striped table-hover mb-0" style="font-size:0.72rem">
+              <thead class="table-dark" style="position:sticky;top:0">
+                <tr><% panel.tableData.columns.forEach(function(col) { %><th style="white-space:nowrap"><%= col %></th><% }); %></tr>
+              </thead>
+              <tbody>
+                <% panel.tableData.rows.slice(0,20).forEach(function(row) { %>
+                <tr><% panel.tableData.columns.forEach(function(col) { %><td><%= row[col] != null ? row[col] : '-' %></td><% }); %></tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+        </div>
+
+        <% } %>
+      </div>
+
+      <!-- KPI footer -->
+      <% if (panel.kpis && panel.kpis.length > 0) { %>
+      <div class="exec-kpi-footer">
+        <% panel.kpis.slice(0, 3).forEach(function(kpi) { %>
+        <div class="kpi-item">
+          <div class="val" style="<%= tmpl ? 'color:' + tmpl.accentColor + ';' : '' %>"><%= kpi.value %></div>
+          <div class="lbl"><%= kpi.label %></div>
+        </div>
+        <% }); %>
+      </div>
+      <% } %>
+
+      <!-- AI Insight -->
+      <% if (panel.aiInsight) { %>
+      <div class="exec-insight">
+        <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:3px"></i>
+        <span style="font-weight:600">Insight:</span> <%= panel.aiInsight %>
+      </div>
+      <% } %>
+
+    </div>
+    <% }); %>
+  </div>
+
+</div>
+<!-- ═══════ END EXECUTIVE DASHBOARD ═══════ -->
+
+<% } else { %>
+<!-- ═══════ STANDARD MULTI-PANEL DASHBOARD ═══════ -->
+
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="mb-2"><%= panels.length %> panel<%= panels.length === 1 ? '' : 's' %> generated</p>
+    <div class="d-flex gap-2 flex-wrap">
+      <% if (tmpl) { %>
+        <span class="badge" style="background:<%= tmpl.accentColor %>;font-size:0.72rem"><%= tmpl.name %></span>
+      <% } %>
+      <% if (panels[0] && panels[0].dataSourceName !== 'Internal App Database') { %>
+        <span class="badge bg-secondary" style="font-size:0.72rem"><%= panels[0].dataSourceName %></span>
+      <% } %>
+      <span class="badge bg-light text-dark border" style="font-size:0.72rem"><%= panels.filter(function(p){return p.hasData}).length %> with data</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap justify-content-end">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="saveDashboard()">
+      <i class="bi bi-bookmark"></i> Save
+    </button>
+    <a href="/" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg"></i> New Dashboard
+    </a>
+  </div>
+</div>
+
+<!-- Executive Summary (AI) -->
+<% if (typeof executiveSummary !== 'undefined' && executiveSummary && executiveSummary.length > 50) { %>
+<div class="card mb-3" style="border-left:4px solid #7c3aed">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-start gap-2">
+      <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+           style="width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:0.9rem">
+        <i class="bi bi-robot"></i>
+      </div>
+      <div>
+        <h6 class="mb-1" style="font-size:0.82rem;color:#4c1d95">
+          <i class="bi bi-file-earmark-text me-1"></i>AI Executive Summary
+        </h6>
+        <p class="mb-0" style="font-size:0.8rem;color:#374151;line-height:1.6"><%= executiveSummary %></p>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- KPI Strip (for non-executive dashboards) -->
+<% if (!isExecDash) { %>
+  <% var kpiPalRaw = (typeof palette !== 'undefined' && palette && palette.length >= 2) ? palette : null; %>
+  <% var kpiColors = kpiPalRaw || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']; %>
+  <% if (typeof kpiData !== 'undefined' && kpiData && kpiData.length) { %>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 0;margin-bottom:12px;border-bottom:1px solid #e5e7eb">
+    <% kpiData.forEach(function(kpi, ki) { %>
+    <div style="flex:1;min-width:110px;max-width:200px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center;border-top:3px solid <%= kpiColors[ki % kpiColors.length] %>;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
+      <div style="width:28px;height:28px;border-radius:6px;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;background:<%= kpiColors[ki % kpiColors.length] %>"><i class="bi <%= kpi.icon || 'bi-bar-chart' %>"></i></div>
+      <div style="font-size:1.25rem;font-weight:800;color:<%= kpiColors[ki % kpiColors.length] %>;line-height:1.1"><%= kpi.value %></div>
+      <div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px"><%= kpi.label %></div>
+      <% if (kpi.trend) { %>
+      <div style="font-size:0.58rem;font-weight:600;margin-top:2px;color:<%= String(kpi.trend).indexOf('-') === 0 ? '#ef4444' : (String(kpi.trend).indexOf('+') === 0 ? '#22c55e' : '#6b7280') %>"><%= kpi.trend %></div>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+<% } %>
+
+<!-- Global Filter Bar -->
+<div class="card mb-3" id="globalFilterCard">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center py-2" style="cursor:pointer" onclick="toggleGlobalFilterCard()">
+    <span style="font-size:0.82rem;font-weight:600">
+      <i class="bi bi-funnel-fill me-2 text-primary"></i>Global Filters
+      <span class="badge bg-primary rounded-pill ms-1" id="globalFilterBadge" style="display:none;font-size:0.68rem">0</span>
+    </span>
+    <div class="d-flex gap-2" onclick="event.stopPropagation()">
+      <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="addGlobalFilter()" style="font-size:0.78rem">
+        <i class="bi bi-plus-lg me-1"></i>Add Filter
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="clearAllGlobalFilters()" style="font-size:0.78rem">
+        <i class="bi bi-x-circle"></i>
+      </button>
+      <i class="bi bi-chevron-down text-muted" id="globalFilterChevron" style="font-size:0.8rem;transition:transform 0.2s"></i>
+    </div>
+  </div>
+  <div id="globalFilterBody">
+    <div id="globalFilterRows"></div>
+    <div id="globalFilterEmpty" style="padding:8px 16px;font-size:0.75rem;color:#9ca3af;font-style:italic">
+      No filters active — click <strong>Add Filter</strong> to filter all panels by a column.
+    </div>
+  </div>
+</div>
+
+<!-- Panel Grid -->
+<div class="row g-3 mb-4" id="panelGrid">
+  <% panels.forEach(function(panel, idx) { %>
+    <% var isTableDefault = panel.chartType === 'table' || !panel.chartConfig; %>
+    <% var isCardsDefault = panel.chartType === 'cards'; %>
+    <% var colClass = panels.length === 1 ? 'col-12' : ((isTableDefault || isCardsDefault) ? 'col-12' : 'col-lg-6'); %>
+    <div class="<%= colClass %>" id="panel-col-<%= idx %>">
+      <div class="card h-100">
+
+        <!-- Panel header: title + chart type switcher -->
+        <div class="card-header bg-white d-flex justify-content-between align-items-center gap-3 py-2">
+          <div class="d-flex align-items-center gap-2 min-w-0">
+            <span class="badge bg-secondary flex-shrink-0" style="font-size:0.65rem;min-width:22px;text-align:center"><%= idx + 1 %></span>
+            <span class="fw-semibold text-truncate" style="font-size:0.85rem" title="<%= panel.originalPrompt %>">
+              <%= panel.title %>
+            </span>
+          </div>
+
+          <!-- Chart type toggle buttons + filter toggle -->
+          <% if (panel.hasData) { %>
+          <div class="d-flex gap-1 flex-shrink-0 align-items-center" role="group">
+            <% [
+              {type:'bar',    icon:'bi-bar-chart',       label:'Bar'},
+              {type:'line',   icon:'bi-graph-up',        label:'Line'},
+              {type:'pie',    icon:'bi-pie-chart',       label:'Pie'},
+              {type:'doughnut',icon:'bi-pie-chart-fill', label:'Donut'},
+              {type:'scatter',icon:'bi-diagram-3',       label:'Scatter'},
+              {type:'table',  icon:'bi-table',           label:'Table'},
+              {type:'cards',  icon:'bi-grid-1x2-fill',   label:'Cards'},
+            ].forEach(function(ct) {
+              var active = panel.chartType === ct.type || (isTableDefault && ct.type === 'table' && !panel.chartConfig);
+            %>
+              <button type="button"
+                class="btn chart-switch-btn <%= active ? 'btn-secondary' : 'btn-outline-secondary' %>"
+                data-panel="<%= idx %>"
+                data-type="<%= ct.type %>"
+                onclick="switchChartType(<%= idx %>, '<%= ct.type %>')"
+                title="<%= ct.label %>"
+                style="padding:3px 7px;font-size:0.72rem;line-height:1.5">
+                <i class="bi <%= ct.icon %>"></i>
+              </button>
+            <% }); %>
+            <div style="width:1px;background:#dee2e6;height:18px;margin:0 2px"></div>
+            <button type="button"
+              id="filterToggle-<%= idx %>"
+              class="btn btn-outline-secondary"
+              onclick="togglePanelFilter(<%= idx %>)"
+              title="Filter data"
+              style="padding:3px 7px;font-size:0.72rem;line-height:1.5">
+              <i class="bi bi-funnel"></i>
+            </button>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Filter bar (collapsed by default) -->
+        <% if (panel.hasData) { %>
+        <div id="filterBar-<%= idx %>" style="display:none;border-bottom:1px solid #e5e7eb;background:#f8fafc;padding:8px 12px">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <input type="text" class="form-control form-control-sm" style="max-width:160px;font-size:0.78rem"
+              placeholder="Search labels…"
+              oninput="applyPanelFilter(<%= idx %>)"
+              id="fSearch-<%= idx %>">
+            <select class="form-select form-select-sm" style="max-width:110px;font-size:0.78rem"
+              onchange="applyPanelFilter(<%= idx %>)"
+              id="fTopN-<%= idx %>">
+              <option value="">All items</option>
+              <option value="5">Top 5</option>
+              <option value="10">Top 10</option>
+              <option value="15">Top 15</option>
+              <option value="20">Top 20</option>
+              <option value="50">Top 50</option>
+            </select>
+            <select class="form-select form-select-sm" style="max-width:150px;font-size:0.78rem"
+              onchange="applyPanelFilter(<%= idx %>)"
+              id="fSort-<%= idx %>">
+              <option value="">Original order</option>
+              <option value="desc">Value ↓ High→Low</option>
+              <option value="asc">Value ↑ Low→High</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+              onclick="clearPanelFilter(<%= idx %>)" title="Clear filters" style="font-size:0.75rem">
+              <i class="bi bi-x-circle me-1"></i>Clear
+            </button>
+            <span class="text-muted ms-auto" style="font-size:0.68rem" id="fCount-<%= idx %>"></span>
+          </div>
+        </div>
+        <% } %>
+
+        <div class="card-body p-3">
+
+          <!-- No data / error state -->
+          <% if (!panel.hasData) { %>
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-bar-chart" style="font-size:2.5rem;opacity:0.2"></i>
+            <p class="mt-3 mb-1" style="font-size:0.9rem">No data returned</p>
+            <small class="text-muted d-block text-truncate px-4" title="<%= panel.originalPrompt %>"><%= panel.originalPrompt %></small>
+            <% if (panel.error) { %><small class="text-danger d-block mt-1"><%= panel.error %></small><% } %>
+          </div>
+
+          <% } else { %>
+
+          <!-- Chart canvas -->
+          <div id="chart-wrapper-<%= idx %>" style="display:<%= (isTableDefault || isCardsDefault) ? 'none' : 'block' %>">
+            <% if (panel.chartConfig) { %>
+            <div style="position:relative;height:320px">
+              <canvas id="chart-<%= idx %>"></canvas>
+            </div>
+            <% } %>
+          </div>
+
+          <!-- Cards view -->
+          <div id="cards-wrapper-<%= idx %>" style="display:<%= isCardsDefault ? 'flex' : 'none' %>;flex-wrap:wrap;gap:10px;padding:4px 0"></div>
+
+          <!-- Table view -->
+          <div id="table-wrapper-<%= idx %>" style="display:<%= (isTableDefault && !isCardsDefault) ? 'block' : 'none' %>">
+            <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
+            <div class="table-responsive" style="max-height:340px;overflow-y:auto">
+              <table class="table table-sm table-striped table-hover mb-0">
+                <thead class="table-dark" style="position:sticky;top:0">
+                  <tr>
+                    <% panel.tableData.columns.forEach(function(col) { %>
+                      <th style="font-size:0.78rem;white-space:nowrap"><%= col %></th>
+                    <% }); %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% panel.tableData.rows.forEach(function(row) { %>
+                  <tr>
+                    <% panel.tableData.columns.forEach(function(col) { %>
+                      <td style="font-size:0.78rem"><%= row[col] != null ? row[col] : '-' %></td>
+                    <% }); %>
+                  </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+            <% } else { %>
+            <div class="text-center py-4 text-muted"><small>No rows</small></div>
+            <% } %>
+          </div>
+
+          <% } %>
+        </div>
+
+        <!-- KPI strip in footer -->
+        <% if (panel.kpis && panel.kpis.length > 0) { %>
+        <div class="card-footer p-0 bg-white">
+          <div class="d-flex" style="border-top:1px solid #e5e7eb">
+            <% panel.kpis.slice(0, 4).forEach(function(kpi, ki) { %>
+            <div class="flex-fill text-center py-2 px-1 <%= ki < panel.kpis.slice(0,4).length - 1 ? 'border-end' : '' %>">
+              <div class="kpi-value fw-bold" style="font-size:0.95rem;<%= tmpl ? 'color:' + tmpl.accentColor + ';' : '' %>"><%= kpi.value %></div>
+              <div class="text-muted" style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.4px;line-height:1.2"><%= kpi.label %></div>
+            </div>
+            <% }); %>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- AI Insight -->
+        <% if (panel.aiInsight) { %>
+        <div style="padding:8px 12px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-top:1px solid #e2e8f0;font-size:0.75rem;color:#4c1d95;line-height:1.5">
+          <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:4px"></i>
+          <span style="font-weight:600">AI Insight:</span> <%= panel.aiInsight %>
+        </div>
+        <% } %>
+
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<!-- Executive Summary (for non-executive dashboards - positioned after panels) -->
+<% if (!isExecDash) { %>
+  <% if (typeof executiveSummary !== 'undefined' && executiveSummary && executiveSummary.length > 50) { %>
+  <div style="padding:12px 16px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-radius:8px;border-left:3px solid #7c3aed;font-size:0.75rem;color:#374151;line-height:1.55;margin-top:16px;margin-bottom:12px">
+    <span style="font-size:0.7rem;color:#4c1d95;font-weight:700"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span>
+    <%= executiveSummary %>
+  </div>
+  <% } %>
+<% } %>
+
+<% } %>
+<!-- ═══════ END CONDITIONAL LAYOUT ═══════ -->
+
+<!-- Save form (hidden) -->
+<form id="saveForm" action="/dashboard/save" method="POST" style="display:none">
+  <input type="hidden" name="title" id="saveTitle">
+  <input type="hidden" name="promptText" id="savePrompt">
+  <input type="hidden" name="dashboardConfigJson" id="saveConfig">
+  <input type="hidden" name="dataSourceId" value="<%= panels[0] ? (panels[0].dataSourceId || '') : '' %>">
+</form>
+
+</div>
+
+<!-- Inject panel data for client-side chart switching -->
+<script>
+window.__panelData = <%- JSON.stringify(panels.map(function(p) {
+  var cfg = p.chartConfig || null;
+  var ds = cfg && cfg.data && cfg.data.datasets && cfg.data.datasets[0] ? cfg.data.datasets[0] : null;
+  var td = p.tableData || { columns: [], rows: [] };
+  return {
+    title: p.title,
+    originalPrompt: p.originalPrompt || '',
+    chartType: p.chartType,
+    hasData: p.hasData,
+    chartConfig: cfg,
+    labels: cfg && cfg.data ? (cfg.data.labels || []) : [],
+    values: ds ? (ds.data || []) : [],
+    bgColors: ds ? (Array.isArray(ds.backgroundColor) ? ds.backgroundColor : [ds.backgroundColor]) : [],
+    borderColors: ds ? (Array.isArray(ds.borderColor) ? ds.borderColor : [ds.borderColor]) : [],
+    fontFamily: (p.template && p.template.fontFamily) ? p.template.fontFamily : 'Inter',
+    tableData: { columns: td.columns || [], rows: td.rows || [] },
+  };
+})) %>;
+
+var __chartInstances = {};
+var __currentTypes = window.__panelData.map(function(p) { return p.chartType; });
+var __isExecDash = <%= isExecDash ? 'true' : 'false' %>;
+window.__kpiData = <%- JSON.stringify(typeof kpiData !== 'undefined' && kpiData ? kpiData : []) %>;
+window.__execSummary = <%- JSON.stringify(typeof executiveSummary !== 'undefined' && executiveSummary ? executiveSummary : '') %>;
+window.__palette = <%- JSON.stringify(typeof palette !== 'undefined' && palette && palette.length ? palette : []) %>;
+
+function _applyPalette(p) {
+  var pal = window.__palette;
+  if (!pal || !pal.length) pal = (p.bgColors && p.bgColors.length >= 2) ? null : null;
+  if (!pal || pal.length < 2) return { bg: p.bgColors, border: p.borderColors };
+  var bg = p.labels.map(function(_, i) { return pal[i % pal.length]; });
+  return { bg: bg, border: 'transparent' };
+}
+
+function buildClientConfig(p, type) {
+  var isLine = type === 'line';
+  var isPie  = type === 'pie' || type === 'doughnut';
+  var pal = window.__palette && window.__palette.length >= 2 ? window.__palette : null;
+  var bg, border, extraDs = {};
+
+  if (pal) {
+    if (isLine) {
+      bg = pal[0] + '22';
+      border = pal[0];
+      extraDs = { pointBackgroundColor: pal[0], tension: 0.4 };
+    } else if (isPie) {
+      bg = p.labels.map(function(_, i) { return pal[i % pal.length]; });
+      border = '#fff';
+      extraDs = { borderWidth: 2 };
+    } else {
+      bg = p.labels.map(function(_, i) { return pal[i % pal.length]; });
+      border = 'transparent';
+      extraDs = { borderWidth: 0, borderRadius: 4 };
+    }
+  } else {
+    bg     = isLine ? (p.bgColors[0] || '#3b82f6') : p.bgColors;
+    border = isLine ? (p.borderColors[0] || '#3b82f6') : p.borderColors;
+  }
+
+  var ds = {
+    label: p.title,
+    data: p.values,
+    backgroundColor: bg,
+    borderColor: border,
+    borderWidth: isLine ? 2 : (extraDs.borderWidth != null ? extraDs.borderWidth : 1),
+    fill: isLine ? false : undefined,
+    tension: isLine ? (extraDs.tension || 0.3) : undefined,
+  };
+  if (extraDs.borderRadius) ds.borderRadius = extraDs.borderRadius;
+  if (extraDs.pointBackgroundColor) ds.pointBackgroundColor = extraDs.pointBackgroundColor;
+
+  return {
+    type: type,
+    data: {
+      labels: p.labels,
+      datasets: [ds]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        title: { display: false },
+        legend: {
+          display: isPie,
+          position: 'bottom',
+          labels: { font: { family: p.fontFamily, size: __isExecDash ? 9 : 12 }, boxWidth: __isExecDash ? 8 : 12, padding: __isExecDash ? 5 : 10 }
+        },
+      },
+      scales: (type === 'bar' || type === 'line') ? {
+        x: { ticks: { font: { family: p.fontFamily, size: __isExecDash ? 9 : 12 }, maxTicksLimit: __isExecDash ? 8 : 12, maxRotation: 45 } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { family: p.fontFamily, size: __isExecDash ? 9 : 12 } } }
+      } : undefined,
+    }
+  };
+}
+
+var __KPI_PAL = ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899'];
+
+function _renderCardsWrapper(panelIdx, filtered) {
+  var el = document.getElementById('cards-wrapper-' + panelIdx);
+  if (!el) return;
+  var panel = window.__panelData[panelIdx];
+  // Use palette (from template), then panel's saved bgColors, then fallback
+  var cardPal = (window.__palette && window.__palette.length >= 2) ? window.__palette
+    : (panel && panel.bgColors && panel.bgColors.length >= 2) ? panel.bgColors : __KPI_PAL;
+  el.innerHTML = filtered.labels.slice(0, 50).map(function(lbl, i) {
+    var val = filtered.values[i] != null ? filtered.values[i] : '-';
+    var numVal = parseFloat(val);
+    var displayVal = !isNaN(numVal) && Math.abs(numVal) >= 1000
+      ? numVal.toLocaleString(undefined, {maximumFractionDigits:2}) : val;
+    var color = cardPal[i % cardPal.length];
+    return '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 14px;min-width:110px;max-width:180px;flex:1;text-align:center;border-top:3px solid ' + color + '">' +
+      '<div style="font-size:1.35rem;font-weight:700;color:' + color + ';line-height:1.1">' + _escHtml(String(displayVal)) + '</div>' +
+      '<div style="font-size:0.72rem;color:#6b7280;margin-top:4px;word-break:break-word">' + _escHtml(String(lbl)) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function switchChartType(panelIdx, newType) {
+  var panel = window.__panelData[panelIdx];
+  if (!panel || !panel.hasData) return;
+  __currentTypes[panelIdx] = newType;
+
+  // Update toggle buttons
+  document.querySelectorAll('.chart-switch-btn[data-panel="' + panelIdx + '"]').forEach(function(btn) {
+    btn.classList.toggle('btn-secondary', btn.dataset.type === newType);
+    btn.classList.toggle('btn-outline-secondary', btn.dataset.type !== newType);
+  });
+
+  var chartWrapper = document.getElementById('chart-wrapper-' + panelIdx);
+  var tableWrapper = document.getElementById('table-wrapper-' + panelIdx);
+  var cardsWrapper = document.getElementById('cards-wrapper-' + panelIdx);
+
+  if (newType === 'table') {
+    if (chartWrapper) chartWrapper.style.display = 'none';
+    if (tableWrapper) tableWrapper.style.display = 'block';
+    if (cardsWrapper) cardsWrapper.style.display = 'none';
+    return;
+  }
+
+  if (newType === 'cards') {
+    if (chartWrapper) chartWrapper.style.display = 'none';
+    if (tableWrapper) tableWrapper.style.display = 'none';
+    if (cardsWrapper) { cardsWrapper.style.display = 'flex'; }
+    var filtered = getFilteredPanelData(panelIdx);
+    _renderCardsWrapper(panelIdx, filtered);
+    if (__chartInstances[panelIdx]) { __chartInstances[panelIdx].destroy(); delete __chartInstances[panelIdx]; }
+    return;
+  }
+
+  if (chartWrapper) chartWrapper.style.display = 'block';
+  if (tableWrapper) tableWrapper.style.display = 'none';
+  if (cardsWrapper) cardsWrapper.style.display = 'none';
+
+  // Destroy old chart and rebuild
+  if (__chartInstances[panelIdx]) {
+    __chartInstances[panelIdx].destroy();
+    delete __chartInstances[panelIdx];
+  }
+  var canvas = document.getElementById('chart-' + panelIdx);
+  if (!canvas || !panel.labels.length) return;
+  var filtered = getFilteredPanelData(panelIdx);
+  __chartInstances[panelIdx] = new Chart(canvas.getContext('2d'), buildClientConfig(filtered, newType));
+}
+
+// ── Utility ──────────────────────────────────────────────────────────────────
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _regenColors(orig, count) {
+  var pal = ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899'];
+  var result = [];
+  for (var i = 0; i < count; i++) result.push(orig[i] || pal[i % pal.length]);
+  return result;
+}
+function _detectLabelCol(panel) {
+  var td = panel.tableData;
+  if (!td || !td.rows || !td.rows.length || !panel.labels.length) return td && td.columns[0];
+  var target = String(panel.labels[0]);
+  return td.columns.find(function(c) { return String(td.rows[0][c]) === target; }) || td.columns[0];
+}
+function _detectValueCol(panel) {
+  var td = panel.tableData;
+  if (!td || !td.rows || !td.rows.length || !panel.values.length) return null;
+  var target = panel.values[0];
+  return td.columns.find(function(c) { return Number(td.rows[0][c]) === Number(target); }) || null;
+}
+function _isNumCol(colName) {
+  var found = null;
+  window.__panelData.some(function(p) {
+    if (!p.tableData || !p.tableData.rows || !p.tableData.rows.length) return false;
+    var v = p.tableData.rows[0][colName];
+    if (v != null) { found = !isNaN(Number(v)); return true; }
+  });
+  return !!found;
+}
+
+// ── Global Filter State ───────────────────────────────────────────────────────
+var __gFilters = [];   // [{id, col, op, val}]
+var __gFilterSeq = 0;
+var __gFilterOpen = true;
+
+function toggleGlobalFilterCard() {
+  __gFilterOpen = !__gFilterOpen;
+  var body = document.getElementById('globalFilterBody');
+  var chev = document.getElementById('globalFilterChevron');
+  if (body) body.style.display = __gFilterOpen ? 'block' : 'none';
+  if (chev) chev.style.transform = __gFilterOpen ? '' : 'rotate(-90deg)';
+}
+
+function _getAllColumns() {
+  var seen = {}, list = [];
+  window.__panelData.forEach(function(p) {
+    (p.tableData && p.tableData.columns || []).forEach(function(c) {
+      if (!seen[c]) { seen[c] = true; list.push(c); }
+    });
+  });
+  return list;
+}
+
+function _getUniqueVals(colName) {
+  var seen = {};
+  window.__panelData.forEach(function(p) {
+    (p.tableData && p.tableData.rows || []).forEach(function(r) {
+      if (r[colName] != null && r[colName] !== '') seen[String(r[colName])] = true;
+    });
+  });
+  return Object.keys(seen).sort().slice(0, 100);
+}
+
+function addGlobalFilter() {
+  var id = ++__gFilterSeq;
+  __gFilters.push({ id: id, col: '', op: '=', val: '' });
+  _renderGFilters();
+  // auto-open
+  if (!__gFilterOpen) toggleGlobalFilterCard();
+}
+
+function removeGlobalFilter(id) {
+  __gFilters = __gFilters.filter(function(f) { return f.id !== id; });
+  _renderGFilters();
+  _applyGlobalFilters();
+}
+
+function clearAllGlobalFilters() {
+  __gFilters = [];
+  _renderGFilters();
+  _applyGlobalFilters();
+}
+
+function updateGlobalFilter(id, field, val) {
+  var f = __gFilters.find(function(f) { return f.id === id; });
+  if (!f) return;
+  f[field] = val;
+  if (field === 'col') { f.val = ''; _renderGFilters(); }
+  _applyGlobalFilters();
+}
+
+function _renderGFilters() {
+  var rows = document.getElementById('globalFilterRows');
+  var empty = document.getElementById('globalFilterEmpty');
+  var badge = document.getElementById('globalFilterBadge');
+  if (!rows) return;
+  var allCols = _getAllColumns();
+  var active = __gFilters.filter(function(f) { return f.col && f.val !== ''; }).length;
+  if (badge) { badge.textContent = active; badge.style.display = active > 0 ? 'inline-flex' : 'none'; }
+  if (!__gFilters.length) {
+    rows.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  rows.innerHTML = __gFilters.map(function(f) {
+    var isNum  = f.col ? _isNumCol(f.col) : false;
+    var ops    = isNum ? ['=','≠','≥','≤','>','<'] : ['=','≠','contains','starts with'];
+    var uvals  = f.col ? _getUniqueVals(f.col) : [];
+    var hasDl  = uvals.length > 0 && uvals.length <= 60;
+    var dlId   = 'gfDl-' + f.id;
+    return '<div class="d-flex align-items-center gap-2 px-3 py-2 border-top" id="gfRow-' + f.id + '">' +
+      '<select class="form-select form-select-sm" style="max-width:170px;font-size:0.78rem" onchange="updateGlobalFilter(' + f.id + ',\'col\',this.value)">' +
+        '<option value="">-- Column --</option>' +
+        allCols.map(function(c) { return '<option value="' + _escHtml(c) + '"' + (f.col === c ? ' selected' : '') + '>' + _escHtml(c) + '</option>'; }).join('') +
+      '</select>' +
+      '<select class="form-select form-select-sm" style="max-width:120px;font-size:0.78rem" onchange="updateGlobalFilter(' + f.id + ',\'op\',this.value)">' +
+        ops.map(function(op) { return '<option value="' + op + '"' + (f.op === op ? ' selected' : '') + '>' + op + '</option>'; }).join('') +
+      '</select>' +
+      '<div style="position:relative;flex:1;min-width:100px;max-width:200px">' +
+        '<input type="text" class="form-control form-control-sm" style="font-size:0.78rem" value="' + _escHtml(String(f.val)) + '" placeholder="Value…" ' + (hasDl ? 'list="' + dlId + '"' : '') + ' oninput="updateGlobalFilter(' + f.id + ',\'val\',this.value)">' +
+        (hasDl ? '<datalist id="' + dlId + '">' + uvals.map(function(v) { return '<option value="' + _escHtml(v) + '">'; }).join('') + '</datalist>' : '') +
+      '</div>' +
+      '<span class="text-muted" style="font-size:0.68rem;white-space:nowrap" id="gfHit-' + f.id + '"></span>' +
+      '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeGlobalFilter(' + f.id + ')" style="font-size:0.74rem" title="Remove"><i class="bi bi-x-lg"></i></button>' +
+    '</div>';
+  }).join('');
+}
+
+// Returns rows of a panel after applying only the active global filters
+function _getGlobalFilteredRows(panelIdx) {
+  var panel = window.__panelData[panelIdx];
+  if (!panel || !panel.tableData || !panel.tableData.rows) return [];
+  var rows = panel.tableData.rows;
+  var cols = panel.tableData.columns;
+  var active = __gFilters.filter(function(f) { return f.col && f.val !== '' && cols.indexOf(f.col) !== -1; });
+  if (!active.length) return rows;
+  return rows.filter(function(row) {
+    return active.every(function(f) {
+      var cv = String(row[f.col] != null ? row[f.col] : '');
+      var fv = String(f.val);
+      var num = !isNaN(Number(cv)) && !isNaN(Number(fv)) && cv !== '';
+      switch (f.op) {
+        case '=':          return num ? Number(cv) === Number(fv) : cv.toLowerCase() === fv.toLowerCase();
+        case '≠':          return num ? Number(cv) !== Number(fv) : cv.toLowerCase() !== fv.toLowerCase();
+        case '≥':          return num && Number(cv) >= Number(fv);
+        case '≤':          return num && Number(cv) <= Number(fv);
+        case '>':          return num && Number(cv) >  Number(fv);
+        case '<':          return num && Number(cv) <  Number(fv);
+        case 'contains':   return cv.toLowerCase().indexOf(fv.toLowerCase()) !== -1;
+        case 'starts with':return cv.toLowerCase().indexOf(fv.toLowerCase()) === 0;
+        default:           return true;
+      }
+    });
+  });
+}
+
+function _applyGlobalFilters() {
+  var active = __gFilters.filter(function(f) { return f.col && f.val !== ''; });
+  // Update per-filter hit counts
+  __gFilters.forEach(function(f) {
+    var el = document.getElementById('gfHit-' + f.id);
+    if (!el || !f.col || f.val === '') return;
+    var total = 0;
+    window.__panelData.forEach(function(p) { total += (p.tableData && p.tableData.rows ? p.tableData.rows.length : 0); });
+    var matched = 0;
+    window.__panelData.forEach(function(_, idx) { matched += _getGlobalFilteredRows(idx).length; });
+    el.textContent = matched + ' row' + (matched !== 1 ? 's' : '');
+  });
+  window.__panelData.forEach(function(_, idx) { applyPanelFilter(idx); });
+}
+
+// ── Per-panel filter helpers ──────────────────────────────────────────────────
+
+function togglePanelFilter(panelIdx) {
+  var bar = document.getElementById('filterBar-' + panelIdx);
+  if (!bar) return;
+  var isVisible = bar.style.display !== 'none';
+  bar.style.display = isVisible ? 'none' : 'block';
+  var btn = document.getElementById('filterToggle-' + panelIdx);
+  if (btn) {
+    btn.classList.toggle('btn-secondary', !isVisible);
+    btn.classList.toggle('btn-outline-secondary', isVisible);
+  }
+}
+
+// Build filtered labels/values for a panel (global rows → per-panel search/topN/sort)
+function getFilteredPanelData(panelIdx) {
+  var panel = window.__panelData[panelIdx];
+  var search = ((document.getElementById('fSearch-' + panelIdx) || {}).value || '').toLowerCase().trim();
+  var topN   = parseInt((document.getElementById('fTopN-'   + panelIdx) || {}).value) || 0;
+  var sort   = ((document.getElementById('fSort-'   + panelIdx) || {}).value || '');
+
+  // 1. Get globally filtered rows
+  var gRows = _getGlobalFilteredRows(panelIdx);
+  var hasGFilter = __gFilters.some(function(f) { return f.col && f.val !== ''; });
+
+  var labels, values, bgColors;
+
+  if (hasGFilter && panel.tableData && panel.tableData.rows && panel.tableData.rows.length) {
+    // Rebuild labels/values from the filtered row subset
+    var labelCol = _detectLabelCol(panel);
+    var valueCol = _detectValueCol(panel);
+    labels   = gRows.map(function(r) { return String(r[labelCol] != null ? r[labelCol] : ''); });
+    values   = gRows.map(function(r) { return valueCol != null ? (Number(r[valueCol]) || 0) : 0; });
+    bgColors = _regenColors(panel.bgColors, labels.length);
+  } else {
+    labels   = panel.labels.slice();
+    values   = panel.values.slice();
+    bgColors = panel.bgColors.slice();
+  }
+
+  var pairs = labels.map(function(l, i) {
+    return { label: l, value: values[i], color: bgColors[i] || bgColors[0] || '#3b82f6' };
+  });
+
+  if (search) {
+    pairs = pairs.filter(function(p) { return String(p.label).toLowerCase().indexOf(search) !== -1; });
+  }
+  if (sort === 'asc')  { pairs.sort(function(a, b) { return (Number(a.value)||0) - (Number(b.value)||0); }); }
+  if (sort === 'desc') { pairs.sort(function(a, b) { return (Number(b.value)||0) - (Number(a.value)||0); }); }
+  if (topN > 0) { pairs = pairs.slice(0, topN); }
+
+  var filteredLabels = pairs.map(function(p) { return p.label; });
+  var filteredValues = pairs.map(function(p) { return p.value; });
+  var filteredColors = pairs.map(function(p) { return p.color; });
+
+  var countEl = document.getElementById('fCount-' + panelIdx);
+  if (countEl) {
+    var total = labels.length;
+    countEl.textContent = filteredLabels.length === total
+      ? total + ' items'
+      : filteredLabels.length + ' of ' + total + ' items';
+  }
+
+  return Object.assign({}, panel, { labels: filteredLabels, values: filteredValues, bgColors: filteredColors });
+}
+
+function applyPanelFilter(panelIdx) {
+  var currentType = __currentTypes[panelIdx];
+  var filtered = getFilteredPanelData(panelIdx);
+
+  // Update table row visibility
+  var tableWrapper = document.getElementById('table-wrapper-' + panelIdx);
+  if (tableWrapper) {
+    var tbody = tableWrapper.querySelector('tbody');
+    if (tbody) {
+      var panel = window.__panelData[panelIdx];
+      var cols  = panel.tableData && panel.tableData.columns ? panel.tableData.columns : [];
+      var hasGF = __gFilters.some(function(f) { return f.col && f.val !== '' && cols.indexOf(f.col) !== -1; });
+      var labelSet = {};
+      filtered.labels.forEach(function(l) { labelSet[String(l)] = true; });
+      // Build colIdx map for global filter DOM check
+      var colIdx = {};
+      cols.forEach(function(c, i) { colIdx[c] = i; });
+      var activeGF = __gFilters.filter(function(f) { return f.col && f.val !== '' && cols.indexOf(f.col) !== -1; });
+      var shown = 0;
+      var topN = parseInt((document.getElementById('fTopN-' + panelIdx) || {}).value) || 0;
+      tbody.querySelectorAll('tr').forEach(function(row) {
+        var cells = row.querySelectorAll('td');
+        // Global filter check on DOM cells
+        var passGF = activeGF.every(function(f) {
+          var ci = colIdx[f.col];
+          if (ci === undefined || !cells[ci]) return true;
+          var cv = cells[ci].textContent.trim();
+          var fv = String(f.val);
+          var num = !isNaN(Number(cv)) && !isNaN(Number(fv)) && cv !== '';
+          switch (f.op) {
+            case '=':          return num ? Number(cv) === Number(fv) : cv.toLowerCase() === fv.toLowerCase();
+            case '≠':          return num ? Number(cv) !== Number(fv) : cv.toLowerCase() !== fv.toLowerCase();
+            case '≥':          return num && Number(cv) >= Number(fv);
+            case '≤':          return num && Number(cv) <= Number(fv);
+            case '>':          return num && Number(cv) >  Number(fv);
+            case '<':          return num && Number(cv) <  Number(fv);
+            case 'contains':   return cv.toLowerCase().indexOf(fv.toLowerCase()) !== -1;
+            case 'starts with':return cv.toLowerCase().indexOf(fv.toLowerCase()) === 0;
+            default:           return true;
+          }
+        });
+        if (!passGF) { row.style.display = 'none'; return; }
+        // Per-panel label filter
+        var firstCell = cells[0];
+        var passLabel = !labelSet || labelSet[firstCell ? firstCell.textContent.trim() : ''];
+        // TopN
+        var passTopN = !topN || shown < topN;
+        if (passLabel && passTopN) { row.style.display = ''; shown++; }
+        else row.style.display = 'none';
+      });
+    }
+  }
+
+  if (currentType === 'table') return;
+
+  if (currentType === 'cards') {
+    _renderCardsWrapper(panelIdx, filtered);
+    return;
+  }
+
+  // Rebuild chart
+  if (__chartInstances[panelIdx]) {
+    __chartInstances[panelIdx].destroy();
+    delete __chartInstances[panelIdx];
+  }
+  var canvas = document.getElementById('chart-' + panelIdx);
+  if (!canvas) return;
+  __chartInstances[panelIdx] = new Chart(canvas.getContext('2d'), buildClientConfig(filtered, currentType));
+}
+
+function clearPanelFilter(panelIdx) {
+  ['fSearch-', 'fTopN-', 'fSort-'].forEach(function(prefix) {
+    var el = document.getElementById(prefix + panelIdx);
+    if (el) el.value = '';
+  });
+  applyPanelFilter(panelIdx);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function saveDashboard() {
+  var allTitles = window.__panelData.map(function(p) { return p.title; }).join('; ');
+  var allPrompts = window.__panelData.map(function(p) { return p.originalPrompt; }).join('\n');
+  document.getElementById('saveTitle').value = allTitles.substring(0, 120);
+  document.getElementById('savePrompt').value = allPrompts;
+  document.getElementById('saveConfig').value = JSON.stringify({
+    kpiData: window.__kpiData || [],
+    executiveSummary: window.__execSummary || '',
+    palette: window.__palette || [],
+    panels: window.__panelData.map(function(p, i) {
+      var currentType = __currentTypes[i];
+      // Persist the chartConfig with the currently selected chart type
+      var chartConfig = p.chartConfig ? JSON.parse(JSON.stringify(p.chartConfig)) : null;
+      if (chartConfig && currentType && currentType !== 'table') chartConfig.type = currentType;
+      // Ensure template/user-chosen colours are persisted inside chartConfig
+      if (chartConfig && chartConfig.data && chartConfig.data.datasets && chartConfig.data.datasets[0]) {
+        chartConfig.data.datasets[0].backgroundColor = p.bgColors;
+        chartConfig.data.datasets[0].borderColor = p.borderColors;
+      }
+      return {
+        title: p.title,
+        originalPrompt: p.originalPrompt,
+        chartType: currentType,
+        hasData: p.hasData,
+        chartConfig: chartConfig,
+        labels: p.labels,
+        values: p.values,
+        bgColors: p.bgColors,
+        borderColors: p.borderColors,
+        tableData: p.tableData,
+      };
+    })
+  });
+  document.getElementById('saveForm').submit();
+}
+
+// Initialize all charts on load
+document.addEventListener('DOMContentLoaded', function() {
+  window.__panelData.forEach(function(panel, idx) {
+    if (!panel.hasData) return;
+    if (panel.chartType === 'cards') {
+      var filtered = getFilteredPanelData(idx);
+      _renderCardsWrapper(idx, filtered);
+      return;
+    }
+    if (!panel.chartConfig || panel.chartType === 'table') return;
+    var canvas = document.getElementById('chart-' + idx);
+    if (!canvas) return;
+    var filtered = getFilteredPanelData(idx);
+    __chartInstances[idx] = new Chart(canvas.getContext('2d'), buildClientConfig(filtered, panel.chartType));
+  });
+});
+</script>

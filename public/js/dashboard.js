@@ -4,7 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
-  // Render chart if config is available
+  // Render chart if config is available (may be null if a view-level script already handled rendering)
   if (window.__chartConfig) {
     renderChart(window.__chartConfig);
   }

@@ -96,34 +96,8 @@
 
           <!-- Live Preview -->
           <div class="mb-4">
-            <label class="form-label">Live Preview</label>
-            <div id="templatePreview" class="border rounded p-3" style="background:#fafafa">
-              <!-- Color bar -->
-              <div id="previewBar" class="d-flex mb-3" style="height:6px;border-radius:3px;overflow:hidden">
-                <% for (var j = 0; j < 8; j++) { %>
-                  <div class="preview-swatch" style="flex:1;background:<%= palette[j] %>"></div>
-                <% } %>
-              </div>
-              <!-- KPI mock -->
-              <div class="d-flex gap-3 mb-3">
-                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
-                  <div id="previewKpi" style="font-size:1.25rem;font-weight:700;color:#111">1,234</div>
-                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Total Records</div>
-                </div>
-                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
-                  <div id="previewKpi2" style="font-size:1.25rem;font-weight:700;color:#111">56.7%</div>
-                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Average Score</div>
-                </div>
-                <div class="border rounded p-2 text-center flex-fill" style="background:#fff">
-                  <div id="previewKpi3" style="font-size:1.25rem;font-weight:700;color:#111">42</div>
-                  <div style="font-size:0.7rem;color:#888;text-transform:uppercase">Active Items</div>
-                </div>
-              </div>
-              <!-- Font preview -->
-              <p id="previewText" class="mb-0" style="font-size:0.9rem;color:#444">
-                Dashboard title in <strong id="previewFontName">Inter</strong> — data visualization powered by AutoDash AI.
-              </p>
-            </div>
+            <label class="form-label">Live Preview <span class="text-muted fw-normal">(updates as you change settings)</span></label>
+            <div id="miniDashContainer" class="border rounded" style="overflow:hidden;background:#f0f2f5"></div>
           </div>
 
           <div class="d-flex gap-2">
@@ -140,43 +114,102 @@
 
 <script>
 (function () {
-  const fontSelect = document.getElementById('fontSelect');
-  const previewText = document.getElementById('previewText');
-  const previewFontName = document.getElementById('previewFontName');
-  const accentInput = document.getElementById('accentColor');
-  const kpiEls = [
-    document.getElementById('previewKpi'),
-    document.getElementById('previewKpi2'),
-    document.getElementById('previewKpi3'),
-  ];
+  var fontSelect = document.getElementById('fontSelect');
+  var accentInput = document.getElementById('accentColor');
+  var container = document.getElementById('miniDashContainer');
 
-  function updateFont() {
-    const f = fontSelect.value;
-    previewText.style.fontFamily = f + ', sans-serif';
-    previewFontName.textContent = f;
+  var KPI_LABELS = ['Total Hrs', 'Employees', 'Projects', 'Avg Hrs/Wk'];
+  var KPI_VALS   = ['1,260', '26', '6', '12.1'];
+  var BAR_H      = [82,55,67,90,48,72,55,78,65,85,43,70];
+  var TABLE_ROWS = [['Alice Martin','98.5',0],['Bob Chen','76.0',1],['Carol Wu','54.2',2]];
+
+  function getPalette() {
+    var pickers = document.querySelectorAll('.palette-color');
+    return Array.from(pickers).map(function(inp) { return inp.value; });
   }
 
-  function updateAccent() {
-    kpiEls.forEach(function(el) { if (el) el.style.color = accentInput.value; });
-  }
+  function buildMiniDash() {
+    var p = getPalette();
+    while (p.length < 8) p.push('#cccccc');
+    var font = fontSelect.value;
+    var templateName = document.querySelector('input[name="name"]').value || 'Preview';
 
-  function updateSwatches() {
-    const swatches = document.querySelectorAll('.preview-swatch');
-    const pickers = document.querySelectorAll('.palette-color');
-    pickers.forEach(function(picker, i) {
-      if (swatches[i]) swatches[i].style.background = picker.value;
-      // update hex label
-      const hexEl = picker.closest('.color-picker-cell').querySelector('.color-hex');
-      if (hexEl) hexEl.textContent = picker.value;
-    });
-  }
+    function kpiCard(i) {
+      return '<div style="flex:1;background:' + p[i] + ';border-radius:3px;padding:5px 6px">' +
+        '<div style="font-size:0.3rem;color:rgba(255,255,255,0.72);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:1px">' + KPI_LABELS[i] + '</div>' +
+        '<div style="font-size:0.72rem;font-weight:700;color:#fff">' + KPI_VALS[i] + '</div>' +
+        '<div style="font-size:0.28rem;color:rgba(255,255,255,0.55);margin-top:1px">&#9650; 8.5%</div>' +
+        '</div>';
+    }
 
-  // Bind events
-  fontSelect.addEventListener('change', updateFont);
-  accentInput.addEventListener('input', updateAccent);
-  document.querySelectorAll('.palette-color').forEach(function(p) {
-    p.addEventListener('input', updateSwatches);
-  });
+    function bar(h, i) {
+      return '<div style="flex:1;background:' + p[i % p.length] + ';height:' + h + '%;border-radius:1px 1px 0 0;opacity:0.82"></div>';
+    }
+
+    function tableRow(row) {
+      return '<div style="display:flex;align-items:center;padding:3px 6px;border-bottom:1px solid #f3f4f6">' +
+        '<div style="flex:2;font-size:0.32rem;color:#374151">' + row[0] + '</div>' +
+        '<div style="flex:1;font-size:0.32rem;color:#374151">' + row[1] + '</div>' +
+        '<div style="flex:1"><span style="font-size:0.28rem;background:' + p[row[2]] + ';color:#fff;border-radius:2px;padding:1px 4px">Active</span></div>' +
+        '</div>';
+    }
+
+    container.innerHTML =
+      '<div style="font-family:\'' + font + '\',sans-serif;background:#f0f2f5">' +
+        // Chrome
+        '<div style="background:#1e1e1e;padding:6px 10px;display:flex;align-items:center;gap:5px">' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:#ff5f57"></div>' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:#febc2e"></div>' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:#28c840"></div>' +
+          '<span style="font-size:0.45rem;color:#888;margin-left:6px;letter-spacing:0.5px">' + templateName + ' — Dashboard Preview</span>' +
+        '</div>' +
+        // Toolbar
+        '<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:5px 10px;display:flex;gap:8px;align-items:center">' +
+          '<div style="width:55px;height:5px;background:#e5e7eb;border-radius:2px"></div>' +
+          '<div style="width:55px;height:5px;background:#e5e7eb;border-radius:2px"></div>' +
+          '<div style="width:55px;height:5px;background:#e5e7eb;border-radius:2px"></div>' +
+          '<div style="flex:1"></div>' +
+          '<div style="width:32px;height:14px;background:' + p[0] + ';border-radius:3px;opacity:0.85;font-size:0.3rem;color:#fff;display:flex;align-items:center;justify-content:center">Refresh</div>' +
+          '<div style="width:32px;height:14px;background:' + p[1] + ';border-radius:3px;opacity:0.85;font-size:0.3rem;color:#fff;display:flex;align-items:center;justify-content:center">Export</div>' +
+        '</div>' +
+        // KPI row
+        '<div style="display:flex;gap:6px;padding:10px 10px 5px">' +
+          [0,1,2,3].map(kpiCard).join('') +
+        '</div>' +
+        // Charts row
+        '<div style="display:flex;gap:6px;padding:3px 10px 5px">' +
+          // Bar chart
+          '<div style="flex:2;background:#fff;border-radius:4px;padding:6px 8px;border:1px solid #e5e7eb">' +
+            '<div style="font-size:0.32rem;color:#9ca3af;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Productivity Trend (Weekly Hours)</div>' +
+            '<div style="display:flex;align-items:flex-end;gap:2px;height:60px">' + BAR_H.map(bar).join('') + '</div>' +
+          '</div>' +
+          // Donut chart
+          '<div style="flex:1;background:#fff;border-radius:4px;padding:6px 8px;border:1px solid #e5e7eb;display:flex;flex-direction:column;align-items:center">' +
+            '<div style="font-size:0.32rem;color:#9ca3af;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px;align-self:flex-start">Hours by WBS</div>' +
+            '<div style="width:50px;height:50px;border-radius:50%;background:conic-gradient(' +
+              p[0] + ' 0% 28%, ' + p[1] + ' 28% 52%, ' + p[2] + ' 52% 68%, ' + p[3] + ' 68% 79%, ' + p[4] + ' 79% 88%, ' + p[5] + ' 88% 100%' +
+            ');position:relative;flex-shrink:0">' +
+              '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:#fff"></div>' +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;justify-content:center">' +
+              p.slice(0,4).map(function(c,i){ return '<div style="display:flex;align-items:center;gap:2px"><div style="width:5px;height:5px;border-radius:50%;background:'+c+'"></div><div style="font-size:0.26rem;color:#6b7280">WBS '+(i+1)+'</div></div>'; }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        // Table
+        '<div style="padding:3px 10px 10px">' +
+          '<div style="background:#fff;border-radius:4px;border:1px solid #e5e7eb;overflow:hidden">' +
+            '<div style="padding:4px 8px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:0.32rem;color:#374151;font-weight:600">Top Contributors</div>' +
+            '<div style="display:flex;padding:3px 8px;background:#f9fafb;border-bottom:1px solid #e5e7eb">' +
+              '<div style="flex:2;font-size:0.28rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Employee</div>' +
+              '<div style="flex:1;font-size:0.28rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Hours</div>' +
+              '<div style="flex:1;font-size:0.28rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Status</div>' +
+            '</div>' +
+            TABLE_ROWS.map(tableRow).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
 
   // Chart type toggle buttons
   document.querySelectorAll('.chart-type-toggle').forEach(function(label) {
@@ -189,8 +222,20 @@
     });
   });
 
-  // Init
-  updateFont();
-  updateAccent();
+  // Update hex label when picker changes
+  document.querySelectorAll('.palette-color').forEach(function(p) {
+    p.addEventListener('input', function() {
+      var hexEl = p.closest('.color-picker-cell').querySelector('.color-hex');
+      if (hexEl) hexEl.textContent = p.value;
+      buildMiniDash();
+    });
+  });
+
+  fontSelect.addEventListener('change', buildMiniDash);
+  accentInput.addEventListener('input', buildMiniDash);
+  document.querySelector('input[name="name"]').addEventListener('input', buildMiniDash);
+
+  // Initial render
+  buildMiniDash();
 })();
 </script>

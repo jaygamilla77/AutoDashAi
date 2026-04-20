@@ -1,85 +1,252 @@
-<div class="page-header">
-  <h1>History</h1>
-  <p>Saved dashboards and past queries</p>
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1>Dashboards</h1>
+    <p>All your saved dashboards</p>
+  </div>
+  <a href="/" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Dashboard</a>
 </div>
 
-<div class="card mb-3">
-  <div class="card-header bg-white">
-    <h6 class="mb-0">Saved Dashboards</h6>
-  </div>
-  <div class="card-body">
-    <% if (typeof dashboards !== 'undefined' && dashboards.length > 0) { %>
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Title</th>
-            <th>Prompt</th>
-            <th>Source</th>
-            <th>Created</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% dashboards.forEach(function(d, idx) { %>
-          <tr>
-            <td><%= idx + 1 %></td>
-            <td><strong><%= d.title %></strong></td>
-            <td><small><%= d.promptText ? d.promptText.substring(0, 60) : '-' %></small></td>
-            <td><%= d.DataSource ? d.DataSource.name : 'Internal' %></td>
-            <td><small><%= new Date(d.createdAt).toLocaleString() %></small></td>
-            <td>
-              <a href="/dashboard/<%= d.id %>" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-eye me-1"></i>View
-              </a>
-            </td>
-          </tr>
-          <% }); %>
-        </tbody>
-      </table>
+<% if (typeof dashboards !== 'undefined' && dashboards.length > 0) { %>
+<div class="row g-3">
+  <% dashboards.forEach(function(d) {
+    var cfg = {};
+    try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
+    var isPanels = !!(cfg.panels && cfg.panels.length);
+    var prompts = (d.promptText || '').split('\n').filter(function(p){ return p.trim(); });
+  %>
+  <div class="col-lg-4 col-md-6">
+    <div class="card h-100" style="border:1px solid #e5e7eb;overflow:hidden;transition:box-shadow 0.12s,border-color 0.12s" onmouseover="this.style.borderColor='#aaa';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.08)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.boxShadow=''">
+
+      <!-- Chart thumbnail area -->
+      <div style="background:linear-gradient(155deg,#eef2ff 0%,#f0f9ff 55%,#f8fafc 100%);border-bottom:1px solid #e5e7eb;height:185px;position:relative;overflow:hidden">
+        <% if (isPanels) {
+          var thumbCols = cfg.panels.length === 1 ? 1 : 2;
+          var thumbRows = cfg.panels.length <= 2 ? 1 : 2;
+          var thumbSlice = cfg.panels.slice(0, thumbCols * thumbRows);
+        %>
+          <!-- Meta bar: panel count + chart type icons -->
+          <div style="position:absolute;top:0;left:0;right:0;height:22px;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.1);display:flex;align-items:center;padding:0 8px;gap:4px;z-index:5">
+            <span style="font-size:0.58rem;font-weight:700;color:#3b82f6;letter-spacing:0.2px"><%= cfg.panels.length %> panels</span>
+            <div style="flex:1"></div>
+            <% cfg.panels.slice(0,7).forEach(function(p){ var ct=(p.chartType||'bar').toLowerCase(); %>
+              <i class="bi <%= ct==='line'?'bi-graph-up':ct==='pie'?'bi-pie-chart-fill':ct==='doughnut'?'bi-circle-half':ct==='cards'?'bi-card-list':ct==='table'?'bi-table':'bi-bar-chart-fill' %>" style="font-size:0.5rem;color:<%= ct==='line'?'#10b981':ct==='pie'?'#f59e0b':ct==='doughnut'?'#8b5cf6':ct==='cards'?'#0ea5e9':ct==='table'?'#64748b':'#3b82f6' %>"></i>
+            <% }); %>
+          </div>
+          <!-- Panel grid -->
+          <div style="position:absolute;top:22px;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(<%= thumbCols %>,1fr);grid-template-rows:repeat(<%= thumbRows %>,1fr);gap:4px;padding:5px">
+            <% thumbSlice.forEach(function(panel, pi) {
+              var ct = (panel.chartType||'bar').toLowerCase();
+              var ico = ct==='line'?'bi-graph-up':ct==='pie'?'bi-pie-chart-fill':ct==='doughnut'?'bi-circle-half':ct==='cards'?'bi-card-list':ct==='table'?'bi-table':'bi-bar-chart-fill';
+              var clr = ct==='line'?'#10b981':ct==='pie'?'#f59e0b':ct==='doughnut'?'#8b5cf6':ct==='cards'?'#0ea5e9':ct==='table'?'#64748b':'#3b82f6';
+              var pTitle = (panel.title||ct).substring(0,32);
+            %>
+            <div style="background:#fff;border-radius:5px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+              <div style="height:2.5px;background:<%= clr %>;flex-shrink:0"></div>
+              <div style="padding:2px 4px;display:flex;align-items:center;gap:2px;flex-shrink:0">
+                <i class="bi <%= ico %>" style="font-size:0.45rem;color:<%= clr %>"></i>
+                <span style="font-size:0.45rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= pTitle %></span>
+              </div>
+              <div style="flex:1;min-height:0;position:relative">
+                <% if (ct === 'cards') { %>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:3px;gap:2px">
+                    <% for(var kk=0;kk<(thumbCols===1?4:2);kk++) { %>
+                    <div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:3px;flex:1;height:80%;display:flex;align-items:center;justify-content:center">
+                      <i class="bi bi-hash" style="font-size:0.5rem;color:#0ea5e9"></i>
+                    </div>
+                    <% } %>
+                  </div>
+                <% } else if (ct === 'table') { %>
+                  <div style="position:absolute;inset:2px 3px;display:flex;flex-direction:column;gap:1.5px">
+                    <div style="height:3px;background:#e2e8f0;border-radius:1px"></div>
+                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
+                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
+                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
+                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
+                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
+                  </div>
+                <% } else { %>
+                  <canvas id="thumb-<%= d.id %>-<%= pi %>" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+                <% } %>
+              </div>
+            </div>
+            <% }); %>
+            <% for (var fill = thumbSlice.length; fill < thumbCols * thumbRows; fill++) { %>
+            <div style="background:#f8fafc;border-radius:5px;border:1px dashed #e2e8f0"></div>
+            <% } %>
+          </div>
+          <% if (cfg.panels.length > thumbCols * thumbRows) { %>
+          <div style="position:absolute;bottom:4px;right:6px;font-size:0.55rem;color:#94a3b8;font-weight:600;background:rgba(248,250,252,0.9);padding:1px 5px;border-radius:3px">+<%= cfg.panels.length - thumbCols * thumbRows %> more</div>
+          <% } %>
+        <% } else { %>
+          <div style="position:absolute;inset:0;padding:8px">
+            <canvas id="thumb-<%= d.id %>" style="display:block;width:100%;height:100%"></canvas>
+          </div>
+        <% } %>
+        <div id="no-thumb-<%= d.id %>" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column">
+          <i class="bi bi-bar-chart" style="font-size:2.2rem;color:#d1d5db"></i>
+          <div style="font-size:0.65rem;color:#d1d5db;margin-top:5px">No preview</div>
+        </div>
+      </div>
+
+      <div class="card-body pb-2">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <h6 class="mb-0 fw-semibold text-truncate me-2" style="font-size:0.85rem" title="<%= d.title %>"><%= d.title %></h6>
+          <small class="text-muted text-nowrap" style="font-size:0.68rem">
+            <%= new Date(d.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) %>
+          </small>
+        </div>
+        <% prompts.slice(0,2).forEach(function(pr) { %>
+        <div class="text-muted text-truncate" style="font-size:0.71rem" title="<%= pr %>">
+          <i class="bi bi-chat-left-text me-1" style="opacity:0.35"></i><%= pr %>
+        </div>
+        <% }); %>
+        <% if (prompts.length > 2) { %>
+        <div class="text-muted" style="font-size:0.67rem">+<%= prompts.length-2 %> more</div>
+        <% } %>
+        <div class="mt-2">
+          <span class="badge bg-light text-dark border" style="font-size:0.62rem">
+            <i class="bi bi-database me-1"></i><%= d.DataSource ? d.DataSource.name : 'Internal' %>
+          </span>
+        </div>
+      </div>
+
+      <div class="card-footer bg-white d-flex gap-2 py-2">
+        <a href="/dashboard/<%= d.id %>" class="btn btn-sm btn-outline-primary flex-grow-1">
+          <i class="bi bi-eye me-1"></i>Open
+        </a>
+        <a href="/dashboard/<%= d.id %>/edit-canvas" class="btn btn-sm btn-outline-info flex-grow-1" title="Continue editing in canvas mode">
+          <i class="bi bi-pencil me-1"></i>Edit in Canvas
+        </a>
+        <a href="/dashboard/<%= d.id %>#prompt-history" class="btn btn-sm btn-outline-secondary" title="View full prompt history">
+          <i class="bi bi-clock-history"></i>
+        </a>
+        <a href="/?prompt=<%= encodeURIComponent(prompts[0] || d.title) %>" class="btn btn-sm btn-outline-secondary" title="Re-run first prompt">
+          <i class="bi bi-arrow-repeat"></i>
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger" title="Delete dashboard"
+          onclick="confirmDelete(<%= d.id %>, this)">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
     </div>
-    <% } else { %>
-      <p class="text-muted mb-0">No saved dashboards yet.</p>
-    <% } %>
   </div>
+  <% }); %>
 </div>
 
-<!-- Prompt History -->
+<script>
+(function() {
+  var THUMBS = <%- JSON.stringify(dashboards.map(function(d) {
+    var cfg = {};
+    try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
+    var panels = cfg.panels ? cfg.panels.slice(0,4).map(function(p) {
+      return { chartConfig: p.chartConfig || null, chartType: (p.chartType || 'bar').toLowerCase() };
+    }) : null;
+    return { id: d.id, single: cfg.chartConfig || null, panels: panels };
+  })) %>;
+
+  var PALETTES = {
+    bar:      ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#6366f1'],
+    pie:      ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'],
+    doughnut: ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#06b6d4','#f97316','#84cc16'],
+    line:     ['#10b981','#3b82f6','#f59e0b','#8b5cf6']
+  };
+
+  function miniChart(canvasId, chartCfg, chartType) {
+    var el = document.getElementById(canvasId);
+    if (!el || !chartCfg) return;
+    try {
+      var c = JSON.parse(JSON.stringify(chartCfg));
+      var type = chartType || (c.type || 'bar').toLowerCase();
+      var pal = PALETTES[type] || PALETTES.bar;
+
+      if (c.data && c.data.datasets) {
+        if (type === 'bar') {
+          var barColors = (c.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+          c.data.datasets.forEach(function(ds) {
+            ds.backgroundColor = barColors.length ? barColors : pal;
+            ds.borderColor = 'transparent';
+            ds.borderWidth = 0;
+            ds.borderRadius = 2;
+          });
+        } else if (type === 'line') {
+          c.data.datasets.forEach(function(ds, i) {
+            ds.borderColor = pal[i % pal.length];
+            ds.backgroundColor = i === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(59,130,246,0.10)';
+            ds.fill = true;
+            ds.pointRadius = 0;
+            ds.tension = 0.4;
+            ds.borderWidth = 1.5;
+          });
+        } else if (type === 'pie' || type === 'doughnut') {
+          var sliceColors = (c.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+          c.data.datasets.forEach(function(ds) {
+            ds.backgroundColor = sliceColors.length ? sliceColors : pal;
+            ds.borderColor = '#fff';
+            ds.borderWidth = 1;
+          });
+        }
+      }
+
+      if (c.data && c.data.labels && c.data.labels.length > 20) {
+        c.data.labels = c.data.labels.slice(0, 20);
+        (c.data.datasets || []).forEach(function(ds) { if (ds.data) ds.data = ds.data.slice(0, 20); });
+      }
+
+      c.options = c.options || {};
+      c.options.animation = false;
+      c.options.responsive = true;
+      c.options.maintainAspectRatio = false;
+      c.options.plugins = { legend: { display: false }, title: { display: false }, tooltip: { enabled: false } };
+      c.options.scales = {};
+      if (type === 'bar' || type === 'line') {
+        ['x','y'].forEach(function(ax) {
+          c.options.scales[ax] = { ticks: { display: false }, grid: { display: false, drawBorder: false }, border: { display: false } };
+        });
+      }
+
+      new Chart(el.getContext('2d'), c);
+    } catch(e) { /* silently ignore */ }
+  }
+
+  function showEmpty(dashId) {
+    var el = document.getElementById('no-thumb-' + dashId);
+    if (el) el.style.display = 'flex';
+  }
+
+  THUMBS.forEach(function(t) {
+    if (t.panels) {
+      t.panels.forEach(function(p, pi) {
+        if (p.chartType !== 'table' && p.chartType !== 'cards') {
+          miniChart('thumb-' + t.id + '-' + pi, p.chartConfig, p.chartType);
+        }
+      });
+    } else {
+      if (t.single) { miniChart('thumb-' + t.id, t.single, null); }
+      else { showEmpty(t.id); }
+    }
+  });
+})();
+</script>
+
+<script>
+function confirmDelete(id, btn) {
+  var card = btn.closest('.col-lg-4, .col-md-6');
+  var title = card ? (card.querySelector('h6') || {}).textContent || 'this dashboard' : 'this dashboard';
+  if (!confirm('Delete "' + title.trim() + '"?\nThis cannot be undone.')) return;
+  var f = document.createElement('form');
+  f.method = 'POST';
+  f.action = '/dashboard/' + id + '/delete';
+  document.body.appendChild(f);
+  f.submit();
+}
+</script>
+
+<% } else { %>
 <div class="card">
-  <div class="card-header bg-white">
-    <h6 class="mb-0">Prompt History</h6>
-  </div>
-  <div class="card-body">
-    <% if (typeof prompts !== 'undefined' && prompts.length > 0) { %>
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>Prompt</th>
-            <th>Chart</th>
-            <th>Intent</th>
-            <th>Title</th>
-            <th>Source</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% prompts.forEach(function(p) { %>
-          <tr>
-            <td><%= p.promptText %></td>
-            <td><span class="badge bg-info"><%= p.selectedChartType || 'auto' %></span></td>
-            <td><%= p.interpretedIntent || '-' %></td>
-            <td><small><%= p.generatedTitle || '-' %></small></td>
-            <td><small><%= p.DataSource ? p.DataSource.name : 'Internal' %></small></td>
-            <td><small class="text-muted"><%= new Date(p.createdAt).toLocaleString() %></small></td>
-          </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } else { %>
-      <p class="text-muted mb-0">No prompt history yet.</p>
-    <% } %>
+  <div class="card-body text-center py-5">
+    <i class="bi bi-grid-3x3-gap" style="font-size:3rem;opacity:0.15"></i>
+    <p class="text-muted mt-3 mb-3">No saved dashboards yet.</p>
+    <a href="/" class="btn btn-primary">Generate your first dashboard</a>
   </div>
 </div>
+<% } %>

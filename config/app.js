@@ -8,6 +8,14 @@ module.exports = {
   maxUploadMb: parseInt(process.env.MAX_UPLOAD_MB, 10) || 10,
   openaiApiKey: process.env.OPENAI_API_KEY || '',
 
+  // Azure OpenAI Configuration
+  azureOpenAI: {
+    endpoint: process.env.AZURE_OPENAI_ENDPOINT || '',
+    apiKey: process.env.AZURE_OPENAI_API_KEY || '',
+    deploymentName: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || '',
+    apiVersion: process.env.AZURE_OPENAI_API_VERSION || '2024-02-15-preview',
+  },
+
   // Supported source types
   sourceTypes: ['database', 'excel', 'csv', 'json', 'api'],
 

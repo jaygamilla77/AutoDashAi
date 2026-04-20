@@ -4,154 +4,144 @@
   <p>Ask a question, get a dashboard.</p>
 </div>
 
-<div class="row g-3">
+<!-- Mode tabs -->
+<ul class="nav nav-tabs mb-0" id="modeTabs" style="border-bottom:none">
+  <li class="nav-item">
+    <button class="nav-link active" id="aiTabBtn" onclick="switchMode('ai')" style="font-size:0.88rem;border-bottom-color:transparent">
+      <i class="bi bi-stars me-1"></i>AI Mode
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" id="manualTabBtn" onclick="switchMode('manual')" style="font-size:0.88rem">
+      <i class="bi bi-tools me-1"></i>Manual Builder
+    </button>
+  </li>
+</ul>
 
-  <!-- Left Panel: Secondary info -->
-  <div class="col-lg-4">
+<div id="aiModeCard">
 
-    <!-- Saved Dashboards -->
-    <div class="card mb-3">
-      <div class="card-header">Saved Dashboards</div>
-      <div class="card-body p-0">
-        <% if (typeof recentDashboards !== 'undefined' && recentDashboards.length > 0) { %>
-          <div class="list-group list-group-flush">
-            <% recentDashboards.forEach(function(d) { %>
-              <a href="/dashboard/<%= d.id %>" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="text-truncate me-2"><%= d.title %></span>
-                  <small class="text-muted text-nowrap"><%= new Date(d.createdAt).toLocaleDateString() %></small>
-                </div>
-              </a>
-            <% }); %>
-          </div>
-        <% } else { %>
-          <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No dashboards yet. Type a prompt and hit Generate.</p>
-        <% } %>
-      </div>
-      <div class="card-footer">
-        <a href="/dashboard/history" class="btn btn-sm btn-outline-secondary">View all</a>
-      </div>
-    </div>
-
-    <!-- Data Sources -->
-    <div class="card mb-3">
-      <div class="card-header">Data Sources</div>
-      <div class="card-body p-0">
-        <% if (typeof recentSources !== 'undefined' && recentSources.length > 0) { %>
-          <div class="list-group list-group-flush">
-            <% recentSources.forEach(function(s) { %>
-              <a href="/sources/<%= s.id %>" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="text-truncate me-2"><%= s.name %></span>
-                  <span class="badge bg-<%= s.status === 'active' ? 'success' : 'secondary' %>"><%= s.status %></span>
-                </div>
-              </a>
-            <% }); %>
-          </div>
-        <% } else { %>
-          <p class="text-muted p-3 mb-0" style="font-size:0.8rem">No sources configured.</p>
-        <% } %>
-      </div>
-      <div class="card-footer">
-        <a href="/sources/new" class="btn btn-sm btn-outline-secondary me-2">Add</a>
-        <a href="/sources" class="btn btn-sm btn-outline-secondary">View all</a>
-      </div>
-    </div>
-
-    <!-- Recent Queries -->
-    <% if (typeof recentPrompts !== 'undefined' && recentPrompts.length > 0) { %>
-    <div class="card">
-      <div class="card-header">Recent Queries</div>
-      <div class="card-body p-0">
-        <div class="list-group list-group-flush">
-          <% recentPrompts.forEach(function(p) { %>
-          <div class="list-group-item">
-            <div class="d-flex justify-content-between align-items-start">
-              <span style="font-size:0.82rem" class="text-truncate me-2"><%= p.promptText %></span>
-              <span class="badge bg-secondary text-nowrap"><%= p.selectedChartType || 'auto' %></span>
-            </div>
-            <small class="text-muted"><%= new Date(p.createdAt).toLocaleDateString() %></small>
-          </div>
-          <% }); %>
-        </div>
-      </div>
-    </div>
-    <% } %>
-
+  <!-- ── AI Mode Toolbar ──────────────────────────────────────────────────── -->
+  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0">
+    <button class="btn btn-sm btn-outline-secondary" id="aiTogglePromptBtn" onclick="toggleAiPanel('prompt')" title="Toggle Prompt panel" style="font-size:0.78rem">
+      <i class="bi bi-layout-sidebar"></i> <span id="aiTogglePromptTxt">Prompt</span>
+    </button>
+    <div style="width:1px;height:20px;background:#e5e7eb;flex-shrink:0"></div>
+    <span style="font-size:0.78rem;color:#6b7280"><i class="bi bi-stars me-1"></i>AI Mode</span>
+    <div style="flex:1"></div>
+    <span id="aiPanelCountBadge" style="font-size:0.75rem;color:#6b7280;display:none">
+      <i class="bi bi-grid-3x3-gap-fill me-1"></i><span id="aiQueueCount">0</span> panel(s) on canvas
+    </span>
+    <button class="btn btn-sm btn-outline-secondary" id="aiToggleSettingsBtn" onclick="toggleAiPanel('settings')" title="Toggle Settings panel" style="font-size:0.78rem">
+      <i class="bi bi-sliders"></i> <span id="aiToggleSettingsTxt">Settings</span>
+    </button>
+    <button type="button" class="btn btn-sm btn-warning px-3" onclick="submitAiFullDashboard()" style="font-size:0.82rem;font-weight:600" title="Auto-generate a complete corporate dashboard as a data analyst">
+      <i class="bi bi-magic me-1"></i>Full Dashboard
+    </button>
+    <button type="button" class="btn btn-sm btn-primary px-3" id="aiGenerateBtn" onclick="submitAiDashboard()" disabled style="font-size:0.82rem">
+      <i class="bi bi-lightning-fill me-1"></i>Generate &amp; Save
+    </button>
+    <button type="button" class="btn btn-sm btn-success px-3" id="aiSaveChangesBtn" onclick="submitAiChanges()" disabled style="font-size:0.82rem;display:none">
+      <i class="bi bi-check-circle me-1"></i>Save Changes
+    </button>
+    <form id="aiGenerateForm" method="POST" action="/dashboard/manual-multi" style="display:none">
+      <input type="hidden" name="panelsJson" id="aiPanelsJson">
+      <input type="hidden" name="kpiDataJson" id="aiKpiDataJson">
+      <input type="hidden" name="executiveSummary" id="aiExecSummary">
+      <input type="hidden" name="paletteJson" id="aiPaletteJson">
+    </form>
+    <form id="aiUpdateForm" method="POST" style="display:none">
+      <input type="hidden" name="panelsJson" id="aiUpdatePanelsJson">
+      <input type="hidden" name="title" id="aiUpdateTitle">
+      <input type="hidden" name="promptText" id="aiUpdatePromptText">
+    </form>
   </div>
 
-  <!-- Right Panel: Main Query (primary feature) -->
-  <div class="col-lg-8">
-    <div class="card h-100">
-      <div class="card-header">
-        <span style="font-weight:600">Ask a Question</span>
-        <span class="text-muted ms-2" style="font-size:0.8rem">Type in plain English — AI will generate the dashboard</span>
+  <!-- ── 3-panel workspace ─────────────────────────────────────────────────── -->
+  <div id="aiWorkspace" style="display:flex;height:calc(100vh - 116px);overflow:hidden;user-select:none">
+
+    <!-- Left: Prompt Panel -->
+    <div id="aiPromptPanel" style="width:300px;min-width:160px;flex-shrink:0;background:#f9fafb;overflow-y:auto">
+      <div style="padding:7px 10px 6px;border-bottom:1px solid #e5e7eb;background:#f3f4f6">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af">
+          <i class="bi bi-chat-left-text me-1"></i>AI Prompt
+        </span>
       </div>
-      <div class="card-body d-flex flex-column p-4">
-        <form action="/dashboard/generate" method="POST" id="promptForm" class="d-flex flex-column flex-grow-1">
+      <div style="padding:10px">
 
-          <textarea class="form-control flex-grow-1 mb-4" name="prompt" id="promptTextarea" rows="8"
-            style="font-size:1rem; resize:vertical; min-height:180px"
-            placeholder="e.g., Show me employees with low productivity this month&#10;e.g., Compare project budgets by department&#10;e.g., Top 10 tickets by priority" required></textarea>
+        <!-- Source -->
+        <div class="mb-2">
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280"><i class="bi bi-database me-1"></i>Source</label>
+          <select class="form-select form-select-sm mt-1" id="aiSourceSel" style="font-size:0.8rem">
+            <option value="">Internal Database</option>
+            <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
+              <% sources.forEach(function(s) { %>
+                <option value="<%= s.id %>"><%= s.name %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
 
-          <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <label class="form-label">Source</label>
-              <select class="form-select" name="dataSourceId">
-                <option value="">Internal Database</option>
-                <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
-                  <% sources.forEach(function(s) { %>
-                    <option value="<%= s.id %>"><%= s.name %></option>
-                  <% }); %>
-                <% } %>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Visualization</label>
-              <select class="form-select" name="chartType">
-                <% if (typeof chartTypes !== 'undefined') { %>
-                  <% chartTypes.forEach(function(ct) { %>
-                    <option value="<%= ct %>" <%= ct === 'auto' ? 'selected' : '' %>><%= ct.charAt(0).toUpperCase() + ct.slice(1) %></option>
-                  <% }); %>
-                <% } %>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Template</label>
-              <select class="form-select" name="templateId" id="templateSelect">
-                <option value="">Default (no theme)</option>
-                <% if (typeof templates !== 'undefined' && templates.length > 0) { %>
-                  <% templates.forEach(function(t) { %>
-                    <% var tCharts = ''; try { if (t.preferredChartTypes) tCharts = t.preferredChartTypes; } catch(e) {} %>
-                    <option value="<%= t.id %>"
-                      data-accent="<%= t.accentColor %>"
-                      data-font="<%= t.fontFamily %>"
-                      data-charttypes="<%= tCharts %>">
-                      <%= t.name %>
-                    </option>
-                  <% }); %>
-                <% } %>
-              </select>
-              <div id="templateHint" class="mt-1" style="font-size:0.75rem;color:#888"></div>
-            </div>
-          </div>
+        <!-- Chart type -->
+        <div class="mb-3">
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280"><i class="bi bi-bar-chart me-1"></i>Chart Type</label>
+          <select class="form-select form-select-sm mt-1" id="aiChartTypeSel" style="font-size:0.8rem">
+            <% if (typeof chartTypes !== 'undefined') { %>
+              <% chartTypes.forEach(function(ct) { %>
+                <option value="<%= ct %>" <%= ct === 'auto' ? 'selected' : '' %>><%= ct.charAt(0).toUpperCase() + ct.slice(1) %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
 
-          <button type="submit" class="btn btn-primary w-100" style="padding: 0.65rem; font-size:0.95rem">
-            Generate Dashboard
+        <!-- Prompt -->
+        <div class="mb-2">
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280"><i class="bi bi-pen me-1"></i>Question</label>
+          <textarea class="form-control form-control-sm mt-1" id="aiPromptTextarea" rows="4"
+            style="font-size:0.82rem;resize:vertical;min-height:80px"
+            placeholder="e.g. Top 10 employees by salary"></textarea>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex gap-2 mb-3">
+          <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" onclick="aiAddToQueue()" style="font-size:0.75rem">
+            <i class="bi bi-plus-lg"></i> Add
           </button>
+          <button type="button" class="btn btn-sm btn-dark flex-grow-1" onclick="aiPreviewPanel()" id="aiPreviewBtn" style="font-size:0.75rem">
+            <i class="bi bi-eye me-1"></i>Preview on Canvas
+          </button>
+        </div>
 
-        </form>
+        <!-- Queue -->
+        <div id="aiQueueSection" style="display:none;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280">
+              <i class="bi bi-grid-3x3-gap-fill me-1"></i>Queue
+              <span class="badge bg-primary rounded-pill ms-1" id="aiPanelCount" style="font-size:0.58rem">0</span>
+            </span>
+            <button type="button" class="btn btn-link btn-sm text-danger p-0" style="font-size:0.72rem" onclick="aiClearQueue()">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          <div id="aiQueueList" class="d-flex flex-column gap-1"></div>
+        </div>
 
         <!-- Examples -->
-        <div class="mt-4 pt-3 border-top">
-          <p class="text-muted mb-2" style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px">Try these examples</p>
-          <div class="d-flex flex-wrap gap-2">
+        <div class="pt-2 border-top">
+          <div class="d-flex justify-content-between align-items-center" style="margin-bottom:6px">
+            <div style="font-size:0.63rem;text-transform:uppercase;letter-spacing:0.4px;color:#9ca3af">
+              <i class="bi bi-lightbulb me-1"></i>Examples
+            </div>
+            <button type="button" class="btn btn-sm p-0 border-0" id="btnAISuggest" onclick="fetchAISuggestions()"
+              style="font-size:0.65rem;color:#7c3aed;background:none" title="Get AI-powered suggestions">
+              <i class="bi bi-stars"></i> AI Suggest
+            </button>
+          </div>
+          <div class="d-flex flex-column gap-1" id="aiExamplesContainer">
             <% if (typeof samplePrompts !== 'undefined') { %>
               <% samplePrompts.forEach(function(sp) { %>
-                <button type="button" class="btn btn-sm sample-prompt-btn"
-                  onclick="document.querySelector('textarea[name=prompt]').value = this.textContent.trim()">
-                  <%= sp %>
-                </button>
+                <button type="button" class="btn btn-sm btn-light text-start ai-example-btn"
+                  style="font-size:0.72rem;white-space:normal;text-align:left"
+                  data-prompt="<%= sp %>"><%= sp %></button>
               <% }); %>
             <% } %>
           </div>
@@ -159,83 +149,2553 @@
 
       </div>
     </div>
-  </div>
 
-</div>
-</div>
+    <!-- Resize handle: prompt ↔ canvas -->
+    <div id="aiResizePrompt" style="width:5px;flex-shrink:0;background:#e5e7eb;cursor:col-resize;position:relative;z-index:10;transition:background 0.1s" title="Drag to resize">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:2px">
+        <div style="width:2px;height:10px;background:#9ca3af;border-radius:1px"></div>
+      </div>
+    </div>
+
+    <!-- Center: Canvas -->
+    <div id="aiCanvas" style="flex:1;overflow-y:auto;background:#e8eef5;padding:14px;min-width:0;position:relative">
+      <div id="aiEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90%;color:#9ca3af;text-align:center;pointer-events:none">
+        <i class="bi bi-stars" style="font-size:4rem;margin-bottom:14px;opacity:0.2"></i>
+        <div style="font-size:1rem;font-weight:600;color:#6b7280">Canvas is empty</div>
+        <div style="font-size:0.8rem;margin-top:6px;color:#9ca3af">
+          Type a question in the <strong style="color:#6366f1">Prompt</strong> panel ←<br>
+          click <strong style="color:#6366f1">Preview on Canvas</strong>
+        </div>
+      </div>
+      <div id="aiPanelGrid" style="position:relative;min-height:100%;width:100%"></div>
+    </div>
+
+    <!-- Resize handle: canvas ↔ settings -->
+    <div id="aiResizeSettings" style="width:5px;flex-shrink:0;background:#e5e7eb;cursor:col-resize;position:relative;z-index:10;transition:background 0.1s" title="Drag to resize">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:2px">
+        <div style="width:2px;height:10px;background:#9ca3af;border-radius:1px"></div>
+      </div>
+    </div>
+
+    <!-- Right: Settings Panel -->
+    <div id="aiSettingsPanel" style="width:240px;min-width:140px;flex-shrink:0;background:#fff;overflow-y:auto">
+      <div style="padding:7px 12px 6px;border-bottom:1px solid #e5e7eb;background:#f8fafc">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af">
+          <i class="bi bi-sliders me-1"></i>Settings
+        </span>
+      </div>
+      <div style="padding:12px">
+
+        <!-- Template -->
+        <div class="mb-3">
+          <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#6b7280"><i class="bi bi-palette me-1"></i>Template</label>
+          <select class="form-select form-select-sm mt-1" id="aiTemplateSel" style="font-size:0.8rem" onchange="aiRenderTemplatePreview()">
+            <option value="" data-palette="[]" data-accent="#3b82f6" data-font="Inter" data-desc="Default Chart.js colors and no custom font." data-charttypes="[]">Default (no theme)</option>
+            <% if (typeof templates !== 'undefined' && templates.length > 0) { %>
+              <% templates.forEach(function(t) { %>
+                <% var tCharts = ''; try { if (t.preferredChartTypes) tCharts = t.preferredChartTypes; } catch(e) {} %>
+                <option value="<%= t.id %>"
+                  data-accent="<%= t.accentColor %>"
+                  data-font="<%= t.fontFamily %>"
+                  data-palette="<%= t.colorPalette || '[]' %>"
+                  data-desc="<%= (t.description || '').replace(/"/g, '&quot;') %>"
+                  data-charttypes="<%= tCharts %>">
+                  <%= t.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+          <div id="aiTemplateHint" style="font-size:0.72rem;color:#888;margin-top:3px"></div>
+
+          <!-- Live template preview -->
+          <div id="aiTemplatePreview" style="margin-top:8px;border-radius:6px;overflow:hidden;border:1px solid #e2e8f0;display:none">
+            <!-- Will be populated by aiRenderTemplatePreview() -->
+          </div>
+        </div>
+
+        <hr style="margin:12px 0;border-color:#f1f5f9">
+
+        <div style="font-size:0.72rem;color:#9ca3af;margin-bottom:10px;line-height:1.4">
+          <i class="bi bi-info-circle me-1"></i>Preview panels on the canvas, then save as a dashboard.
+        </div>
+
+        <button type="button" class="btn btn-dark w-100 mb-2" onclick="aiPreviewPanel()" style="font-size:0.8rem">
+          <i class="bi bi-eye me-1"></i>Preview on Canvas
+        </button>
+        <button type="button" class="btn btn-success w-100" id="aiSaveBtn" onclick="submitAiDashboard()" disabled style="font-size:0.8rem">
+          <i class="bi bi-lightning-fill me-1"></i>Generate &amp; Save Dashboard
+        </button>
+
+      </div>
+    </div>
+
+  </div><!-- /aiWorkspace -->
+</div><!-- /aiModeCard -->
 
 <script>
+  // Inject preloadDashboard data for editing existing dashboards
+  window.preloadDashboard = <%- JSON.stringify(typeof preloadDashboard !== 'undefined' ? preloadDashboard : null) %>;
+</script>
+
+<script>
+// ── AI Mode Canvas ────────────────────────────────────────────────────────────
 (function () {
-  // Pre-fill prompt + source from URL query params (used by Analysis tab prompt links)
+  var __aiCharts = {}, __aiQueue = [], __aiPanelIdCtr = 0, __aiZTop = 10, __aiNextX = 10, __aiNextY = 10;
+  var __aiPanelData = {};
+  var __preloadDashboard = window.preloadDashboard || null;
+  window.__aiCharts = __aiCharts; window.__aiQueue = __aiQueue; window.__aiPanelData = __aiPanelData;
+  window.__preloadDashboard = __preloadDashboard;
+  var __aiPreview = null;
+
+  function _aiEsc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Toggle side panels ────────────────────────────────────────────────────
+  window.toggleAiPanel = function(which) {
+    var ids = which === 'prompt'
+      ? { panel:'aiPromptPanel', handle:'aiResizePrompt', btn:'aiTogglePromptBtn' }
+      : { panel:'aiSettingsPanel', handle:'aiResizeSettings', btn:'aiToggleSettingsBtn' };
+    var p = document.getElementById(ids.panel), h = document.getElementById(ids.handle);
+    var btn = document.getElementById(ids.btn);
+    var hidden = p.style.display === 'none';
+    p.style.display = hidden ? '' : 'none';
+    if (h) h.style.display = hidden ? '' : 'none';
+    if (btn) btn.classList.toggle('active', hidden);
+  };
+
+  // ── Drag-to-resize sidebar handles ────────────────────────────────────────
+  (function initAiResizers() {
+    function makeResizer(handleId, panelId, side) {
+      var handle = document.getElementById(handleId);
+      var panel  = document.getElementById(panelId);
+      if (!handle || !panel) return;
+      handle.addEventListener('mouseover', function() { handle.style.background = '#c7d2fe'; });
+      handle.addEventListener('mouseout',  function() { handle.style.background = '#e5e7eb'; });
+      handle.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var startX = e.clientX, startW = panel.offsetWidth;
+        handle.style.background = '#6366f1';
+        function onMove(ev) {
+          var ws = document.getElementById('aiWorkspace');
+          var maxW = ws ? ws.offsetWidth * 0.45 : 600;
+          var delta = side === 'left' ? ev.clientX - startX : startX - ev.clientX;
+          panel.style.width = Math.max(160, Math.min(maxW, startW + delta)) + 'px';
+        }
+        function onUp() { handle.style.background = '#e5e7eb'; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+    makeResizer('aiResizePrompt',   'aiPromptPanel',   'left');
+    makeResizer('aiResizeSettings', 'aiSettingsPanel', 'right');
+  })();
+
+  // ── Examples ─────────────────────────────────────────────────────────────
+  var SOURCE_PROMPT_MAP = <%- JSON.stringify(typeof sourcePromptMap !== 'undefined' ? sourcePromptMap : {}) %>;
+  var DEFAULT_PROMPTS = Array.from(document.querySelectorAll('#aiExamplesContainer .ai-example-btn')).map(function(b){ return b.dataset.prompt; });
+
+  function renderAiExamples(prompts) {
+    var c = document.getElementById('aiExamplesContainer'); if (!c) return;
+    c.innerHTML = '';
+    prompts.forEach(function(p) {
+      var text = typeof p === 'string' ? p : p.text;
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn btn-sm btn-light text-start ai-example-btn';
+      btn.style.cssText = 'font-size:0.72rem;white-space:normal;text-align:left';
+      btn.textContent = text;
+      btn.addEventListener('click', function(){ document.getElementById('aiPromptTextarea').value = text; });
+      c.appendChild(btn);
+    });
+  }
+
+  document.querySelectorAll('#aiExamplesContainer .ai-example-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(){ document.getElementById('aiPromptTextarea').value = this.dataset.prompt; });
+  });
+
+  var aiSrcSel = document.getElementById('aiSourceSel');
+  if (aiSrcSel) {
+    aiSrcSel.addEventListener('change', function() {
+      var sid = aiSrcSel.value;
+      if (sid && SOURCE_PROMPT_MAP[sid] && SOURCE_PROMPT_MAP[sid].length) renderAiExamples(SOURCE_PROMPT_MAP[sid]);
+      else renderAiExamples(DEFAULT_PROMPTS);
+    });
+  }
+
+  // URL pre-fill
   var urlParams = new URLSearchParams(window.location.search);
   var prePrompt = urlParams.get('prompt');
+  if (prePrompt) { var ta = document.getElementById('aiPromptTextarea'); if (ta) ta.value = decodeURIComponent(prePrompt); }
   var preSource = urlParams.get('sourceId');
-  if (prePrompt) {
-    var ta = document.getElementById('promptTextarea');
-    if (ta) ta.value = decodeURIComponent(prePrompt);
+  if (preSource && aiSrcSel) {
+    for (var i = 0; i < aiSrcSel.options.length; i++) {
+      if (String(aiSrcSel.options[i].value) === String(preSource)) { aiSrcSel.selectedIndex = i; aiSrcSel.dispatchEvent(new Event('change')); break; }
+    }
   }
-  if (preSource) {
-    var srcSel = document.querySelector('select[name="dataSourceId"]');
-    if (srcSel) {
-      for (var i = 0; i < srcSel.options.length; i++) {
-        if (String(srcSel.options[i].value) === String(preSource)) {
-          srcSel.selectedIndex = i;
-          break;
+
+  // ── Queue management ──────────────────────────────────────────────────────
+  function aiUpdateToolbar() {
+    var n = __aiQueue.length;
+    var badge = document.getElementById('aiPanelCountBadge'), qEl = document.getElementById('aiQueueCount');
+    var countEl = document.getElementById('aiPanelCount');
+    var section = document.getElementById('aiQueueSection');
+    var genBtn = document.getElementById('aiGenerateBtn'), saveBtn = document.getElementById('aiSaveBtn');
+    var saveChangesBtn = document.getElementById('aiSaveChangesBtn');
+    if (badge)  badge.style.display  = n > 0 ? '' : 'none';
+    if (qEl)    qEl.textContent = n;
+    if (countEl) countEl.textContent = n;
+    if (section) section.style.display = n > 0 ? '' : 'none';
+    if (genBtn)  genBtn.disabled  = n === 0;
+    if (saveBtn) saveBtn.disabled = n === 0;
+    if (saveChangesBtn) saveChangesBtn.disabled = n === 0;
+  }
+
+  function aiRenderQueueList() {
+    var listEl = document.getElementById('aiQueueList'); if (!listEl) return;
+    listEl.innerHTML = '';
+    __aiQueue.forEach(function(p, idx) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid #e5e7eb;border-radius:6px;background:#fff';
+      row.innerHTML =
+        '<span style="font-size:0.62rem;font-weight:700;background:#6366f1;color:#fff;border-radius:3px;padding:1px 5px;flex-shrink:0">' + (idx+1) + '</span>' +
+        '<span style="flex:1;font-size:0.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + _aiEsc(p.originalPrompt||p.title||'Panel') + '">' + _aiEsc(p.originalPrompt||p.title||'Panel') + '</span>' +
+        '<button type="button" style="background:none;border:none;color:#ef4444;padding:0;cursor:pointer;font-size:0.72rem;flex-shrink:0" onclick="aiRemoveFromQueue(' + idx + ')"><i class="bi bi-x-lg"></i></button>';
+      listEl.appendChild(row);
+    });
+    aiUpdateToolbar();
+  }
+  window.aiRenderQueueList = aiRenderQueueList;
+
+  window.aiRemoveFromQueue = function(idx) {
+    var p = __aiQueue[idx];
+    if (p && p._uid) {
+      if (__aiCharts[p._uid]) { __aiCharts[p._uid].destroy(); delete __aiCharts[p._uid]; }
+      var card = document.getElementById('aiCard-' + p._uid); if (card) card.remove();
+    }
+    __aiQueue.splice(idx, 1);
+    aiRenderQueueList(); aiUpdateEmptyState();
+  };
+
+  window.aiClearQueue = function() {
+    __aiQueue.forEach(function(p) {
+      if (!p._uid) return;
+      if (__aiCharts[p._uid]) { __aiCharts[p._uid].destroy(); delete __aiCharts[p._uid]; }
+      delete __aiPanelData[p._uid];
+      var card = document.getElementById('aiCard-' + p._uid); if (card) card.remove();
+    });
+    __aiQueue.splice(0, __aiQueue.length); __aiKpiData = []; __aiExecSummary = ''; aiRenderQueueList(); aiUpdateEmptyState();
+  };
+
+  // ── Canvas helpers ────────────────────────────────────────────────────────
+  function aiUpdateEmptyState() {
+    var grid = document.getElementById('aiPanelGrid'), empty = document.getElementById('aiEmptyState');
+    var panelCards = grid ? grid.querySelectorAll('[id^="aiCard-"]').length : 0;
+    if (empty) empty.style.display = panelCards > 0 ? 'none' : 'flex';
+  }
+
+  function aiGetTemplatePalette() {
+    var sel = document.getElementById('aiTemplateSel');
+    if (!sel) return null;
+    var opt = sel.options[sel.selectedIndex];
+    var raw = opt ? opt.getAttribute('data-palette') : null;
+    if (!raw) return null;
+    try { var p = JSON.parse(raw); return (p && p.length >= 2) ? p : null; } catch(e) { return null; }
+  }
+
+  /* Write palette-applied colours back into the panel data so they survive save */
+  function aiSyncPanelColors(uid) {
+    var panel = __aiPanelData[uid]; if (!panel) return;
+    var chart = __aiCharts[uid]; if (!chart || !chart.data || !chart.data.datasets || !chart.data.datasets[0]) return;
+    var ds = chart.data.datasets[0];
+    var bg = ds.backgroundColor;
+    var bd = ds.borderColor;
+    panel.bgColors = Array.isArray(bg) ? bg.slice() : [bg];
+    panel.borderColors = Array.isArray(bd) ? bd.slice() : [bd];
+    // Also update the chartConfig so dashboard-multi.ejs picks up the correct colors
+    if (panel.chartConfig && panel.chartConfig.data && panel.chartConfig.data.datasets && panel.chartConfig.data.datasets[0]) {
+      panel.chartConfig.data.datasets[0].backgroundColor = panel.bgColors;
+      panel.chartConfig.data.datasets[0].borderColor = panel.borderColors;
+    }
+    // Also update the matching queue item
+    for (var i = 0; i < __aiQueue.length; i++) {
+      if (__aiQueue[i]._uid === uid) {
+        __aiQueue[i].bgColors = panel.bgColors;
+        __aiQueue[i].borderColors = panel.borderColors;
+        if (__aiQueue[i].chartConfig && __aiQueue[i].chartConfig.data && __aiQueue[i].chartConfig.data.datasets && __aiQueue[i].chartConfig.data.datasets[0]) {
+          __aiQueue[i].chartConfig.data.datasets[0].backgroundColor = panel.bgColors;
+          __aiQueue[i].chartConfig.data.datasets[0].borderColor = panel.borderColors;
         }
+        break;
       }
     }
   }
 
-  // Template dropdown logic
-  var sel = document.getElementById('templateSelect');
-  var hint = document.getElementById('templateHint');
-  var chartSel = document.querySelector('select[name="chartType"]');
-  if (!sel) return;
+  function aiApplyTemplatePalette(cfg, chartType) {
+    var pal = aiGetTemplatePalette();
+    if (!pal || !cfg.data || !cfg.data.datasets) return cfg;
+    var type = (chartType || cfg.type || 'bar').toLowerCase();
+    if (type === 'bar') {
+      var barColors = (cfg.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+      cfg.data.datasets.forEach(function(ds) {
+        ds.backgroundColor = barColors.length ? barColors : pal;
+        ds.borderColor = 'transparent';
+        ds.borderWidth = 0;
+        ds.borderRadius = 4;
+      });
+    } else if (type === 'line') {
+      cfg.data.datasets.forEach(function(ds, i) {
+        ds.borderColor = pal[i % pal.length];
+        ds.backgroundColor = pal[i % pal.length] + '22';
+        ds.pointBackgroundColor = pal[i % pal.length];
+        ds.tension = 0.4;
+      });
+    } else if (type === 'pie' || type === 'doughnut') {
+      var sliceColors = (cfg.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+      cfg.data.datasets.forEach(function(ds) {
+        ds.backgroundColor = sliceColors.length ? sliceColors : pal;
+        ds.borderColor = '#fff';
+        ds.borderWidth = 2;
+      });
+    }
+    return cfg;
+  }
 
-  // Store original chart options order
-  var allChartOptions = chartSel ? Array.from(chartSel.options).map(function(o) {
-    return { value: o.value, text: o.text };
-  }) : [];
+  function aiRenderCardsInPanel(uid, panel) {
+    var el = document.getElementById('aiCardBody-' + uid); if (!el || !panel.labels) return;
+    var formatVal = function(v) {
+      var n = parseFloat(v); if (isNaN(n)) return String(v);
+      var abs = Math.abs(n);
+      if (abs >= 1e9)  return (n/1e9).toFixed(1).replace(/\.0$/,'')  + 'B';
+      if (abs >= 1e6)  return (n/1e6).toFixed(1).replace(/\.0$/,'')  + 'M';
+      if (abs >= 1e3)  return (n/1e3).toFixed(1).replace(/\.0$/,'')  + 'K';
+      return n % 1 !== 0 ? n.toFixed(2) : String(n);
+    };
+    var pal = aiGetTemplatePalette();
+    var defaultPal = ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899'];
+    var cardPal = pal || defaultPal;
+    el.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;padding:8px;justify-content:center';
+    el.innerHTML = (panel.labels||[]).slice(0,20).map(function(lbl,i){
+      var val = panel.values[i] != null ? panel.values[i] : '-';
+      var dv = formatVal(val);
+      var color = cardPal[i % cardPal.length];
+      return '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:18px 16px 14px;min-width:110px;flex:1;text-align:center;border-top:3px solid '+color+';box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+        '<div style="font-size:1.5rem;font-weight:700;color:'+color+';line-height:1.1;letter-spacing:-0.5px">'+_aiEsc(String(dv))+'</div>' +
+        '<div style="font-size:0.68rem;color:#6b7280;margin-top:6px;text-transform:uppercase;letter-spacing:0.6px;word-break:break-word">'+_aiEsc(String(lbl))+'</div></div>';
+    }).join('');
+    // Sync card palette colors back to panel data
+    panel.bgColors = (panel.labels||[]).map(function(_,i){ return cardPal[i % cardPal.length]; });
+    panel.borderColors = panel.bgColors.slice();
+  }
 
-  sel.addEventListener('change', function () {
-    var opt = sel.options[sel.selectedIndex];
-    var accent = opt.dataset.accent;
-    var font = opt.dataset.font;
-    var chartTypesRaw = opt.dataset.charttypes || '';
+  // -- Change chart type on canvas panel --
+  window.aiChangeChartType = function(uid, newType) {
+    var panel = window.__aiPanelData[uid];
+    if (!panel || !panel.hasData) return;
+    // Destroy old chart from whichever map it's in
+    if (__aiCharts[uid]) { __aiCharts[uid].destroy(); delete __aiCharts[uid]; }
+    if (window.__aiCharts[uid]) { window.__aiCharts[uid].destroy(); delete window.__aiCharts[uid]; }
+    panel.chartType = newType;
 
-    // Update hint label
-    if (accent && font) {
-      hint.textContent = font + ' · ' + accent;
-      hint.style.color = accent;
+    var card = document.getElementById('aiCard-' + uid) || document.getElementById('mbCard-' + uid);
+    if (!card) return;
+    var bodyEl = card.querySelector('[data-ai-panel-body]') || card.querySelector('[data-mb-panel-body]');
+    if (!bodyEl) return;
+
+    var canvasId = 'aiChartCanvas-'+uid;
+    var cardBodyId = 'aiCardBody-'+uid;
+    if (newType === 'cards') {
+      bodyEl.innerHTML = '<div id="'+cardBodyId+'" style="display:flex;flex-wrap:wrap;gap:7px;padding:4px"></div>';
+      aiRenderCardsInPanel(uid, panel);
+    } else if (newType === 'table') {
+      bodyEl.innerHTML = aiBuildTableHTML(panel);
     } else {
-      hint.textContent = '';
+      var cfg = { type: newType, data: { labels: panel.labels || [], datasets: [{ label: panel.title || 'Data', data: panel.values || [], backgroundColor: panel.bgColors || [], borderColor: panel.borderColors || [] }] }, options: {} };
+      bodyEl.innerHTML = '<div style="position:relative;flex:1;min-height:0"><canvas id="'+canvasId+'"></canvas></div>';
+      requestAnimationFrame(function() {
+        var cv = document.getElementById(canvasId); if (!cv) return;
+        var cfgClone = JSON.parse(JSON.stringify(cfg));
+        cfgClone.options = { animation: false, responsive: true, maintainAspectRatio: false };
+        aiApplyTemplatePalette(cfgClone, newType);
+        __aiCharts[uid] = new Chart(cv.getContext('2d'), cfgClone);
+        aiSyncPanelColors(uid);
+      });
+    }
+  };
+
+  function aiBuildTableHTML(panel) {
+    if (!panel.tableData || !panel.tableData.rows || !panel.tableData.rows.length)
+      return '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.8rem"><i class="bi bi-inbox" style="font-size:1.5rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data</div>';
+    return '<div style="max-height:240px;overflow-y:auto"><table class="table table-sm table-striped mb-0">' +
+      '<thead class="table-dark" style="position:sticky;top:0"><tr>' +
+      panel.tableData.columns.map(function(c){ return '<th style="font-size:0.68rem;white-space:nowrap">'+_aiEsc(String(c))+'</th>'; }).join('') +
+      '</tr></thead><tbody>' +
+      panel.tableData.rows.slice(0,50).map(function(r){
+        return '<tr>'+panel.tableData.columns.map(function(c){
+          return '<td style="font-size:0.68rem">'+_aiEsc(String(r[c]!=null?r[c]:'-'))+'</td>';
+        }).join('')+'</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function aiMakePanelInteractive(card, uid) {
+    var header = card.querySelector('[data-ai-panel-header]');
+    if (header) {
+      header.style.cursor = 'move';
+      header.addEventListener('mousedown', function(e) {
+        if (e.target.closest('button')) return;
+        e.preventDefault();
+        var sx = e.clientX - card.offsetLeft, sy = e.clientY - card.offsetTop;
+        card.style.zIndex = ++__aiZTop;
+        function onMove(ev) { card.style.left = Math.max(0, ev.clientX-sx)+'px'; card.style.top = Math.max(0, ev.clientY-sy)+'px'; }
+        function onUp() { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+      });
+    }
+    var grip = card.querySelector('[data-ai-resize-grip]');
+    if (grip) {
+      grip.addEventListener('mousedown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        var sx=e.clientX, sy=e.clientY, sw=card.offsetWidth, sh=card.offsetHeight;
+        card.style.zIndex = ++__aiZTop;
+        function onMove(ev) {
+          card.style.width  = Math.max(260, sw + ev.clientX - sx)+'px';
+          card.style.height = Math.max(180, sh + ev.clientY - sy)+'px';
+          var ch = __aiCharts[uid]; if (ch) ch.resize();
+        }
+        function onUp() { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp);
+      });
+    }
+  }
+
+  function aiRenderPanelOnCanvas(panel, isStaging) {
+    var uid = isStaging ? 'ai-staging' : ('ai' + (++__aiPanelIdCtr));
+    panel._uid = uid;
+    __aiPanelData[uid] = panel;
+
+    if (isStaging) {
+      var old = document.getElementById('aiCard-ai-staging');
+      if (old) { if (__aiCharts['ai-staging']) { __aiCharts['ai-staging'].destroy(); delete __aiCharts['ai-staging']; } old.remove(); }
     }
 
-    // Rebuild chart type dropdown filtered to template's preferred types
-    if (chartSel) {
-      var preferred = [];
-      try { if (chartTypesRaw) preferred = JSON.parse(chartTypesRaw); } catch(e) {}
-      chartSel.innerHTML = '';
-      allChartOptions.forEach(function(o) {
-        if (!preferred.length || preferred.includes(o.value)) {
-          var newOpt = document.createElement('option');
-          newOpt.value = o.value;
-          newOpt.textContent = o.text;
-          if (o.value === preferred[0]) newOpt.selected = true;
-          chartSel.appendChild(newOpt);
-        }
-      });
-      // if nothing matched restore all
-      if (chartSel.options.length === 0) {
-        allChartOptions.forEach(function(o) {
-          var newOpt = document.createElement('option');
-          newOpt.value = o.value;
-          newOpt.textContent = o.text;
-          chartSel.appendChild(newOpt);
+    var canvasEl = document.getElementById('aiCanvas');
+    var px, py;
+    if (isStaging) { px = Math.max(10, canvasEl.clientWidth - 440); py = canvasEl.scrollTop + 10; }
+    else { px = __aiNextX; py = __aiNextY; __aiNextX += 20; __aiNextY += 20; if (__aiNextX > 160) { __aiNextX = 10; __aiNextY = 10; } }
+
+    var card = document.createElement('div');
+    card.id = 'aiCard-' + uid;
+    card.style.cssText = 'position:absolute;width:420px;height:300px;display:flex;flex-direction:column;background:#fff;border-radius:8px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:visible;left:'+px+'px;top:'+py+'px;z-index:'+(++__aiZTop)+';' +
+      (isStaging ? 'border:2px dashed #6366f1;' : 'border:1px solid #e2e8f0;');
+
+    var hdrBg = isStaging ? '#f0f0ff' : '#f8fafc';
+    var hdrBd = isStaging ? 'border-bottom:1px solid #c7d2fe' : 'border-bottom:1px solid #f1f5f9';
+    var hdr = '<div data-ai-panel-header style="background:'+hdrBg+';padding:8px 10px;'+hdrBd+';display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">' +
+      '<div style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">' +
+      '<i class="bi bi-grip-vertical" style="color:#9ca3af;font-size:0.75rem;flex-shrink:0;cursor:move"></i>' +
+      (isStaging
+        ? '<span style="font-size:0.58rem;background:#6366f1;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0">PREVIEW</span>'
+        : '<span style="font-size:0.58rem;background:#22c55e;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0">AI</span>') +
+      '<span style="font-size:0.82rem;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_aiEsc(panel.title||'Panel')+'</span>' +
+      '</div><div style="display:flex;gap:4px;align-items:center;flex-shrink:0">';
+    if (isStaging) {
+      hdr += '<button class="btn btn-sm py-0 px-2" onclick="aiAddPreviewToQueue()" style="font-size:0.7rem;background:#6366f1;color:#fff;border:none"><i class="bi bi-plus-circle me-1"></i>Add to Dashboard</button>' +
+             '<button class="btn btn-sm btn-link text-secondary p-0 ms-1" onclick="aiClearPreview()" title="Dismiss"><i class="bi bi-x-lg" style="font-size:0.7rem"></i></button>';
+    } else {
+      var _aiTypes = ['bar','line','pie','doughnut','table','cards'];
+      hdr += '<select onchange="aiChangeChartType(\''+uid+'\',this.value)" style="font-size:0.6rem;padding:1px 4px;border:1px solid #e2e8f0;border-radius:4px;background:#f8fafc;color:#6b7280;cursor:pointer">';
+      _aiTypes.forEach(function(t){ hdr += '<option value="'+t+'"'+(t===(panel.chartType||'bar')?' selected':'')+'>'+t+'</option>'; });
+      hdr += '</select>' +
+             '<button class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="aiRemoveCanvasPanel(\''+uid+'\')" title="Remove"><i class="bi bi-x-lg" style="font-size:0.7rem"></i></button>';
+    }
+    hdr += '</div></div>';
+
+    var body = '<div data-ai-panel-body style="flex:1;min-height:0;padding:8px;overflow:hidden;display:flex;flex-direction:column">';
+    if (!panel.hasData) {
+      body += '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.82rem"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data returned</div>';
+    } else if (panel.chartType === 'cards') {
+      body += '<div id="aiCardBody-'+uid+'" style="display:flex;flex-wrap:wrap;gap:7px;padding:4px"></div>';
+    } else if (panel.chartType === 'table' || !panel.chartConfig) {
+      body += aiBuildTableHTML(panel);
+    } else {
+      body += '<div style="position:relative;flex:1;min-height:0"><canvas id="aiChartCanvas-'+uid+'"></canvas></div>';
+    }
+    // AI Insight bar
+    if (panel.aiInsight) {
+      body += '<div style="padding:6px 10px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-top:1px solid #e2e8f0;font-size:0.68rem;color:#4c1d95;line-height:1.4">' +
+        '<i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:4px"></i>' +
+        '<span style="font-weight:600">AI Insight:</span> ' + _aiEsc(panel.aiInsight) + '</div>';
+    }
+    if (panel.parsedByAI) {
+      // Add a subtle AI badge to indicate the prompt was parsed by GPT
+    }
+    body += '</div>';
+
+    var grip = '<div data-ai-resize-grip style="position:absolute;right:-1px;bottom:-1px;width:18px;height:18px;cursor:se-resize;z-index:20;display:flex;align-items:flex-end;justify-content:flex-end;padding:2px">' +
+      '<svg width="10" height="10" viewBox="0 0 10 10" style="opacity:0.45"><line x1="10" y1="2" x2="2" y2="10" stroke="#6b7280" stroke-width="1.5"/><line x1="10" y1="6" x2="6" y2="10" stroke="#6b7280" stroke-width="1.5"/></svg></div>';
+
+    var clipOpen  = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;pointer-events:none"><div style="pointer-events:auto;display:flex;flex-direction:column;height:100%">';
+    var clipClose = '</div></div>';
+    card.innerHTML = clipOpen + hdr + body + clipClose + grip;
+    document.getElementById('aiPanelGrid').appendChild(card);
+    aiMakePanelInteractive(card, uid);
+
+    if (panel.hasData) {
+      if (panel.chartType === 'cards') {
+        aiRenderCardsInPanel(uid, panel);
+      } else if (panel.chartConfig && panel.chartType !== 'table') {
+        requestAnimationFrame(function() {
+          var cv = document.getElementById('aiChartCanvas-'+uid); if (!cv) return;
+          var cfg = JSON.parse(JSON.stringify(panel.chartConfig));
+          cfg.options = cfg.options || {};
+          cfg.options.animation = false; cfg.options.responsive = true; cfg.options.maintainAspectRatio = false;
+          aiApplyTemplatePalette(cfg, panel.chartType);
+          __aiCharts[uid] = new Chart(cv.getContext('2d'), cfg);
+          aiSyncPanelColors(uid);
         });
       }
     }
-  });
+    var grid = document.getElementById('aiPanelGrid');
+    grid.style.minHeight = (card.offsetTop + card.offsetHeight + 20) + 'px';
+    aiUpdateEmptyState();
+  }
+
+  // ── Preview / Add / Remove ────────────────────────────────────────────────
+  window.aiPreviewPanel = function() {
+    var prompt = ((document.getElementById('aiPromptTextarea')||{}).value||'').trim();
+    if (!prompt) {
+      var ta = document.getElementById('aiPromptTextarea');
+      if (ta) { ta.focus(); ta.classList.add('is-invalid'); setTimeout(function(){ ta.classList.remove('is-invalid'); }, 1200); }
+      return;
+    }
+    var chartType = (document.getElementById('aiChartTypeSel')||{}).value || 'auto';
+    var sourceId  = (document.getElementById('aiSourceSel')||{}).value || '';
+    var btn = document.getElementById('aiPreviewBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...'; }
+    fetch('/dashboard/generate-panel', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt, chartType: chartType, dataSourceId: sourceId || null }),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(panel) {
+      if (panel.error) { alert('Error: ' + panel.error); return; }
+      __aiPreview = panel;
+      aiRenderPanelOnCanvas(panel, true);
+    })
+    .catch(function(err){ alert('Request failed: ' + err.message); })
+    .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-eye me-1"></i>Preview on Canvas'; } });
+  };
+
+  window.aiClearPreview = function() {
+    var old = document.getElementById('aiCard-ai-staging');
+    if (old) { if (__aiCharts['ai-staging']) { __aiCharts['ai-staging'].destroy(); delete __aiCharts['ai-staging']; } old.remove(); }
+    __aiPreview = null; aiUpdateEmptyState();
+  };
+
+  window.aiAddToQueue = function() {
+    if (__aiPreview) aiAddPreviewToQueue();
+    else aiPreviewPanel();
+  };
+
+  window.aiAddPreviewToQueue = function() {
+    if (!__aiPreview) return;
+    var panel = JSON.parse(JSON.stringify(__aiPreview));
+    var old = document.getElementById('aiCard-ai-staging');
+    if (old) { if (__aiCharts['ai-staging']) { __aiCharts['ai-staging'].destroy(); delete __aiCharts['ai-staging']; } old.remove(); }
+    __aiPreview = null;
+    aiRenderPanelOnCanvas(panel, false);
+    __aiQueue.push(panel);
+    aiRenderQueueList(); aiUpdateEmptyState();
+  };
+
+  window.aiRemoveCanvasPanel = function(uid) {
+    if (__aiCharts[uid]) { __aiCharts[uid].destroy(); delete __aiCharts[uid]; }
+    delete __aiPanelData[uid];
+    var card = document.getElementById('aiCard-' + uid); if (card) card.remove();
+    for (var i = __aiQueue.length - 1; i >= 0; i--) { if (__aiQueue[i]._uid === uid) __aiQueue.splice(i, 1); }
+    aiRenderQueueList(); aiUpdateEmptyState();
+  };
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+  var __aiKpiData = [];
+  var __aiExecSummary = '';
+
+  window.submitAiDashboard = function() {
+    if (!__aiQueue.length) { alert('Add at least one panel to the dashboard first.'); return; }
+    // Force-sync all chart colors to panel data before serializing
+    Object.keys(__aiCharts).forEach(function(uid) { aiSyncPanelColors(uid); });
+    
+    // Capture panel positions from DOM before saving
+    __aiQueue.forEach(function(panel) {
+      var card = document.getElementById('aiCard-' + panel._uid);
+      if (card) {
+        panel.position = {
+          left: parseInt(card.style.left) || 0,
+          top: parseInt(card.style.top) || 0
+        };
+      }
+    });
+    
+    document.getElementById('aiPanelsJson').value = JSON.stringify(__aiQueue);
+    document.getElementById('aiKpiDataJson').value = JSON.stringify(__aiKpiData);
+    document.getElementById('aiExecSummary').value = __aiExecSummary;
+    document.getElementById('aiPaletteJson').value = JSON.stringify(aiGetTemplatePalette() || []);
+    document.getElementById('aiGenerateForm').submit();
+  };
+
+  window.submitAiChanges = function() {
+    if (!__aiQueue.length) { alert('Add at least one panel to the dashboard first.'); return; }
+    if (!window.__editingDashboardId) { alert('Dashboard ID not found.'); return; }
+    
+    // Force-sync all chart colors to panel data before serializing
+    Object.keys(__aiCharts).forEach(function(uid) { aiSyncPanelColors(uid); });
+    
+    // Capture panel positions from DOM before saving
+    __aiQueue.forEach(function(panel) {
+      var card = document.getElementById('aiCard-' + panel._uid);
+      if (card) {
+        panel.position = {
+          left: parseInt(card.style.left) || 0,
+          top: parseInt(card.style.top) || 0
+        };
+      }
+    });
+    
+    // Prepare config object with all dashboard data
+    var configObj = {
+      panels: __aiQueue,
+      kpiData: __aiKpiData,
+      executiveSummary: __aiExecSummary,
+      palette: aiGetTemplatePalette() || []
+    };
+    
+    document.getElementById('aiUpdatePanelsJson').value = JSON.stringify(configObj);
+    document.getElementById('aiUpdateTitle').value = document.querySelector('[id="aiPromptPanel"] .border-bottom span')?.textContent || 'Dashboard';
+    document.getElementById('aiUpdatePromptText').value = document.getElementById('aiPrompt')?.value || '';
+    
+    var form = document.getElementById('aiUpdateForm');
+    form.action = '/dashboard/' + window.__editingDashboardId + '/update';
+    form.submit();
+  };
+
+  window.submitAiFullDashboard = function() {
+    var sourceId = (document.getElementById('aiSourceSel') || {}).value || '';
+    if (!confirm('Generate a complete corporate dashboard from all available data? This may take a few seconds.')) return;
+
+    // Show loading state
+    var btn = document.querySelector('[onclick="submitAiFullDashboard()"]');
+    var origHTML = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Generating�'; }
+
+    // Clear existing canvas panels
+    aiClearQueue();
+    var oldSummary = document.getElementById('aiFullDashSummary');
+    if (oldSummary) oldSummary.remove();
+    var oldKpi = document.getElementById('aiFullDashKpiStrip');
+    if (oldKpi) oldKpi.remove();
+
+    fetch('/dashboard/full', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceId: sourceId })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) { alert(data.error); return; }
+      var panels = data.panels || [];
+      if (!panels.length) { alert('No panels generated.'); return; }
+
+      var canvasEl = document.getElementById('aiCanvas');
+      var gridEl   = document.getElementById('aiPanelGrid');
+      var canvasW  = canvasEl ? canvasEl.clientWidth : 900;
+
+      // -- Insert KPI strip at the top of the canvas --
+      var kpiData = data.kpiData || [];
+      __aiKpiData = kpiData;
+      if (kpiData.length > 0) {
+        var pal = aiGetTemplatePalette();
+        var kpiColors = pal || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316'];
+        var kpiDiv = document.createElement('div');
+        kpiDiv.id = 'aiFullDashKpiStrip';
+        kpiDiv.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;padding:10px 12px;margin-bottom:4px;';
+        kpiData.forEach(function(kpi, ki) {
+          var c = kpiColors[ki % kpiColors.length];
+          kpiDiv.innerHTML += '<div style="flex:1;min-width:110px;max-width:200px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center;border-top:3px solid '+c+';box-shadow:0 1px 3px rgba(0,0,0,0.04)">' +
+            '<div style="width:28px;height:28px;border-radius:6px;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;background:'+c+'"><i class="bi '+(kpi.icon||'bi-bar-chart')+'"></i></div>' +
+            '<div style="font-size:1.25rem;font-weight:800;color:'+c+';line-height:1.1">'+_aiEsc(kpi.value||'')+'</div>' +
+            '<div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px">'+_aiEsc(kpi.label||'')+'</div>' +
+            (kpi.trend ? '<div style="font-size:0.58rem;font-weight:600;margin-top:2px;color:'+(String(kpi.trend).indexOf('-')===0?'#ef4444':(String(kpi.trend).indexOf('+')===0?'#22c55e':'#6b7280'))+'">'+_aiEsc(kpi.trend)+'</div>' : '') +
+            '</div>';
+        });
+        gridEl.insertBefore(kpiDiv, gridEl.firstChild);
+      }
+
+      // -- Save executive summary text for later (rendered at bottom) --
+      var summary = data.executiveSummary || '';
+      __aiExecSummary = summary;
+
+      // -- Place panels on canvas in a 2-column grid --
+      var cols = 2;
+      var gap = 14;
+      var topOffset = 10;
+      // Account for KPI strip height
+      var nonPanelEls = gridEl.querySelectorAll('#aiFullDashKpiStrip');
+      nonPanelEls.forEach(function(el) { topOffset += el.offsetHeight + 8; });
+
+      var panelW = Math.floor((canvasW - gap * (cols + 1)) / cols);
+      if (panelW < 320) panelW = 320;
+      if (panelW > 600) panelW = 600;
+      var panelH = 300;
+
+      // Reset cascade position for grid layout
+      __aiNextX = gap;
+      __aiNextY = topOffset + gap;
+
+      panels.forEach(function(panel, idx) {
+        var col = idx % cols;
+        var row = Math.floor(idx / cols);
+        var x = gap + col * (panelW + gap);
+        var y = topOffset + gap + row * (panelH + gap);
+
+        // Temporarily override cascade vars so aiRenderPanelOnCanvas uses our grid position
+        __aiNextX = x;
+        __aiNextY = y;
+
+        aiRenderPanelOnCanvas(panel, false);
+        __aiQueue.push(panel);
+
+        // Resize the card to grid dimensions
+        var card = document.getElementById('aiCard-' + panel._uid);
+        if (card) {
+          card.style.left = x + 'px';
+          card.style.top = y + 'px';
+          card.style.width = panelW + 'px';
+          card.style.height = panelH + 'px';
+          // Resize chart if present
+          var uid = panel._uid;
+          if (__aiCharts[uid]) {
+            setTimeout(function() { __aiCharts[uid].resize(); }, 100);
+          }
+        }
+      });
+
+      // Reset cascade position for any future manual additions
+      var totalRows = Math.ceil(panels.length / cols);
+      __aiNextX = gap;
+      __aiNextY = topOffset + gap + totalRows * (panelH + gap) + 20;
+
+      // -- Insert executive summary at bottom --
+      var bottomY = topOffset + gap + totalRows * (panelH + gap);
+      if (summary && summary.length > 30) {
+        var sumDiv = document.createElement('div');
+        sumDiv.id = 'aiFullDashSummary';
+        sumDiv.style.cssText = 'position:absolute;left:' + gap + 'px;top:' + bottomY + 'px;right:' + gap + 'px;' +
+          'padding:12px 16px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-radius:8px;border-left:3px solid #7c3aed;font-size:0.75rem;color:#374151;line-height:1.55';
+        sumDiv.innerHTML = '<span style="font-size:0.7rem;color:#4c1d95;font-weight:700"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span> ' + _aiEsc(summary);
+        gridEl.appendChild(sumDiv);
+        bottomY += 80;
+        __aiNextY = bottomY + 20;
+      }
+
+      // Expand grid height to fit all panels + summary
+      var totalH = bottomY + 40;
+      gridEl.style.minHeight = totalH + 'px';
+
+      aiRenderQueueList();
+      aiUpdateEmptyState();
+    })
+    .catch(function(err) { alert('Full dashboard error: ' + err.message); })
+    .finally(function() {
+      if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
+    });
+  };
+
+  window.aiRenderTemplatePreview = function() {
+    var sel = document.getElementById('aiTemplateSel');
+    var box = document.getElementById('aiTemplatePreview');
+    var hint = document.getElementById('aiTemplateHint');
+    if (!sel || !box) return;
+    var opt = sel.options[sel.selectedIndex];
+    var accent  = opt.getAttribute('data-accent')  || '#3b82f6';
+    var font    = opt.getAttribute('data-font')    || 'Inter';
+    var desc    = opt.getAttribute('data-desc')    || '';
+    var palette = [];
+    try { palette = JSON.parse(opt.getAttribute('data-palette') || '[]'); } catch(e) {}
+    if (!palette.length) palette = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+    // Re-color all existing canvas charts with new palette
+    Object.keys(__aiCharts).forEach(function(uid) {
+      var chart = __aiCharts[uid];
+      if (!chart || !chart.data || !chart.data.datasets) return;
+      var type = (chart.config.type || 'bar').toLowerCase();
+      var pal = palette.length ? palette : ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+      if (type === 'bar') {
+        var barColors = (chart.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+        chart.data.datasets.forEach(function(ds) { ds.backgroundColor = barColors; ds.borderColor = 'transparent'; ds.borderWidth = 0; ds.borderRadius = 4; });
+      } else if (type === 'line') {
+        chart.data.datasets.forEach(function(ds, i) { ds.borderColor = pal[i % pal.length]; ds.backgroundColor = pal[i % pal.length] + '22'; ds.pointBackgroundColor = pal[i % pal.length]; });
+      } else if (type === 'pie' || type === 'doughnut') {
+        var sc = (chart.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
+        chart.data.datasets.forEach(function(ds) { ds.backgroundColor = sc; ds.borderColor = '#fff'; ds.borderWidth = 2; });
+      }
+      chart.update();
+      aiSyncPanelColors(uid);
+    });
+    // Re-color card panels
+    __aiQueue.forEach(function(panel, idx) {
+      if (panel.chartType === 'cards') {
+        aiRenderCardsInPanel(panel._uid, panel);
+      }
+    });
+    // Re-color KPI strip with new palette
+    var kpiStrip = document.getElementById('aiFullDashKpiStrip');
+    if (kpiStrip) {
+      var kpiCards = kpiStrip.children;
+      for (var ki = 0; ki < kpiCards.length; ki++) {
+        var kc = kpiCards[ki];
+        var col = palette[ki % palette.length];
+        kc.style.borderTopColor = col;
+        var iconEl = kc.querySelector('div[style*="border-radius:6px"]');
+        if (iconEl) iconEl.style.background = col;
+        var valEl = kc.querySelector('div[style*="font-weight:800"]');
+        if (valEl) valEl.style.color = col;
+      }
+    }
+    var barHeights = [82,55,67,90,48,72,55,78,65,85,43,70];
+    var pieSlices = [28,24,16,11,9,12];
+    var conic = pieSlices.map(function(s,i){
+      var start = pieSlices.slice(0,i).reduce(function(a,b){return a+b;},0);
+      return (palette[i]||palette[0]) + ' ' + start + '% ' + (start+s) + '%';
+    }).join(', ');
+    var kpis = [{l:'Revenue',v:'$2.4M'},{l:'Users',v:'12,480'},{l:'Projects',v:'36'},{l:'Efficiency',v:'91%'}];
+    var rows = [['Alice Martin','98.5','Active',0],['Bob Chen','76.0','Active',1],['Carol Wu','54.2','Pending',2]];
+
+    if (hint) hint.textContent = desc;
+
+    if (!sel.value) { box.style.display = 'none'; return; }
+    box.style.display = 'block';
+
+    var kpiHtml = kpis.map(function(kpi,i){
+      return '<div style="flex:1;background:'+(palette[i]||palette[0])+';border-radius:3px;padding:4px 5px">'
+        + '<div style="font-size:0.29rem;color:rgba(255,255,255,0.72);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:1px">'+kpi.l+'</div>'
+        + '<div style="font-size:0.62rem;font-weight:700;color:#fff">'+kpi.v+'</div>'
+        + '<div style="font-size:0.27rem;color:rgba(255,255,255,0.55);margin-top:1px">&#9650; +8.5%</div>'
+        + '</div>';
+    }).join('');
+
+    var barsHtml = barHeights.map(function(h,i){
+      return '<div style="flex:1;background:'+(palette[i%palette.length]||palette[0])+';height:'+h+'%;border-radius:1px 1px 0 0;opacity:0.85"></div>';
+    }).join('');
+
+    var tblRows = rows.map(function(row){
+      return '<div style="display:flex;align-items:center;padding:2px 5px;border-bottom:1px solid #f3f4f6">'
+        + '<div style="flex:2;font-size:0.3rem;color:#374151">'+row[0]+'</div>'
+        + '<div style="flex:1;font-size:0.3rem;color:#374151">'+row[1]+'</div>'
+        + '<div style="flex:1"><span style="font-size:0.26rem;background:'+(palette[row[3]]||palette[0])+';color:#fff;border-radius:2px;padding:1px 3px">'+row[2]+'</span></div>'
+        + '</div>';
+    }).join('');
+
+    box.innerHTML = '<div style="font-family:\''+font+'\',sans-serif">'
+      // Window chrome
+      + '<div style="background:#1e1e1e;padding:5px 8px;display:flex;align-items:center;gap:5px">'
+      +   '<div style="width:6px;height:6px;border-radius:50%;background:#ff5f57"></div>'
+      +   '<div style="width:6px;height:6px;border-radius:50%;background:#febc2e"></div>'
+      +   '<div style="width:6px;height:6px;border-radius:50%;background:#28c840"></div>'
+      +   '<span style="font-size:0.38rem;color:#aaa;margin-left:5px;letter-spacing:0.5px">'+_aiEsc(opt.text)+'</span>'
+      + '</div>'
+      // Toolbar
+      + '<div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:4px 7px;display:flex;gap:5px;align-items:center">'
+      +   '<div style="width:32px;height:4px;background:#e5e7eb;border-radius:2px"></div>'
+      +   '<div style="width:32px;height:4px;background:#e5e7eb;border-radius:2px"></div>'
+      +   '<div style="flex:1"></div>'
+      +   '<div style="width:18px;height:9px;background:'+(palette[0]||accent)+';border-radius:2px;opacity:0.85"></div>'
+      +   '<div style="width:18px;height:9px;background:'+(palette[1]||accent)+';border-radius:2px;opacity:0.85"></div>'
+      + '</div>'
+      // KPI cards
+      + '<div style="background:#f0f2f5;padding:6px 7px 3px">'
+      +   '<div style="display:flex;gap:4px">'+kpiHtml+'</div>'
+      + '</div>'
+      // Charts row
+      + '<div style="background:#f0f2f5;display:flex;gap:4px;padding:3px 7px">'
+      +   '<div style="flex:2;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb">'
+      +     '<div style="font-size:0.28rem;color:#9ca3af;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.3px">Trend</div>'
+      +     '<div style="display:flex;align-items:flex-end;gap:1px;height:36px">'+barsHtml+'</div>'
+      +   '</div>'
+      +   '<div style="flex:1;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb;display:flex;flex-direction:column;align-items:center">'
+      +     '<div style="font-size:0.28rem;color:#9ca3af;margin-bottom:3px;text-transform:uppercase;letter-spacing:0.3px;align-self:flex-start">Split</div>'
+      +     '<div style="width:34px;height:34px;border-radius:50%;background:conic-gradient('+conic+');position:relative;flex-shrink:0">'
+      +       '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff"></div>'
+      +     '</div>'
+      +   '</div>'
+      + '</div>'
+      // Mini table
+      + '<div style="background:#f0f2f5;padding:3px 7px 7px">'
+      +   '<div style="background:#fff;border-radius:3px;border:1px solid #e5e7eb;overflow:hidden">'
+      +     '<div style="display:flex;padding:2px 5px;background:#f9fafb;border-bottom:1px solid #e5e7eb">'
+      +       '<div style="flex:2;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase">Name</div>'
+      +       '<div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase">Value</div>'
+      +       '<div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase">Status</div>'
+      +     '</div>'
+      +     tblRows
+      +   '</div>'
+      + '</div>'
+      // Footer: font name + accent swatch
+      + '<div style="background:#fff;border-top:1px solid #e5e7eb;padding:4px 8px;display:flex;align-items:center;gap:6px">'
+      +   '<span style="font-size:0.55rem;font-family:\''+font+'\',sans-serif;color:'+accent+';font-weight:700">Aa � '+_aiEsc(font)+'</span>'
+      +   '<div style="flex:1"></div>'
+      +   palette.slice(0,6).map(function(c){ return '<div style="width:8px;height:8px;border-radius:2px;background:'+c+'"></div>'; }).join('')
+      + '</div>'
+      + '</div>';
+  };
+
+  // -- Load saved dashboard into canvas for editing ------------------------------
+  if (window.__preloadDashboard) {
+    var preload = window.__preloadDashboard;
+    
+    // Check if we're in edit mode (has dashboard ID)
+    if (preload.id) {
+      window.__editingDashboardId = preload.id;
+      // Show "Save Changes" button, hide "Generate & Save"
+      var generateBtn = document.getElementById('aiGenerateBtn');
+      var saveChangesBtn = document.getElementById('aiSaveChangesBtn');
+      if (generateBtn) generateBtn.style.display = 'none';
+      if (saveChangesBtn) saveChangesBtn.style.display = '';
+    }
+    
+    if (preload.panels && preload.panels.length) {
+      console.log('Preloading', preload.panels.length, 'panels');
+      
+      // Fetch missing chart data for all panels that don't have chartConfig
+      var chartFetches = preload.panels.map(function(panel) {
+        console.log('Panel:', panel.title, 'has chartConfig:', !!panel.chartConfig, 'has table:', !!panel.table);
+        
+        if (panel.chartConfig) {
+          console.log('Panel already has chartConfig, skipping fetch');
+          return Promise.resolve(panel);
+        }
+        
+        // Only fetch if panel has table and sourceId
+        if (!panel.table || !panel.sourceId && !preload.sourceId) {
+          console.log('Panel missing table or sourceId, rendering as-is');
+          return Promise.resolve(panel);
+        }
+        
+        // Panel missing chartConfig, fetch it
+        console.log('Fetching chart data for:', panel.title);
+        return fetch('/dashboard/manual-panel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: panel.sourceId || preload.sourceId,
+            tableKey: panel.table,
+            joinTableKey: panel.joinTable || null,
+            dimension: panel.dimension || null,
+            measure: panel.measure || null,
+            aggregation: panel.aggregation || 'COUNT',
+            chartType: panel.chartType || 'bar',
+            limit: panel.limit || 20,
+            filters: panel.filters || [],
+            title: panel.title
+          })
+        })
+        .then(r => r.json())
+        .then(function(data) {
+          console.log('Got chart data for', panel.title, ':', !!data.chartConfig);
+          if (data && !data.error) {
+            panel.chartConfig = data.chartConfig;
+            panel.labels = data.labels;
+            panel.datasets = data.datasets;
+            panel.hasData = data.hasData;
+            panel.tableData = data.tableData;
+          } else {
+            console.error('Error in chart data:', data);
+          }
+          return panel;
+        })
+        .catch(function(e) {
+          console.error('Error loading chart for panel:', panel.title, e);
+          return panel;
+        });
+      });
+      
+      // Once all chart data is loaded, render the panels
+      Promise.all(chartFetches).then(function() {
+        console.log('All chart data loaded, rendering panels');
+        // Render panels to canvas
+        var panelIndex = 0;
+        var panelsPerRow = 3;
+        var cardWidth = 380;
+        var cardHeight = 260;
+        var gapX = 16;
+        var gapY = 16;
+        var startX = 10;
+        var startY = 10;
+
+        preload.panels.forEach(function(panel) {
+          if (!panel._uid) panel._uid = '__aiPanel_' + (++__aiPanelIdCtr);
+          __aiQueue.push(panel);
+          __aiPanelData[panel._uid] = panel;
+
+          // Use saved position if available, otherwise calculate grid position
+          var posX, posY;
+          if (panel.position && typeof panel.position.left === 'number' && typeof panel.position.top === 'number') {
+            posX = panel.position.left;
+            posY = panel.position.top;
+          } else {
+            // Fallback to grid layout
+            var row = Math.floor(panelIndex / panelsPerRow);
+            var col = panelIndex % panelsPerRow;
+            posX = startX + (col * (cardWidth + gapX));
+            posY = startY + (row * (cardHeight + gapY));
+          }
+          panelIndex++;
+
+          // Render panel card on canvas
+          var grid = document.getElementById('aiPanelGrid');
+          if (grid) {
+            var card = document.createElement('div');
+            card.id = 'aiCard-' + panel._uid;
+            card.style.cssText = 'position:absolute;width:' + cardWidth + 'px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1);z-index:' + (__aiZTop++) + ';left:' + posX + 'px;top:' + posY + 'px;cursor:grab;user-select:none';
+
+            var titleBar = document.createElement('div');
+            titleBar.style.cssText = 'padding:8px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;cursor:grab';
+            titleBar.innerHTML =
+              '<span style="font-weight:600;font-size:0.85rem;color:#1f2937">' + (panel.title || 'Panel') + '</span>' +
+              '<button type="button" style="background:none;border:none;color:#ef4444;padding:0;cursor:pointer;font-size:0.8rem" onclick="aiRemoveFromQueue(' + (__aiQueue.length - 1) + ')"><i class="bi bi-x-lg"></i></button>';
+
+            var body = document.createElement('div');
+            body.id = 'aiCardBody-' + panel._uid;
+            body.style.cssText = 'padding:10px;height:200px;position:relative;background:#fff;border-radius:0 0 8px 8px';
+
+            if (panel.chartType === 'cards') {
+              aiRenderCardsInPanel(panel._uid, panel);
+            } else if (panel.chartType === 'table' && panel.tableData) {
+              var tbl = document.createElement('table');
+              tbl.style.cssText = 'width:100%;font-size:0.7rem;border-collapse:collapse;max-height:100%;overflow:auto';
+              var thead = document.createElement('thead');
+              var headerRow = document.createElement('tr');
+              (panel.tableData.columns || []).forEach(function(col) {
+                var th = document.createElement('th');
+                th.style.cssText = 'border:1px solid #e5e7eb;padding:4px;text-align:left;background:#f3f4f6;font-weight:600';
+                th.textContent = col;
+                headerRow.appendChild(th);
+              });
+              thead.appendChild(headerRow);
+              tbl.appendChild(thead);
+
+              var tbody = document.createElement('tbody');
+              (panel.tableData.rows || []).slice(0, 10).forEach(function(row) {
+                var tr = document.createElement('tr');
+                (row || []).forEach(function(cell) {
+                  var td = document.createElement('td');
+                  td.style.cssText = 'border:1px solid #e5e7eb;padding:3px;text-align:left';
+                  td.textContent = cell;
+                  tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+              });
+              tbl.appendChild(tbody);
+              body.appendChild(tbl);
+            } else if (panel.chartConfig) {
+              var canvas = document.createElement('canvas');
+              canvas.id = 'chart-' + panel._uid;
+              body.appendChild(canvas);
+              setTimeout(function() {
+                var cfg = JSON.parse(JSON.stringify(panel.chartConfig));
+                cfg = aiApplyTemplatePalette(cfg, panel.chartType);
+                var chartEl = document.getElementById('chart-' + panel._uid);
+                if (chartEl && typeof Chart !== 'undefined') {
+                  __aiCharts[panel._uid] = new Chart(chartEl, cfg);
+                }
+              }, 0);
+            }
+
+            card.appendChild(titleBar);
+            card.appendChild(body);
+            grid.appendChild(card);
+
+            (function(el) {
+              var isDragging = false, dragOffX = 0, dragOffY = 0;
+              titleBar.addEventListener('mousedown', function(e) {
+                if (e.target.closest('button')) return;
+                isDragging = true;
+                dragOffX = e.clientX - el.offsetLeft;
+                dragOffY = e.clientY - el.offsetTop;
+                el.style.cursor = 'grabbing';
+              });
+              document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                el.style.left = Math.max(0, e.clientX - dragOffX) + 'px';
+                el.style.top = Math.max(0, e.clientY - dragOffY) + 'px';
+              });
+              document.addEventListener('mouseup', function() { isDragging = false; el.style.cursor = 'grab'; });
+            })(card);
+          }
+        });
+
+        // Load KPI data
+        if (preload.kpiData && preload.kpiData.length) {
+          __aiKpiData = preload.kpiData;
+          var kpiStrip = document.getElementById('aiFullDashKpiStrip');
+          if (!kpiStrip && document.getElementById('aiPanelGrid')) {
+            kpiStrip = document.createElement('div');
+            kpiStrip.id = 'aiFullDashKpiStrip';
+            kpiStrip.style.cssText = 'display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap';
+            document.getElementById('aiPanelGrid').parentNode.insertBefore(kpiStrip, document.getElementById('aiPanelGrid'));
+          }
+          if (kpiStrip) {
+            kpiStrip.innerHTML = '';
+            var palette = preload.palette && preload.palette.length ? preload.palette : ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+            __aiKpiData.forEach(function(kpi, idx) {
+              var col = palette[idx % palette.length];
+              var card = document.createElement('div');
+              card.style.cssText = 'flex:1;min-width:120px;padding:12px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;border-top:4px solid ' + col;
+              card.innerHTML =
+                '<div style="font-size:0.7rem;color:#6b7280;margin-bottom:4px">' + (kpi.label || 'KPI') + '</div>' +
+                '<div style="font-size:1.4rem;font-weight:800;color:' + col + '">' + (kpi.value || '0') + '</div>' +
+                '<div style="font-size:0.65rem;color:#9ca3af;margin-top:4px">' + (kpi.change || '') + '</div>';
+              kpiStrip.appendChild(card);
+            });
+          }
+        }
+
+        // Load executive summary
+        if (preload.executiveSummary) {
+          __aiExecSummary = preload.executiveSummary;
+          var summaryEl = document.getElementById('aiFullDashSummary');
+          if (!summaryEl && document.getElementById('aiPanelGrid')) {
+            summaryEl = document.createElement('div');
+            summaryEl.id = 'aiFullDashSummary';
+            summaryEl.style.cssText = 'margin-top:20px;padding:16px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;line-height:1.6;color:#0c4a6e;font-size:0.85rem';
+            document.getElementById('aiPanelGrid').parentNode.appendChild(summaryEl);
+          }
+          if (summaryEl) summaryEl.innerHTML = preload.executiveSummary;
+        }
+
+        // Update toolbar and queue display
+        aiRenderQueueList();
+        aiUpdateEmptyState();
+
+        // Set template palette if available
+        if (preload.palette && preload.palette.length && document.getElementById('aiTemplateSel')) {
+          var sel = document.getElementById('aiTemplateSel');
+          for (var i = 0; i < sel.options.length; i++) {
+            var opt = sel.options[i];
+            try {
+              var optPal = JSON.parse(opt.getAttribute('data-palette') || '[]');
+              if (JSON.stringify(optPal) === JSON.stringify(preload.palette)) {
+                sel.selectedIndex = i;
+                sel.dispatchEvent(new Event('change'));
+                return;
+              }
+            } catch(e) {}
+          }
+        }
+      });
+    }
+  }
+
+})();
+
+// ── Mode switcher ─────────────────────────────────────────────────────────────
+function switchMode(mode) {
+  var aiCard     = document.getElementById('aiModeCard');
+  var manualCard = document.getElementById('manualModeCard');
+  var aiBtn      = document.getElementById('aiTabBtn');
+  var manualBtn  = document.getElementById('manualTabBtn');
+  var pageHdr    = document.querySelector('.page-header');
+
+  // Sync canvas panels between modes
+  var fromGrid, toGrid;
+  if (mode === 'ai') {
+    fromGrid = document.getElementById('mbPanelGrid');
+    toGrid   = document.getElementById('aiPanelGrid');
+  } else {
+    fromGrid = document.getElementById('aiPanelGrid');
+    toGrid   = document.getElementById('mbPanelGrid');
+  }
+  if (fromGrid && toGrid) {
+    // Move all panel DOM elements to the target grid
+    while (fromGrid.children.length > 0) {
+      toGrid.appendChild(fromGrid.children[0]);
+    }
+    // NOTE: No need to merge state - both modes now share window.__aiQueue, __aiCharts, __aiPanelData
+  }
+
+  if (mode === 'ai') {
+    aiCard.style.display = '';
+    manualCard.style.display = 'none';
+    if (pageHdr) pageHdr.style.display = 'none';
+    aiBtn.classList.add('active');
+    manualBtn.classList.remove('active');
+    aiBtn.style.borderBottomColor = 'transparent';
+    manualBtn.style.borderBottomColor = '';
+  } else {
+    aiCard.style.display = 'none';
+    manualCard.style.display = '';
+    if (pageHdr) pageHdr.style.display = 'none';
+    aiBtn.classList.remove('active');
+    manualBtn.classList.add('active');
+    aiBtn.style.borderBottomColor = '';
+    manualBtn.style.borderBottomColor = 'transparent';
+    if (!window.__schemaLoaded) loadSchema();
+  }
+
+  // Update empty state based on actual panel count in shared state
+  var activeEmpty = (mode === 'ai') ? document.getElementById('aiEmptyState') : document.getElementById('mbEmptyState');
+  var panelCount = (window.__aiQueue || []).length;
+  if (activeEmpty) activeEmpty.style.display = panelCount > 0 ? 'none' : 'flex';
+  
+  // If switching to Manual Builder, attach click handlers to charts for editing and show KPI cards
+  if (mode === 'manual') {
+    setTimeout(function() {
+      // Show KPI cards in Manual Builder
+      var kpiStrip = document.getElementById('aiFullDashKpiStrip');
+      if (kpiStrip) {
+        kpiStrip.style.display = 'flex';
+      }
+      
+      var mbGrid = document.getElementById('mbPanelGrid');
+      if (mbGrid) {
+        // Find all chart canvases in the grid and attach click handlers
+        var canvases = mbGrid.querySelectorAll('canvas[id^="chart-"]');
+        canvases.forEach(function(canvas) {
+          if (!canvas.__clickHandlerAttached) {
+            var panelUid = canvas.id.replace('chart-', '');
+            canvas.style.cursor = 'pointer';
+            canvas.addEventListener('click', function() { selectMbChartForConfig(panelUid); });
+            canvas.__clickHandlerAttached = true;
+          }
+        });
+      }
+    }, 100);
+  } else if (mode === 'ai') {
+    // Hide KPI cards when in AI Mode (they're part of the canvas)
+    var kpiStrip = document.getElementById('aiFullDashKpiStrip');
+    if (kpiStrip) {
+      kpiStrip.style.display = 'flex';
+    }
+  }
+  
+  // Update queue count display using shared window.__aiQueue
+  var queueCount = (window.__aiQueue || []).length;
+  
+  if (mode === 'ai') {
+    // Update AI mode buttons and badges
+    var aiBadge = document.getElementById('aiPanelCountBadge');
+    var aiQEl   = document.getElementById('aiQueueCount');
+    var aiCountEl = document.getElementById('aiPanelCount');
+    var aiGenBtn = document.getElementById('aiGenerateBtn');
+    var aiSaveChangesBtn = document.getElementById('aiSaveChangesBtn');
+    if (aiBadge)   aiBadge.style.display = queueCount > 0 ? '' : 'none';
+    if (aiQEl)     aiQEl.textContent = queueCount;
+    if (aiCountEl) aiCountEl.textContent = queueCount;
+    if (aiGenBtn)  aiGenBtn.disabled = queueCount === 0;
+    if (aiSaveChangesBtn) aiSaveChangesBtn.disabled = queueCount === 0;
+    // Refresh AI queue list
+    if (typeof aiRenderQueueList === 'function') aiRenderQueueList();
+  } else {
+    // Update Manual Builder mode buttons and badges
+    var mbBadge = document.getElementById('mbPanelCountBadge');
+    var mbQEl   = document.getElementById('mbQueueCount');
+    var mbGenBtn = document.getElementById('mbGenerateBtn');
+    if (mbBadge) mbBadge.style.display = queueCount > 0 ? '' : 'none';
+    if (mbQEl)   mbQEl.textContent = queueCount;
+    if (mbGenBtn) mbGenBtn.disabled = queueCount === 0;
+  }
+}
+
+// -- AI Smart Suggestions -----------------------------------------
+window.fetchAISuggestions = function() {
+  var sourceId = (document.getElementById('aiSourceSel') || {}).value || '';
+  var btn = document.getElementById('btnAISuggest');
+  if (btn) { btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:10px;height:10px"></span> Thinking...'; btn.disabled = true; }
+
+  fetch('/ai/suggestions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataSourceId: sourceId || null }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.suggestions && data.suggestions.length > 0) {
+      renderAiExamples(data.suggestions);
+    } else {
+      // Show a small hint that no AI suggestions were available
+      var c = document.getElementById('aiExamplesContainer');
+      if (c) {
+        var hint = document.createElement('div');
+        hint.style.cssText = 'font-size:0.7rem;color:#9ca3af;padding:4px';
+        hint.textContent = 'Select a data source to get AI-powered suggestions.';
+        c.prepend(hint);
+      }
+    }
+  })
+  .catch(function(err) { console.error('AI suggestions error:', err); })
+  .finally(function() { if (btn) { btn.innerHTML = '<i class="bi bi-stars"></i> AI Suggest'; btn.disabled = false; } });
+};
+
+// -- AI Status Badge ----------------------------------------------
+(function checkAIStatus() {
+  fetch('/ai/status')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.enabled) {
+        // Add AI badge to prompt panel header
+        var promptHeader = document.querySelector('#aiPromptPanel .border-bottom');
+        if (promptHeader && !document.getElementById('aiBadge')) {
+          var badge = document.createElement('span');
+          badge.id = 'aiBadge';
+          badge.className = 'badge ms-2';
+          badge.style.cssText = 'font-size:0.55rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;vertical-align:middle';
+          badge.innerHTML = '<i class="bi bi-robot"></i> AI Active';
+          var titleEl = promptHeader.querySelector('span') || promptHeader.querySelector('div');
+          if (titleEl) titleEl.appendChild(badge);
+        }
+      }
+    })
+    .catch(function(){});
 })();
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MANUAL BUILDER -- PowerBI/QuickSight-style canvas layout
+═════════════════════════════════════════════════════════════════════════════ -->
+<div id="manualModeCard" style="display:none">
+
+  <!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
+  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 0 0">
+    <button class="btn btn-sm btn-outline-secondary" id="mbToggleSchemaBtn" onclick="toggleMbPanel('schema')" title="Toggle Fields panel" style="font-size:0.78rem">
+      <i class="bi bi-layout-sidebar"></i> <span id="mbToggleSchemaTxt">Fields</span>
+    </button>
+    <div style="width:1px;height:20px;background:#e5e7eb;flex-shrink:0"></div>
+    <i class="bi bi-database text-muted" style="font-size:0.8rem"></i>
+    <select class="form-select form-select-sm" id="mbSourceSel" onchange="loadSchema()" style="font-size:0.8rem;max-width:200px">
+      <option value="">Internal Database</option>
+      <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
+        <% sources.forEach(function(s) { %>
+          <option value="<%= s.id %>"><%= s.name %></option>
+        <% }); %>
+      <% } %>
+    </select>
+    <div style="flex:1"></div>
+    <span id="mbPanelCountBadge" style="font-size:0.75rem;color:#6b7280;display:none">
+      <i class="bi bi-grid-3x3-gap-fill me-1"></i><span id="mbQueueCount">0</span> panel(s) on canvas
+    </span>
+    <button class="btn btn-sm btn-outline-secondary" id="mbToggleConfigBtn" onclick="toggleMbPanel('config')" title="Toggle Config panel" style="font-size:0.78rem">
+      <i class="bi bi-sliders"></i> <span id="mbToggleConfigTxt">Config</span>
+    </button>
+    <button type="button" class="btn btn-sm btn-warning px-3" onclick="submitMbFullDashboard()" style="font-size:0.82rem;font-weight:600" title="Auto-generate a complete corporate dashboard as a data analyst">
+      <i class="bi bi-magic me-1"></i>Full Dashboard
+    </button>
+    <button type="button" class="btn btn-sm btn-primary px-3" id="mbGenerateBtn" onclick="submitManualDashboard()" disabled style="font-size:0.82rem">
+      <i class="bi bi-lightning-fill me-1"></i>Generate &amp; Save
+    </button>
+    <form id="mbGenerateForm" method="POST" action="/dashboard/manual-multi" style="display:none">
+      <input type="hidden" name="panelsJson" id="mbPanelsJson">
+    </form>
+    <form id="mbFullForm" method="POST" action="/dashboard/full" style="display:none">
+      <input type="hidden" name="sourceId" id="mbFullSourceId">
+    </form>
+  </div>
+
+  <!-- ── 3-panel workspace ─────────────────────────────────────────────────── -->
+  <div id="mbWorkspace" style="display:flex;height:calc(100vh - 160px);overflow:hidden;user-select:none">
+
+    <!-- Left: Schema Explorer -->
+    <div id="mbSchemaPanel" style="width:240px;min-width:120px;flex-shrink:0;border-right:none;background:#f9fafb;overflow-y:auto;position:relative">
+      <div style="padding:7px 10px 6px;border-bottom:1px solid #e5e7eb;background:#f3f4f6">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af">
+          <i class="bi bi-diagram-3 me-1"></i>Schema / Fields
+        </span>
+      </div>
+      <div id="schemaExplorer" style="padding:6px 4px">
+        <div class="text-center py-5 text-muted" style="font-size:0.8rem">
+          <i class="bi bi-database" style="font-size:2rem;opacity:0.25;display:block;margin-bottom:8px"></i>
+          Select a data source
+        </div>
+      </div>
+    </div>
+
+    <!-- Resize handle: schema ↔ canvas -->
+    <div id="mbResizeSchema" style="width:5px;flex-shrink:0;background:#e5e7eb;cursor:col-resize;position:relative;z-index:10;transition:background 0.1s" title="Drag to resize">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:2px">
+        <div style="width:2px;height:10px;background:#9ca3af;border-radius:1px"></div>
+      </div>
+    </div>
+
+    <!-- Center: Dashboard Canvas -->
+    <div id="mbCanvas" style="flex:1;overflow-y:auto;background:#e8eef5;padding:14px;min-width:0">
+      <div id="mbEmptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90%;color:#9ca3af;text-align:center;pointer-events:none">
+        <i class="bi bi-grid-1x2" style="font-size:4rem;margin-bottom:14px;opacity:0.2"></i>
+        <div style="font-size:1rem;font-weight:600;color:#6b7280">Canvas is empty</div>
+        <div style="font-size:0.8rem;margin-top:6px;color:#9ca3af">
+          Configure a panel in the <strong style="color:#3b82f6">Config</strong> panel →<br>click <strong style="color:#3b82f6">Preview on Canvas</strong>
+        </div>
+      </div>
+      <div id="mbPanelGrid" style="position:relative;min-height:100%;width:100%"></div>
+    </div>
+
+    <!-- Resize handle: canvas ↔ config -->
+    <div id="mbResizeConfig" style="width:5px;flex-shrink:0;background:#e5e7eb;cursor:col-resize;position:relative;z-index:10;transition:background 0.1s" title="Drag to resize">
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;gap:2px">
+        <div style="width:2px;height:10px;background:#9ca3af;border-radius:1px"></div>
+      </div>
+    </div>
+
+    <!-- Right: Configuration Panel -->
+    <div id="mbConfigPanel" style="width:290px;min-width:160px;flex-shrink:0;border-left:none;background:#fff;overflow-y:auto">
+      <div style="padding:7px 12px 6px;border-bottom:1px solid #e5e7eb;background:#f8fafc">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af">
+          <i class="bi bi-sliders me-1"></i>Panel Configuration
+        </span>
+      </div>
+      <div style="padding:12px 12px 20px">
+
+        <!-- Main Table -->
+        <div class="mb-2">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-table me-1 text-primary"></i>Main Table
+          </label>
+          <select class="form-select form-select-sm" id="mbTable" onchange="onTableChange()" style="font-size:0.82rem">
+            <option value="">-- select table --</option>
+          </select>
+        </div>
+
+        <!-- Join -->
+        <div class="mb-2">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-link me-1"></i>Join With <em style="font-size:0.65rem;font-style:normal;color:#9ca3af;font-weight:400">(optional)</em>
+          </label>
+          <select class="form-select form-select-sm" id="mbJoinTable" onchange="onJoinChange()" style="font-size:0.82rem">
+            <option value="">-- none --</option>
+          </select>
+        </div>
+
+        <!-- Limit -->
+        <div class="mb-3">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-sort-down me-1"></i>Show
+          </label>
+          <select class="form-select form-select-sm" id="mbLimit" style="font-size:0.82rem">
+            <option value="10">Top 10</option>
+            <option value="20" selected>Top 20</option>
+            <option value="50">Top 50</option>
+            <option value="100">Top 100</option>
+            <option value="500">All (up to 500)</option>
+          </select>
+        </div>
+
+        <div style="border-top:1px solid #f1f5f9;margin:10px 0"></div>
+
+        <!-- Dimension -->
+        <div class="mb-2" id="mbDimensionGroup">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <span class="badge bg-info text-dark me-1" style="font-size:0.58rem">D</span>Dimension (Group By)
+          </label>
+          <select class="form-select form-select-sm" id="mbDimension" onchange="updateTitle()" style="font-size:0.82rem">
+            <option value="">-- select --</option>
+          </select>
+        </div>
+
+        <!-- Measure -->
+        <div class="mb-2" id="mbMeasureGroup">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <span class="badge bg-warning text-dark me-1" style="font-size:0.58rem">M</span>Measure (Value)
+          </label>
+          <select class="form-select form-select-sm" id="mbMeasure" onchange="updateTitle()" style="font-size:0.82rem">
+            <option value="">-- select --</option>
+          </select>
+        </div>
+
+        <!-- Aggregation -->
+        <div class="mb-3">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-calculator me-1"></i>Aggregation
+          </label>
+          <div class="btn-group w-100" role="group" id="mbAggGroup">
+            <% ['COUNT','SUM','AVG','MIN','MAX'].forEach(function(a, i){ %>
+            <input type="radio" class="btn-check" name="mbAgg" id="mbAgg<%= a %>" value="<%= a %>" <%= i===0?'checked':'' %> onchange="updateTitle()">
+            <label class="btn btn-outline-secondary btn-sm" for="mbAgg<%= a %>" style="font-size:0.68rem"><%= a %></label>
+            <% }); %>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #f1f5f9;margin:10px 0"></div>
+
+        <!-- Chart Type -->
+        <div class="mb-2">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-bar-chart me-1"></i>Chart Type
+          </label>
+          <div class="btn-group w-100" role="group" id="mbChartGroup">
+            <% [['bar','bi-bar-chart','Bar'],['line','bi-graph-up','Line'],['pie','bi-pie-chart','Pie'],['doughnut','bi-pie-chart-fill','Donut'],['scatter','bi-diagram-3','Scatter'],['table','bi-table','Table'],['cards','bi-grid-1x2-fill','Cards']].forEach(function(ct,i){ %>
+            <input type="radio" class="btn-check" name="mbChart" id="mbChart<%= ct[0] %>" value="<%= ct[0] %>" <%= i===0?'checked':'' %>>
+            <label class="btn btn-outline-secondary btn-sm" for="mbChart<%= ct[0] %>" style="font-size:0.68rem" title="<%= ct[2] %>">
+              <i class="bi <%= ct[1] %>"></i>
+            </label>
+            <% }); %>
+          </div>
+        </div>
+
+        <script>
+        // Hide dimension when chart type is "cards" (measure stays visible for column selection)
+        // Also trigger chart update when chart type changes
+        document.querySelectorAll('input[name="mbChart"]').forEach(function(r) {
+          r.addEventListener('change', function() {
+            var isCard = this.value === 'cards';
+            document.getElementById('mbDimensionGroup').style.display = isCard ? 'none' : '';
+            if (isCard) document.getElementById('mbDimension').value = '';
+            updateTitle();
+            updateSelectedChartConfig(); // Update chart when type changes
+          });
+        });
+
+        // Add change listeners to other Panel Configuration fields to trigger immediate chart updates
+        document.getElementById('mbTable').addEventListener('change', function() {
+          updateSelectedChartConfig();
+        });
+        document.getElementById('mbJoinTable').addEventListener('change', function() {
+          updateSelectedChartConfig();
+        });
+        document.getElementById('mbDimension').addEventListener('change', function() {
+          updateSelectedChartConfig();
+        });
+        document.getElementById('mbMeasure').addEventListener('change', function() {
+          updateSelectedChartConfig();
+        });
+        document.getElementById('mbLimit').addEventListener('change', function() {
+          updateSelectedChartConfig();
+        });
+        document.querySelectorAll('input[name="mbAgg"]').forEach(function(radio) {
+          radio.addEventListener('change', function() {
+            updateSelectedChartConfig();
+          });
+        });
+        </script>
+
+        <!-- Title -->
+        <div class="mb-3">
+          <label class="form-label mb-1" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+            <i class="bi bi-type me-1"></i>Panel Title
+          </label>
+          <input type="text" class="form-control form-control-sm" id="mbTitle" placeholder="Auto-generated" style="font-size:0.82rem">
+        </div>
+
+        <!-- Filters -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label mb-0" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:#374151">
+              <i class="bi bi-funnel me-1"></i>Filters
+            </label>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="addFilter()" style="font-size:0.68rem">
+              <i class="bi bi-plus-lg me-1"></i>Add
+            </button>
+          </div>
+          <div id="mbFilters"></div>
+        </div>
+
+        <!-- Action buttons -->
+        <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;flex-direction:column;gap:6px">
+          <button type="button" class="btn btn-primary w-100" id="mbPreviewBtn" onclick="previewPanel()" style="font-size:0.84rem">
+            <i class="bi bi-play-fill me-1"></i>Preview on Canvas
+          </button>
+          <button type="button" class="btn btn-success w-100" id="mbAddBtn" onclick="addPanelToQueue()" disabled style="font-size:0.84rem">
+            <i class="bi bi-plus-circle me-1"></i>Add to Dashboard
+          </button>
+        </div>
+
+      </div>
+    </div><!-- /config panel -->
+
+  </div><!-- /workspace -->
+</div><!-- /manualModeCard -->
+
+<script>
+(function () {
+  // ── State ────────────────────────────────────────────────────────────────────
+  window.__schemaLoaded = false;
+  var __schema       = null;
+  var __preview      = null;
+  // SHARED STATE: Both modes use window.__aiQueue, __aiCharts, __aiPanelData
+
+  // ── Utilities ────────────────────────────────────────────────────────────────
+  function _esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Sidebar toggles ──────────────────────────────────────────────────────────
+  window.toggleMbPanel = function(which) {
+    var el  = document.getElementById(which === 'schema' ? 'mbSchemaPanel' : 'mbConfigPanel');
+    var txt = document.getElementById(which === 'schema' ? 'mbToggleSchemaTxt' : 'mbToggleConfigTxt');
+    if (!el) return;
+    var collapsed = el.getAttribute('data-collapsed') === '1';
+    if (collapsed) {
+      el.style.width    = '240px';
+      el.style.minWidth = '240px';
+      el.style.overflow = 'auto';
+      if (which === 'schema') el.style.borderRight = '1px solid #e5e7eb';
+      else                    el.style.borderLeft  = '1px solid #e5e7eb';
+      el.removeAttribute('data-collapsed');
+      if (txt) txt.textContent = which === 'schema' ? 'Fields' : 'Config';
+    } else {
+      el.style.width    = '0px';
+      el.style.minWidth = '0px';
+      el.style.overflow = 'hidden';
+      el.style.border   = 'none';
+      el.setAttribute('data-collapsed', '1');
+      if (txt) txt.textContent = which === 'schema' ? 'Fields >' : 'Config >';
+    }
+  };
+
+  // ── Load schema ──────────────────────────────────────────────────────────────
+  window.loadSchema = function () {
+    window.__schemaLoaded = true;
+    var sourceId = document.getElementById('mbSourceSel').value;
+    var url = '/dashboard/schema' + (sourceId ? '?sourceId=' + encodeURIComponent(sourceId) : '');
+    document.getElementById('schemaExplorer').innerHTML =
+      '<div class="text-center py-4 text-muted" style="font-size:0.8rem"><div class="spinner-border spinner-border-sm mb-2" style="opacity:0.4"></div><br>Loading...</div>';
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(schema){
+        __schema = schema;
+        __schemaExpanded = {};
+        renderSchemaExplorer(schema);
+        populateTableDropdown(schema);
+      })
+      .catch(function(){
+        document.getElementById('schemaExplorer').innerHTML =
+          '<div class="text-center py-4 text-danger" style="font-size:0.8rem">Failed to load schema.</div>';
+      });
+  };
+
+  // ── Schema Explorer ──────────────────────────────────────────────────────────
+  var __schemaExpanded = {};
+
+  window.toggleTableExpand = function(tkey) {
+    __schemaExpanded[tkey] = !__schemaExpanded[tkey];
+    var safeKey = tkey.replace(/[^a-zA-Z0-9]/g, '_');
+    var body = document.getElementById('tbl-body-' + safeKey);
+    var icon = document.getElementById('tbl-chev-' + safeKey);
+    if (body) body.style.display = __schemaExpanded[tkey] ? 'block' : 'none';
+    if (icon) icon.className = __schemaExpanded[tkey] ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+  };
+
+  window.toggleAllTables = function(btn) {
+    var anyOpen = Object.values(__schemaExpanded).some(Boolean);
+    (__schema && __schema.tables || []).forEach(function(t) {
+      __schemaExpanded[t.key] = !anyOpen;
+      var s = t.key.replace(/[^a-zA-Z0-9]/g, '_');
+      var b  = document.getElementById('tbl-body-' + s);
+      var ic = document.getElementById('tbl-chev-' + s);
+      if (b)  b.style.display  = !anyOpen ? 'block' : 'none';
+      if (ic) ic.className     = !anyOpen ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+    });
+    if (btn) btn.textContent = !anyOpen ? 'Collapse all' : 'Expand all';
+  };
+
+  document.getElementById('schemaExplorer').addEventListener('click', function(e) {
+    var chevBtn = e.target.closest('.tbl-chev-btn');
+    if (chevBtn) { toggleTableExpand(chevBtn.dataset.tkey); return; }
+    var tblBtn  = e.target.closest('.tbl-name-btn');
+    if (tblBtn)  { selectTable(tblBtn.dataset.tkey); return; }
+    var colBtn  = e.target.closest('.col-item');
+    if (colBtn)  { selectColumn(colBtn.dataset.tkey, colBtn.dataset.ckey, colBtn.dataset.role); return; }
+    var allBtn  = e.target.closest('.tbl-toggle-all');
+    if (allBtn)  { toggleAllTables(allBtn); return; }
+  });
+
+  function renderSchemaExplorer(schema) {
+    var el = document.getElementById('schemaExplorer');
+    var html = '';
+    if (schema.relationships && schema.relationships.length) {
+      html += '<div style="padding:4px 6px"><span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#9ca3af">Relationships</span></div>';
+      schema.relationships.forEach(function(r) {
+        html += '<div style="font-size:0.69rem;padding:2px 8px;color:#6b7280"><i class="bi bi-arrow-right text-primary" style="font-size:0.58rem"></i> ' + _esc(r.label) + '</div>';
+      });
+      html += '<hr style="margin:6px 4px">';
+    }
+    html += '<div style="padding:4px 8px;display:flex;align-items:center;justify-content:space-between">' +
+      '<span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#9ca3af">Tables</span>' +
+      '<button class="btn btn-link btn-sm p-0 text-muted text-decoration-none tbl-toggle-all" style="font-size:0.6rem">Expand all</button>' +
+      '</div>';
+    schema.tables.forEach(function(t) {
+      var dims     = t.columns.filter(function(c){ return c.role === 'dimension'; });
+      var measures = t.columns.filter(function(c){ return c.role === 'measure'; });
+      var safeKey  = t.key.replace(/[^a-zA-Z0-9]/g, '_');
+      var isOpen   = !!__schemaExpanded[t.key];
+      var ek       = _esc(t.key);
+      html += '<div class="mb-1">' +
+        '<div style="display:flex;align-items:center;background:#f3f4f6;border-radius:4px;border:1px solid #e5e7eb;margin:0 2px">' +
+          '<button class="btn btn-link btn-sm p-0 flex-shrink-0 tbl-chev-btn" data-tkey="' + ek + '" style="width:22px;height:26px;color:#6b7280">' +
+            '<i class="bi ' + (isOpen ? 'bi-chevron-down' : 'bi-chevron-right') + '" id="tbl-chev-' + safeKey + '" style="font-size:0.6rem"></i>' +
+          '</button>' +
+          '<button class="btn btn-link btn-sm flex-grow-1 text-start py-1 px-0 text-decoration-none tbl-name-btn" data-tkey="' + ek + '" style="font-size:0.78rem;font-weight:600;color:#111827;min-width:0" title="Use this table">' +
+            '<i class="bi ' + _esc(t.icon || 'bi-table') + ' text-primary me-1" style="font-size:0.72rem"></i>' +
+            _esc(t.displayName) +
+          '</button>' +
+          '<span class="badge bg-light text-muted border me-1 flex-shrink-0" style="font-size:0.56rem">' + t.columns.length + '</span>' +
+        '</div>' +
+        '<div id="tbl-body-' + safeKey + '" style="border-left:2px solid #dde3ec;margin-left:12px;display:' + (isOpen ? 'block' : 'none') + '">';
+      if (dims.length) {
+        html += '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:#6b7280;padding:2px 4px">Dimensions</div>';
+        dims.forEach(function(c) {
+          html += '<div class="col-item" data-tkey="' + ek + '" data-ckey="' + _esc(c.key) + '" data-role="dimension" ' +
+            'style="font-size:0.7rem;padding:2px 6px;cursor:pointer;color:#374151;border-radius:3px" title="Set as Dimension">' +
+            '<span class="badge bg-info text-dark me-1" style="font-size:0.56rem">D</span>' + _esc(c.displayName) +
+            ' <span style="color:#9ca3af;font-size:0.62rem">' + c.type + '</span></div>';
+        });
+      }
+      if (measures.length) {
+        html += '<div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:#6b7280;padding:2px 4px;margin-top:2px">Measures</div>';
+        measures.forEach(function(c) {
+          html += '<div class="col-item" data-tkey="' + ek + '" data-ckey="' + _esc(c.key) + '" data-role="measure" ' +
+            'style="font-size:0.7rem;padding:2px 6px;cursor:pointer;color:#374151;border-radius:3px" title="Set as Measure">' +
+            '<span class="badge bg-warning text-dark me-1" style="font-size:0.56rem">M</span>' + _esc(c.displayName) +
+            ' <span style="color:#9ca3af;font-size:0.62rem">' + c.type + '</span></div>';
+        });
+      }
+      html += '</div></div>';
+    });
+    el.innerHTML = html;
+  }
+
+  // ── Populate table dropdown ───────────────────────────────────────────────────
+  function populateTableDropdown(schema) {
+    var sel = document.getElementById('mbTable');
+    sel.innerHTML = '<option value="">-- select table --</option>';
+    schema.tables.forEach(function(t) {
+      var o = document.createElement('option'); o.value = t.key; o.textContent = t.displayName; sel.appendChild(o);
+    });
+    if (schema.tables.length > 0) { sel.value = schema.tables[0].key; onTableChange(); }
+  }
+
+  window.selectTable = function(tableKey) {
+    document.getElementById('mbTable').value = tableKey; onTableChange();
+  };
+
+  window.selectColumn = function(tableKey, colKey, role) {
+    var ref = tableKey + '.' + colKey;
+    var mainVal = document.getElementById('mbTable').value;
+    if (role === 'dimension') {
+      if (!mainVal) { document.getElementById('mbTable').value = tableKey; onTableChange(); }
+      else if (mainVal !== tableKey) {
+        var joinSel = document.getElementById('mbJoinTable'), found = false;
+        for (var i = 0; i < joinSel.options.length; i++) { if (joinSel.options[i].value === tableKey) { joinSel.value = tableKey; found = true; break; } }
+        if (!found) { document.getElementById('mbTable').value = tableKey; onTableChange(); } else { onJoinChange(); }
+      }
+      document.getElementById('mbDimension').value = ref;
+    } else {
+      if (mainVal !== tableKey) { document.getElementById('mbTable').value = tableKey; onTableChange(); }
+      document.getElementById('mbMeasure').value = ref;
+    }
+    updateTitle();
+  };
+
+  window.onTableChange = function() {
+    if (!__schema) return;
+    var tableKey = document.getElementById('mbTable').value;
+    var joinSel  = document.getElementById('mbJoinTable');
+    var prevJoin = joinSel.value;
+    joinSel.innerHTML = '<option value="">-- none --</option>';
+    var relatedKeys = new Set();
+    (__schema.relationships || []).forEach(function(r) {
+      if (r.from === tableKey) relatedKeys.add(r.to);
+      if (r.to   === tableKey) relatedKeys.add(r.from);
+    });
+    relatedKeys.forEach(function(rk) {
+      var rt = __schema.tables.find(function(t){ return t.key === rk; });
+      if (rt) { var o = document.createElement('option'); o.value = rk; o.textContent = rt.displayName; joinSel.appendChild(o); }
+    });
+    if (prevJoin && joinSel.querySelector('option[value="' + prevJoin + '"]')) joinSel.value = prevJoin;
+    refreshDimMesDropdowns(); updateTitle();
+  };
+
+  window.onJoinChange = function() { refreshDimMesDropdowns(); updateTitle(); };
+
+  function refreshDimMesDropdowns() {
+    if (!__schema) return;
+    var tableKey = document.getElementById('mbTable').value;
+    var joinKey  = document.getElementById('mbJoinTable').value;
+    var allCols  = [];
+    var addCols  = function(tKey) {
+      var t = __schema.tables.find(function(x){ return x.key === tKey; }); if (!t) return;
+      t.columns.forEach(function(c) { allCols.push({ ref: tKey + '.' + c.key, label: t.displayName + ' > ' + c.displayName, role: c.role, type: c.type }); });
+    };
+    if (tableKey) addCols(tableKey);
+    if (joinKey && joinKey !== tableKey) addCols(joinKey);
+    var dimSel = document.getElementById('mbDimension'), mesSel = document.getElementById('mbMeasure');
+    var prevDim = dimSel.value, prevMes = mesSel.value;
+    dimSel.innerHTML = '<option value="">-- select dimension --</option>';
+    mesSel.innerHTML = '<option value="">-- select measure --</option>';
+    allCols.forEach(function(c) {
+      var o = document.createElement('option'); o.value = c.ref; o.textContent = c.label + ' (' + c.type + ')';
+      if (c.role === 'dimension') dimSel.appendChild(o); else mesSel.appendChild(o);
+    });
+    if (prevDim && dimSel.querySelector('option[value="' + prevDim + '"]')) dimSel.value = prevDim;
+    else if (dimSel.options.length > 1) dimSel.selectedIndex = 1;
+    if (prevMes && mesSel.querySelector('option[value="' + prevMes + '"]')) mesSel.value = prevMes;
+    else if (mesSel.options.length > 1) mesSel.selectedIndex = 1;
+    __filterAllCols = allCols;
+  }
+
+  window.updateTitle = function() {
+    var agg = document.querySelector('input[name="mbAgg"]:checked');
+    var dim = document.getElementById('mbDimension'), mes = document.getElementById('mbMeasure');
+    var dimLabel = dim.selectedIndex > 0 ? (dim.options[dim.selectedIndex].text.split('>')[1]||dim.options[dim.selectedIndex].text).replace(/\(.*\)/,'').trim() : '';
+    var mesLabel = mes.selectedIndex > 0 ? (mes.options[mes.selectedIndex].text.split('>')[1]||mes.options[mes.selectedIndex].text).replace(/\(.*\)/,'').trim() : '';
+    var inp = document.getElementById('mbTitle');
+    if (!inp.dataset.userEdited) {
+      inp.value = (agg ? agg.value : 'COUNT') + (mesLabel ? ' of ' + mesLabel : '') + (dimLabel ? ' by ' + dimLabel : '');
+    }
+  };
+  document.getElementById('mbTitle').addEventListener('input', function(){ this.dataset.userEdited = this.value ? '1' : ''; });
+
+  // ── Filters ───────────────────────────────────────────────────────────────────
+  var __filterAllCols = [], __filterIdCtr = 0;
+
+  window.addFilter = function() {
+    var container = document.getElementById('mbFilters');
+    var id = ++__filterIdCtr;
+    var row = document.createElement('div');
+    row.className = 'd-flex gap-1 align-items-center mb-1'; row.id = 'mbFilter-' + id;
+    var colSel = document.createElement('select'); colSel.className = 'form-select form-select-sm'; colSel.style.fontSize = '0.74rem';
+    colSel.innerHTML = '<option value="">Col...</option>';
+    __filterAllCols.forEach(function(c){ var o=document.createElement('option'); o.value=c.ref; o.textContent=(c.label.split('>')[1]||c.label).trim(); colSel.appendChild(o); });
+    var opSel = document.createElement('select'); opSel.className = 'form-select form-select-sm'; opSel.style.cssText='font-size:0.74rem;max-width:78px';
+    ['=','!=','>','<','>=','<=','LIKE','NOT LIKE'].forEach(function(op){ var o=document.createElement('option'); o.value=op; o.textContent=op; opSel.appendChild(o); });
+    var valInp = document.createElement('input'); valInp.type='text'; valInp.className='form-control form-control-sm'; valInp.placeholder='Value...'; valInp.style.fontSize='0.74rem';
+    var rb = document.createElement('button'); rb.type='button'; rb.className='btn btn-sm btn-outline-danger flex-shrink-0';
+    rb.innerHTML='<i class="bi bi-x"></i>'; rb.style.cssText='padding:2px 5px'; rb.onclick=function(){ row.remove(); };
+    row.appendChild(colSel); row.appendChild(opSel); row.appendChild(valInp); row.appendChild(rb);
+    container.appendChild(row);
+  };
+
+  function getFilters() {
+    var result = [];
+    document.querySelectorAll('#mbFilters > div').forEach(function(row) {
+      var sels = row.querySelectorAll('select'), inp = row.querySelector('input');
+      if (sels.length >= 2 && inp && sels[0].value && sels[1].value && inp.value !== '')
+        result.push({ column: sels[0].value, operator: sels[1].value, value: inp.value });
+    });
+    return result;
+  }
+
+  // ── Canvas panel rendering ────────────────────────────────────────────────────
+  var __mbNextX = 10, __mbNextY = 10;   // cascading placement offset
+
+  function updateEmptyState() {
+    var grid = document.getElementById('mbPanelGrid'), empty = document.getElementById('mbEmptyState');
+    var panelCards = grid ? grid.querySelectorAll('[id^="mbCard-"]').length : 0;
+    if (empty) empty.style.display = panelCards > 0 ? 'none' : 'flex';
+  }
+
+  // Make a card draggable via its header and resizable via its SE corner
+  function makePanelInteractive(card, uid) {
+    var header = card.querySelector('[data-panel-header]');
+    if (header) {
+      header.style.cursor = 'move';
+      header.addEventListener('mousedown', function(e) {
+        if (e.target.closest('button')) return;  // let buttons work normally
+        e.preventDefault();
+        var startX = e.clientX - card.offsetLeft;
+        var startY = e.clientY - card.offsetTop;
+        card.style.zIndex = ++__mbZTop;
+        function onMove(ev) {
+          var x = ev.clientX - startX;
+          var y = ev.clientY - startY;
+          card.style.left = Math.max(0, x) + 'px';
+          card.style.top  = Math.max(0, y) + 'px';
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    // SE resize grip
+    var grip = card.querySelector('[data-resize-grip]');
+    if (grip) {
+      grip.addEventListener('mousedown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        var startX = e.clientX, startY = e.clientY;
+        var startW = card.offsetWidth, startH = card.offsetHeight;
+        card.style.zIndex = ++__mbZTop;
+        function onMove(ev) {
+          var newW = Math.max(260, startW + ev.clientX - startX);
+          var newH = Math.max(180, startH + ev.clientY - startY);
+          card.style.width  = newW + 'px';
+          card.style.height = newH + 'px';
+          // Let Chart.js reflow
+          var ch = window.__aiCharts[uid];
+          if (ch) ch.resize();
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+  }
+
+  function updateQueueCount() {
+    var n = window.__aiQueue.length;
+    var genBtn = document.getElementById('mbGenerateBtn');
+    var badge  = document.getElementById('mbPanelCountBadge');
+    var qEl    = document.getElementById('mbQueueCount');
+    if (genBtn) { genBtn.disabled = n === 0; genBtn.innerHTML = n > 0 ? '<i class="bi bi-lightning-fill me-1"></i>Generate &amp; Save (' + n + ')' : '<i class="bi bi-lightning-fill me-1"></i>Generate &amp; Save Dashboard'; }
+    if (badge)  badge.style.display  = n > 0 ? '' : 'none';
+    if (qEl)    qEl.textContent = n;
+  }
+
+  window.removeMbCanvasPanel = function(uid) {
+    if (window.__aiCharts[uid]) { window.__aiCharts[uid].destroy(); delete window.__aiCharts[uid]; }
+    delete window.__aiPanelData[uid];
+    var card = document.getElementById('mbCard-' + uid); if (card) card.remove();
+    for (var i = window.__aiQueue.length - 1; i >= 0; i--) { if (window.__aiQueue[i]._uid === uid) window.__aiQueue.splice(i, 1); }
+    updateQueueCount(); updateEmptyState();
+  };
+
+  function renderCardsInPanel(uid, panel) {
+    var el = document.getElementById('mbCardBody-' + uid); if (!el || !panel.labels) return;
+    var formatVal = function(v) {
+      var n = parseFloat(v); if (isNaN(n)) return String(v);
+      var abs = Math.abs(n);
+      if (abs >= 1e9)  return (n/1e9).toFixed(1).replace(/\.0$/,'')  + 'B';
+      if (abs >= 1e6)  return (n/1e6).toFixed(1).replace(/\.0$/,'')  + 'M';
+      if (abs >= 1e3)  return (n/1e3).toFixed(1).replace(/\.0$/,'')  + 'K';
+      return n % 1 !== 0 ? n.toFixed(2) : String(n);
+    };
+    el.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;padding:8px;justify-content:center';
+    el.innerHTML = (panel.labels || []).slice(0,20).map(function(lbl, i){
+      var val = panel.values[i] != null ? panel.values[i] : '-';
+      var dv = formatVal(val);
+      return '<div style="background:#1e1e2e;border-radius:10px;padding:18px 16px 14px;min-width:110px;flex:1;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.25)">' +
+        '<div style="font-size:1.5rem;font-weight:700;color:#facc15;line-height:1.1;letter-spacing:-0.5px">' + _esc(String(dv)) + '</div>' +
+        '<div style="font-size:0.68rem;color:#94a3b8;margin-top:6px;text-transform:uppercase;letter-spacing:0.6px;word-break:break-word">' + _esc(String(lbl)) + '</div></div>';
+    }).join('');
+  }
+
+  function buildTableBodyHTML(panel) {
+    if (!panel.tableData || !panel.tableData.rows || !panel.tableData.rows.length)
+      return '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.8rem"><i class="bi bi-inbox" style="font-size:1.5rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data</div>';
+    return '<div style="max-height:240px;overflow-y:auto"><table class="table table-sm table-striped mb-0">' +
+      '<thead class="table-dark" style="position:sticky;top:0"><tr>' +
+      panel.tableData.columns.map(function(c){ return '<th style="font-size:0.68rem;white-space:nowrap">' + _esc(String(c)) + '</th>'; }).join('') +
+      '</tr></thead><tbody>' +
+      panel.tableData.rows.slice(0,50).map(function(r){
+        return '<tr>' + panel.tableData.columns.map(function(c){
+          return '<td style="font-size:0.68rem">' + _esc(String(r[c] != null ? r[c] : '-')) + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  // -- Change chart type on canvas panel (Manual Builder) --
+  window.mbChangeChartType = function(uid, newType) {
+    var panel = window.__aiPanelData[uid] || (window.__aiPanelData || {})[uid];
+    if (!panel || !panel.hasData) return;
+    if (window.__aiCharts[uid]) { window.__aiCharts[uid].destroy(); delete window.__aiCharts[uid]; }
+    if ((window.__aiCharts || {})[uid]) { window.__aiCharts[uid].destroy(); delete window.__aiCharts[uid]; }
+    panel.chartType = newType;
+
+    var card = document.getElementById('mbCard-' + uid) || document.getElementById('aiCard-' + uid);
+    if (!card) return;
+    var bodyEl = card.querySelector('[data-mb-panel-body]') || card.querySelector('[data-ai-panel-body]');
+    if (!bodyEl) return;
+
+    var canvasId = 'mbCanvas-'+uid;
+    var cardBodyId = 'mbCardBody-'+uid;
+    if (newType === 'cards') {
+      bodyEl.innerHTML = '<div id="'+cardBodyId+'" style="display:flex;flex-wrap:wrap;gap:7px;padding:4px"></div>';
+      renderCardsInPanel(uid, panel);
+    } else if (newType === 'table') {
+      bodyEl.innerHTML = buildTableBodyHTML(panel);
+    } else {
+      var cfg = { type: newType, data: { labels: panel.labels || [], datasets: [{ label: panel.title || 'Data', data: panel.values || [], backgroundColor: panel.bgColors || [], borderColor: panel.borderColors || [] }] }, options: {} };
+      bodyEl.innerHTML = '<div style="position:relative;flex:1;min-height:0"><canvas id="'+canvasId+'"></canvas></div>';
+      requestAnimationFrame(function() {
+        var cv = document.getElementById(canvasId); if (!cv) return;
+        var cfgClone = JSON.parse(JSON.stringify(cfg));
+        cfgClone.options = { animation: false, responsive: true, maintainAspectRatio: false };
+        window.__aiCharts[uid] = new Chart(cv.getContext('2d'), cfgClone);
+      });
+    }
+  };
+
+  var __mbZTop = 10;
+
+  function renderPanelOnCanvas(panel, isStaging) {
+    var uid = isStaging ? 'staging' : ('p' + (++window.__aiPanelIdCtr));
+    panel._uid = uid;
+    window.__aiPanelData[uid] = panel;
+
+    // Remove existing staging card if replacing
+    if (isStaging) {
+      var old = document.getElementById('mbCard-staging');
+      if (old) { if (window.__aiCharts['staging']) { window.__aiCharts['staging'].destroy(); delete window.__aiCharts['staging']; } old.remove(); }
+    }
+
+    // Determine initial placement
+    var px, py;
+    if (isStaging) {
+      // Place preview near top-right of visible canvas area
+      var canvasEl = document.getElementById('mbCanvas');
+      px = Math.max(10, canvasEl.clientWidth - 430);
+      py = canvasEl.scrollTop + 10;
+    } else {
+      // Cascade permanent panels
+      px = __mbNextX; py = __mbNextY;
+      __mbNextX += 20; __mbNextY += 20;
+      if (__mbNextX > 160) { __mbNextX = 10; __mbNextY = 10; }
+    }
+
+    var card = document.createElement('div');
+    card.id = 'mbCard-' + uid;
+
+    // Cards type: no panel box, just dark KPI cards directly
+    if (panel.chartType === 'cards' && panel.hasData) {
+      var numCards = Math.min((panel.labels||[]).length, 20);
+      var cols = Math.min(numCards, 4);
+      var cardW = cols * 140 + (cols - 1) * 10 + 20;
+      var rows = Math.ceil(numCards / cols);
+      var cardH = rows * 90 + (rows - 1) * 10 + 50;
+      card.style.cssText = 'position:absolute;width:' + cardW + 'px;height:' + cardH + 'px;display:flex;flex-direction:column;background:transparent;overflow:visible;' +
+        'left:' + px + 'px;top:' + py + 'px;z-index:' + (++__mbZTop) + ';';
+
+      // Tiny toolbar (no title for cards)
+      var toolbar = '<div data-panel-header style="display:flex;align-items:center;justify-content:flex-end;padding:2px 4px;margin-bottom:4px;cursor:move">' +
+        '<div style="display:flex;gap:4px;align-items:center">';
+      if (isStaging) {
+        toolbar += '<button class="btn btn-primary btn-sm py-0 px-2" onclick="addPanelToQueue()" style="font-size:0.65rem"><i class="bi bi-plus-circle me-1"></i>Add</button>' +
+                   '<button class="btn btn-sm btn-link text-secondary p-0" onclick="clearPreview()" title="Dismiss"><i class="bi bi-x-lg" style="font-size:0.65rem"></i></button>';
+      } else {
+        toolbar += '<button class="btn btn-sm btn-link text-danger p-0" onclick="removeMbCanvasPanel(\'' + uid + '\')" title="Remove"><i class="bi bi-x-lg" style="font-size:0.65rem"></i></button>';
+      }
+      toolbar += '</div></div>';
+
+      var cardsHtml = '<div id="mbCardBody-' + uid + '" style="display:flex;flex-wrap:wrap;gap:10px;padding:0"></div>';
+      var grip = '<div data-resize-grip style="position:absolute;right:-1px;bottom:-1px;width:18px;height:18px;cursor:se-resize;z-index:20;display:flex;align-items:flex-end;justify-content:flex-end;padding:2px">' +
+        '<svg width="10" height="10" viewBox="0 0 10 10" style="opacity:0.35"><line x1="10" y1="2" x2="2" y2="10" stroke="#6b7280" stroke-width="1.5"/><line x1="10" y1="6" x2="6" y2="10" stroke="#6b7280" stroke-width="1.5"/></svg></div>';
+      card.innerHTML = toolbar + cardsHtml + grip;
+      document.getElementById('mbPanelGrid').appendChild(card);
+      makePanelInteractive(card, uid);
+      renderCardsInPanel(uid, panel);
+      var grid = document.getElementById('mbPanelGrid');
+      grid.style.minHeight = (card.offsetTop + card.offsetHeight + 20) + 'px';
+      updateEmptyState();
+      return;
+    }
+
+    card.style.cssText = 'position:absolute;width:420px;height:300px;display:flex;flex-direction:column;background:#fff;border-radius:8px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,0.12);overflow:visible;' +
+      'left:' + px + 'px;top:' + py + 'px;z-index:' + (++__mbZTop) + ';' +
+      (isStaging ? 'border:2px dashed #3b82f6;' : 'border:1px solid #e2e8f0;');
+
+    // Header
+    var hdrBg = isStaging ? '#eff6ff' : '#f8fafc';
+    var hdrBorder = isStaging ? 'border-bottom:1px solid #bfdbfe' : 'border-bottom:1px solid #f1f5f9';
+    var hdr = '<div data-panel-header style="background:' + hdrBg + ';padding:8px 10px;' + hdrBorder + ';display:flex;align-items:center;justify-content:space-between;border-radius:8px 8px 0 0">' +
+      '<div style="display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden">' +
+      '<i class="bi bi-grip-vertical" style="color:#9ca3af;font-size:0.75rem;flex-shrink:0;cursor:move"></i>' +
+      (isStaging ? '<span style="font-size:0.58rem;background:#3b82f6;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0;letter-spacing:0.4px">PREVIEW</span>' : '') +
+      '<span style="font-size:0.82rem;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(panel.title || 'Panel') + '</span>' +
+      '</div><div style="display:flex;gap:4px;align-items:center;flex-shrink:0">';
+    if (isStaging) {
+      hdr += '<button class="btn btn-primary btn-sm py-0 px-2" onclick="addPanelToQueue()" style="font-size:0.7rem"><i class="bi bi-plus-circle me-1"></i>Add to Dashboard</button>' +
+             '<button class="btn btn-sm btn-link text-secondary p-0 ms-1" onclick="clearPreview()" title="Dismiss"><i class="bi bi-x-lg" style="font-size:0.7rem"></i></button>';
+    } else {
+      var _mbTypes = ['bar','line','pie','doughnut','table','cards'];
+      hdr += '<select onchange="mbChangeChartType(\''+uid+'\',this.value)" style="font-size:0.6rem;padding:1px 4px;border:1px solid #e2e8f0;border-radius:4px;background:#f8fafc;color:#6b7280;cursor:pointer">';
+      _mbTypes.forEach(function(t){ hdr += '<option value="'+t+'"'+(t===(panel.chartType||'bar')?' selected':'')+'>'+t+'</option>'; });
+      hdr += '</select>' +
+             '<button class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="removeMbCanvasPanel(\'' + uid + '\')" title="Remove"><i class="bi bi-x-lg" style="font-size:0.7rem"></i></button>';
+    }
+    hdr += '</div></div>';
+
+    // Body -- flex:1 so it fills whatever height the card has
+    var body = '<div data-mb-panel-body style="flex:1;min-height:0;padding:8px;overflow:hidden;display:flex;flex-direction:column">';
+    if (!panel.hasData) {
+      body += '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.82rem"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data returned</div>';
+    } else if (panel.chartType === 'cards') {
+      body += '<div id="mbCardBody-' + uid + '" style="display:flex;flex-wrap:wrap;gap:7px;padding:4px"></div>';
+    } else if (panel.chartType === 'table' || !panel.chartConfig) {
+      body += buildTableBodyHTML(panel);
+    } else {
+      body += '<div style="position:relative;flex:1;min-height:0"><canvas id="mbCanvas-' + uid + '"></canvas></div>';
+    }
+    body += '</div>';
+
+    // SE resize grip (overlays the bottom-right corner; card overflow:visible lets it show)
+    var grip = '<div data-resize-grip style="position:absolute;right:-1px;bottom:-1px;width:18px;height:18px;cursor:se-resize;z-index:20;display:flex;align-items:flex-end;justify-content:flex-end;padding:2px;background:transparent">' +
+      '<svg width="10" height="10" viewBox="0 0 10 10" style="opacity:0.45"><line x1="10" y1="2" x2="2" y2="10" stroke="#6b7280" stroke-width="1.5"/><line x1="10" y1="6" x2="6" y2="10" stroke="#6b7280" stroke-width="1.5"/></svg></div>';
+
+    // Inner clip wrapper so body content doesn't overflow the rounded card
+    var clipOpen  = '<div style="position:absolute;inset:0;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;pointer-events:none"><div style="pointer-events:auto;display:flex;flex-direction:column;height:100%">';
+    var clipClose = '</div></div>';
+
+    card.innerHTML = clipOpen + hdr + body + clipClose + grip;
+    document.getElementById('mbPanelGrid').appendChild(card);
+
+    makePanelInteractive(card, uid);
+
+    // Render chart / cards after DOM insertion
+    if (panel.hasData) {
+      if (panel.chartType === 'cards') {
+        renderCardsInPanel(uid, panel);
+      } else if (panel.chartConfig && panel.chartType !== 'table') {
+        requestAnimationFrame(function() {
+          var canvas = document.getElementById('mbCanvas-' + uid); if (!canvas) return;
+          var cfg = JSON.parse(JSON.stringify(panel.chartConfig));
+          cfg.options = cfg.options || {};
+          cfg.options.animation = false; cfg.options.responsive = true; cfg.options.maintainAspectRatio = false;
+          window.__aiCharts[uid] = new Chart(canvas.getContext('2d'), cfg);
+          // Add click handler to select chart for configuration
+          canvas.addEventListener('click', function() { selectMbChartForConfig(uid); });
+        });
+      }
+    }
+
+    // Expand canvas floor so scroll works
+    var grid = document.getElementById('mbPanelGrid');
+    grid.style.minHeight = (card.offsetTop + card.offsetHeight + 20) + 'px';
+    updateEmptyState();
+  }
+
+  // ── Update selected chart configuration ───────────────────────────────────────
+  window.updateSelectedChartConfig = function() {
+    var uid = window.__selectedPanelForConfig;
+    if (!uid || !window.__aiPanelData[uid]) return;
+
+    var panel = window.__aiPanelData[uid];
+    var newChartType = (document.querySelector('input[name="mbChart"]:checked') || {}).value || 'bar';
+    
+    console.log('Updating chart config for:', uid, 'New chart type:', newChartType, 'Panel has table:', !!panel.table);
+    
+    // Get new values from Panel Configuration form fields
+    var newConfig = {
+      table: document.getElementById('mbTable').value,
+      joinTable: document.getElementById('mbJoinTable').value || null,
+      dimension: document.getElementById('mbDimension').value || null,
+      measure: document.getElementById('mbMeasure').value || null,
+      aggregation: (document.querySelector('input[name="mbAgg"]:checked') || {}).value || 'COUNT',
+      chartType: newChartType,
+      limit: parseInt(document.getElementById('mbLimit').value) || 20,
+      sourceId: document.getElementById('mbSourceSel').value || null,
+      filters: getFilters()
+    };
+
+    // Update panel data
+    panel.chartType = newConfig.chartType;
+    if (newConfig.table) panel.table = newConfig.table;
+    if (newConfig.dimension !== null) panel.dimension = newConfig.dimension;
+    if (newConfig.measure !== null) panel.measure = newConfig.measure;
+    if (newConfig.aggregation) panel.aggregation = newConfig.aggregation;
+    if (newConfig.limit) panel.limit = newConfig.limit;
+
+    // Only fetch new data if we have complete table/dimension/measure configuration
+    if (newConfig.table && newConfig.dimension && newConfig.measure) {
+      console.log('Have complete config, fetching new data');
+      
+      // Show loading state on the chart
+      var card = document.getElementById('mbCard-' + uid) || document.getElementById('aiCard-' + uid);
+      var body = card ? (card.querySelector('[data-mb-panel-body]') || card.querySelector('[id^="aiCardBody-"]')) : null;
+      if (body && !body.classList.contains('updating')) {
+        body.classList.add('updating');
+      }
+
+      // Fetch updated panel data from server
+      fetch('/dashboard/manual-panel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceId: newConfig.sourceId,
+          tableKey: newConfig.table,
+          joinTableKey: newConfig.joinTable,
+          dimension: newConfig.dimension,
+          measure: newConfig.measure,
+          aggregation: newConfig.aggregation,
+          chartType: newConfig.chartType,
+          limit: newConfig.limit,
+          filters: newConfig.filters,
+          title: panel.title
+        })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(updatedPanel) {
+        if (updatedPanel.error) {
+          console.error('Error updating chart:', updatedPanel.error);
+          return;
+        }
+
+        // Update panel data with new response data
+        panel.hasData = updatedPanel.hasData;
+        panel.labels = updatedPanel.labels;
+        panel.datasets = updatedPanel.datasets;
+        panel.chartConfig = updatedPanel.chartConfig;
+
+        // Update the chart on canvas
+        updateChartOnCanvas(uid, updatedPanel);
+      })
+      .catch(function(e) {
+        console.error('Failed to update chart:', e);
+      })
+      .finally(function() {
+        if (body) body.classList.remove('updating');
+      });
+    } else {
+      // No complete config, just change the chart type visualization
+      console.log('Incomplete config, just changing chart type visualization');
+      
+      if (!panel.chartConfig || !panel.labels) {
+        console.log('Panel has no chartConfig, cannot change visualization');
+        return;
+      }
+
+      // Rebuild chartConfig with new chart type but same data
+      var oldConfig = panel.chartConfig;
+      panel.chartConfig = {
+        type: newChartType,
+        data: oldConfig.data || { labels: panel.labels || [], datasets: panel.datasets || [] },
+        options: oldConfig.options || {}
+      };
+
+      // Update the chart visualization
+      updateChartOnCanvas(uid, panel);
+    }
+  };
+
+  // ── Update chart instance on canvas ────────────────────────────────────────────
+  function updateChartOnCanvas(uid, updatedPanel) {
+    var panel = window.__aiPanelData[uid];
+    if (!panel) return;
+
+    // For cards type panels - try both ID patterns
+    if (updatedPanel.chartType === 'cards' && updatedPanel.hasData) {
+      var cardBody = document.getElementById('mbCardBody-' + uid) || document.getElementById('aiCardBody-' + uid);
+      if (cardBody) {
+        renderCardsInPanel(uid, updatedPanel);
+      }
+      return;
+    }
+
+    // For table type panels - try both card ID patterns
+    if (updatedPanel.chartType === 'table' || !updatedPanel.chartConfig) {
+      var card = document.getElementById('mbCard-' + uid) || document.getElementById('aiCard-' + uid);
+      if (card) {
+        var body = card.querySelector('[data-mb-panel-body]') || card.querySelector('[id^="aiCardBody-"]');
+        if (body) {
+          if (updatedPanel.hasData) {
+            body.innerHTML = buildTableBodyHTML(updatedPanel);
+          } else {
+            body.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.82rem"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data returned</div>';
+          }
+        }
+      }
+      return;
+    }
+
+    // For chart type panels (bar, line, pie, etc.)
+    var chart = window.__aiCharts[uid];
+    if (chart) {
+      chart.destroy();
+      delete window.__aiCharts[uid];
+    }
+
+    if (updatedPanel.hasData && updatedPanel.chartConfig) {
+      // Try both canvas ID patterns (manually created vs preloaded)
+      var canvas = document.getElementById('mbCanvas-' + uid) || document.getElementById('chart-' + uid);
+      if (canvas) {
+        requestAnimationFrame(function() {
+          var cfg = JSON.parse(JSON.stringify(updatedPanel.chartConfig));
+          cfg.options = cfg.options || {};
+          cfg.options.animation = false;
+          cfg.options.responsive = true;
+          cfg.options.maintainAspectRatio = false;
+          window.__aiCharts[uid] = new Chart(canvas.getContext('2d'), cfg);
+          canvas.addEventListener('click', function() { selectMbChartForConfig(uid); });
+        });
+      }
+    } else {
+      // No data returned - try both card ID patterns
+      var card = document.getElementById('mbCard-' + uid) || document.getElementById('aiCard-' + uid);
+      if (card) {
+        var body = card.querySelector('[data-mb-panel-body]') || card.querySelector('[id^="aiCardBody-"]');
+        if (body) {
+          body.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.82rem"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data returned</div>';
+        }
+      }
+    }
+  }
+
+  // ── Preview on canvas ─────────────────────────────────────────────────────────
+  window.previewPanel = function() {
+    var tableKey = document.getElementById('mbTable').value;
+    if (!tableKey) { alert('Please select a table.'); return; }
+    var dimVal = document.getElementById('mbDimension').value;
+    var mesVal = document.getElementById('mbMeasure').value;
+    var chartType = (document.querySelector('input[name="mbChart"]:checked') || {}).value || 'bar';
+    if (chartType !== 'cards' && !dimVal) { alert('Please select a dimension.'); return; }
+    if (chartType !== 'cards' && !mesVal) { alert('Please select a measure.'); return; }
+    var joinKey   = document.getElementById('mbJoinTable').value;
+    var agg       = (document.querySelector('input[name="mbAgg"]:checked') || {}).value || 'COUNT';
+    var limit     = document.getElementById('mbLimit').value;
+    var title     = document.getElementById('mbTitle').value.trim();
+    var sourceId  = document.getElementById('mbSourceSel').value;
+    var filters   = getFilters();
+    var btn = document.getElementById('mbPreviewBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Loading...';
+    fetch('/dashboard/manual-panel', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ sourceId:sourceId||null, tableKey:tableKey, joinTableKey:joinKey||null,
+        dimension:dimVal||null, measure:mesVal, aggregation:agg, chartType:chartType,
+        limit:parseInt(limit), filters:filters, title:title }),
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(panel) {
+      if (panel.error) { alert('Error: ' + panel.error); return; }
+      __preview = panel;
+      renderPanelOnCanvas(panel, true);
+      document.getElementById('mbAddBtn').disabled = false;
+      // Scroll canvas to show the new card
+      var canvas = document.getElementById('mbCanvas');
+      if (canvas) canvas.scrollTop = canvas.scrollHeight;
+    })
+    .catch(function(e){ alert('Request failed: ' + e.message); })
+    .finally(function(){ btn.disabled = false; btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Preview on Canvas'; });
+  };
+
+  window.clearPreview = function() {
+    var old = document.getElementById('mbCard-staging');
+    if (old) { if (window.__aiCharts['staging']) { window.__aiCharts['staging'].destroy(); delete window.__aiCharts['staging']; } old.remove(); }
+    document.getElementById('mbAddBtn').disabled = true;
+    __preview = null;
+    updateEmptyState();
+  };
+
+  window.addPanelToQueue = function() {
+    if (!__preview) return;
+    var panel = JSON.parse(JSON.stringify(__preview));
+    clearPreview();
+    window.__aiQueue.push(panel);
+    renderPanelOnCanvas(panel, false);
+    updateQueueCount();
+    // Reset title for next panel
+    document.getElementById('mbTitle').value = '';
+    document.getElementById('mbTitle').dataset.userEdited = '';
+    updateTitle();
+  };
+
+  // ── Drag-to-resize panels ───────────────────────────────────────────────────
+  (function initResizers() {
+    function makeResizer(handleId, panelId, side) {
+      // side: 'left' = resizing schema panel (drag right = wider)
+      //       'right' = resizing config panel (drag left = wider)
+      var handle = document.getElementById(handleId);
+      var panel  = document.getElementById(panelId);
+      if (!handle || !panel) return;
+
+      handle.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        var startX    = e.clientX;
+        var startWidth = panel.getBoundingClientRect().width;
+        var workspace  = document.getElementById('mbWorkspace');
+        var ww = workspace ? workspace.getBoundingClientRect().width : window.innerWidth;
+
+        handle.style.background = '#3b82f6';
+        document.body.style.cursor = 'col-resize';
+
+        function onMove(ev) {
+          var dx = ev.clientX - startX;
+          var newW = side === 'left' ? startWidth + dx : startWidth - dx;
+          var minW  = 120;
+          var maxW  = ww * 0.45;
+          newW = Math.max(minW, Math.min(maxW, newW));
+          panel.style.width    = newW + 'px';
+          panel.style.minWidth = '0';
+        }
+
+        function onUp() {
+          handle.style.background = '#e5e7eb';
+          document.body.style.cursor = '';
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup',   onUp);
+        }
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+      });
+
+      // Hover highlight
+      handle.addEventListener('mouseenter', function() { if (handle.style.background !== 'rgb(59, 130, 246)') handle.style.background = '#c7d2fe'; });
+      handle.addEventListener('mouseleave', function() { if (handle.style.background !== 'rgb(59, 130, 246)') handle.style.background = '#e5e7eb'; });
+    }
+
+    makeResizer('mbResizeSchema', 'mbSchemaPanel', 'left');
+    makeResizer('mbResizeConfig', 'mbConfigPanel', 'right');
+  })();
+
+  // ── Select chart for configuration ──────────────────────────────────────────
+  window.selectMbChartForConfig = function(uid) {
+    var panel = window.__aiPanelData[uid];
+    if (!panel) {
+      console.error('Panel not found for uid:', uid);
+      return;
+    }
+
+    // Store selected panel UID for use in updateSelectedChartConfig()
+    window.__selectedPanelForConfig = uid;
+
+    // Remove previous highlight from both mode card patterns
+    var allCards = document.querySelectorAll('[id^="mbCard-"],[id^="aiCard-"]');
+    allCards.forEach(function(card) {
+      card.style.borderColor = '';
+      card.style.boxShadow = '';
+    });
+
+    // Highlight selected chart - check both ID patterns
+    var card = document.getElementById('mbCard-' + uid) || document.getElementById('aiCard-' + uid);
+    if (card) {
+      card.style.borderColor = '#3b82f6';
+      card.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(59, 130, 246, 0.2)';
+    }
+
+    // Log for debugging
+    console.log('Selected panel UID:', uid, 'Panel data:', panel);
+
+    // Check if this is an AI-generated panel (no table property)
+    var isAiGenerated = !panel.table;
+    
+    // Populate Panel Configuration panel
+    var tableEl = document.getElementById('mbTable');
+    if (tableEl) {
+      if (isAiGenerated) {
+        tableEl.value = '';
+        tableEl.disabled = true;
+        tableEl.title = 'This panel was AI-generated. Create a new panel in Manual Builder to configure from a table.';
+      } else {
+        tableEl.value = panel.table || '';
+        tableEl.disabled = false;
+      }
+      console.log('Set table to:', tableEl.value, 'AI-Generated:', isAiGenerated);
+    }
+
+    var joinEl = document.getElementById('mbJoinTable');
+    if (joinEl) {
+      if (isAiGenerated) {
+        joinEl.value = '';
+        joinEl.disabled = true;
+      } else {
+        joinEl.value = panel.joinTable || '';
+        joinEl.disabled = false;
+      }
+    }
+
+    var dimEl = document.getElementById('mbDimension');
+    if (dimEl) {
+      if (isAiGenerated) {
+        dimEl.value = '';
+        dimEl.disabled = true;
+        dimEl.title = 'This panel was AI-generated. Create a new panel in Manual Builder to configure dimensions.';
+      } else {
+        dimEl.value = panel.dimension || '';
+        dimEl.disabled = false;
+      }
+      console.log('Set dimension to:', dimEl.value);
+    }
+
+    var mesEl = document.getElementById('mbMeasure');
+    if (mesEl) {
+      if (isAiGenerated) {
+        mesEl.value = '';
+        mesEl.disabled = true;
+        mesEl.title = 'This panel was AI-generated. Create a new panel in Manual Builder to configure measures.';
+      } else {
+        mesEl.value = panel.measure || '';
+        mesEl.disabled = false;
+      }
+      console.log('Set measure to:', mesEl.value);
+    }
+
+    // Aggregation
+    var aggRadios = document.querySelectorAll('input[name="mbAgg"]');
+    var agg = panel.aggregation || 'COUNT';
+    aggRadios.forEach(function(radio) {
+      radio.checked = (radio.value === agg);
+      radio.disabled = isAiGenerated;
+    });
+    console.log('Set aggregation to:', agg);
+
+    // Chart Type (always enabled - user can change visualization)
+    var chartRadios = document.querySelectorAll('input[name="mbChart"]');
+    var chartType = panel.chartType || 'bar';
+    chartRadios.forEach(function(radio) {
+      radio.checked = (radio.value === chartType);
+      // Chart type radio remains ENABLED - user can always change visualization
+    });
+    console.log('Set chart type to:', chartType);
+    
+    // Limit
+    var limitEl = document.getElementById('mbLimit');
+    if (limitEl) {
+      limitEl.value = panel.limit || 20;
+      limitEl.disabled = isAiGenerated;
+    }
+    
+    // Add visual indicator for AI-generated panels
+    if (isAiGenerated) {
+      var configPanel = document.getElementById('mbConfigPanel');
+      if (configPanel) {
+        var existing = configPanel.querySelector('.ai-generated-badge');
+        if (!existing) {
+          var badge = document.createElement('div');
+          badge.className = 'ai-generated-badge';
+          badge.style.cssText = 'background:#f0f9ff;border:1px solid #bae6fd;border-radius:4px;padding:8px 12px;margin-bottom:12px;color:#0c4a6e;font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:6px';
+          badge.innerHTML = '<i class="bi bi-stars" style="color:#0284c7;font-size:0.9rem"></i>AI-Generated Panel - Change chart type as needed';
+          configPanel.insertBefore(badge, configPanel.firstChild);
+        }
+      }
+    } else {
+      var configPanel = document.getElementById('mbConfigPanel');
+      if (configPanel) {
+        var existing = configPanel.querySelector('.ai-generated-badge');
+        if (existing) existing.remove();
+      }
+    }
+    
+    // Trigger change event to update visibility of dimension field
+    var checkedRadio = document.querySelector('input[name="mbChart"]:checked');
+    if (checkedRadio) {
+      var event = new Event('change', { bubbles: true });
+      checkedRadio.dispatchEvent(event);
+    }
+
+    // Scroll config panel to top
+    var configPanel = document.getElementById('mbConfigPanel');
+    if (configPanel) configPanel.scrollTop = 0;
+  };
+
+  window.submitManualDashboard = function() {
+    if (window.__aiQueue.length === 0) return;
+    document.getElementById('mbPanelsJson').value = JSON.stringify(window.__aiQueue);
+    document.getElementById('mbGenerateForm').submit();
+  };
+
+  window.submitMbFullDashboard = function() {
+    // Sync source selection then switch to AI Mode and run full dashboard
+    var sourceId = (document.getElementById('mbSourceSel') || {}).value || '';
+    var aiSel = document.getElementById('aiSourceSel');
+    if (aiSel && sourceId) aiSel.value = sourceId;
+    switchMode('ai');
+    setTimeout(function() { submitAiFullDashboard(); }, 300);
+  };
+
+})();
+</script>
+
 

@@ -16,6 +16,8 @@ const promptParserService = require('./promptParserService');
 const queryService = require('./queryService');
 const kpiService = require('./kpiService');
 const chartService = require('./chartService');
+const aiInsightService = require('./aiInsightService');
+const aiService = require('./aiService');
 
 /**
  * Generate a complete dashboard from a prompt.
@@ -23,8 +25,33 @@ const chartService = require('./chartService');
  * @returns {object} dashboard result
  */
 async function generate({ prompt, chartType, dataSourceId, templateId }) {
-  // 1. Parse prompt
-  const structuredRequest = promptParserService.parse(prompt, chartType);
+  // 1. Parse prompt — try AI first, fall back to regex
+  let structuredRequest = null;
+  let parsedByAI = false;
+
+  if (aiService.isAvailable()) {
+    try {
+      // Build schema context for better AI understanding
+      let schemaCtx = null;
+      if (dataSourceId) {
+        const schemas = await db.DataSourceSchema.findAll({ where: { dataSourceId }, raw: true });
+        if (schemas.length > 0) {
+          schemaCtx = schemas.map(s => {
+            const cols = JSON.parse(s.schemaJson || '[]');
+            return `Table "${s.datasetName}": ${cols.map(c => c.name + ' (' + c.type + ')').join(', ')}`;
+          }).join('\n');
+        }
+      }
+      structuredRequest = await promptParserService.parseWithAI(prompt, chartType, schemaCtx);
+      if (structuredRequest) parsedByAI = true;
+    } catch (err) {
+      console.warn('[Dashboard] AI parse failed, using regex fallback:', err.message);
+    }
+  }
+
+  if (!structuredRequest) {
+    structuredRequest = promptParserService.parse(prompt, chartType);
+  }
   if (!structuredRequest) {
     throw new Error('Could not interpret the prompt. Please try rephrasing.');
   }
@@ -92,7 +119,22 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
     },
     summary: queryResult.summary,
     hasData: queryResult.rows && queryResult.rows.length > 0,
+    parsedByAI,
+    aiInsight: null,
   };
+
+  // 6b. Generate AI narrative insight
+  try {
+    dashboard.aiInsight = await aiInsightService.generateInsight({
+      title: dashboard.title,
+      chartType: dashboard.chartType,
+      labels: queryResult.labels,
+      values: queryResult.values,
+      kpis,
+    });
+  } catch (err) {
+    console.warn('[Dashboard] AI insight generation failed:', err.message);
+  }
 
   // 7. Save prompt history
   try {

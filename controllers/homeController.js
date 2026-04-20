@@ -1,6 +1,7 @@
 const db = require('../models');
 const { SAMPLE_PROMPTS, CHART_TYPES } = require('../utils/constants');
 const { take } = require('../utils/helpers');
+const aiService = require('../services/aiService');
 
 exports.index = async (req, res) => {
   try {
@@ -23,6 +24,20 @@ exports.index = async (req, res) => {
     const sources = await db.DataSource.findAll({
       where: { status: 'active' },
       order: [['name', 'ASC']],
+      attributes: ['id', 'name', 'sourceType', 'analysisJson'],
+    });
+
+    // Build a map of sourceId → suggestedPrompts for client-side dynamic hints
+    const sourcePromptMap = {};
+    sources.forEach((s) => {
+      if (s.analysisJson) {
+        try {
+          const a = JSON.parse(s.analysisJson);
+          if (a.suggestedPrompts && a.suggestedPrompts.length) {
+            sourcePromptMap[s.id] = a.suggestedPrompts;
+          }
+        } catch { /* ignore */ }
+      }
     });
 
     const templates = await db.DashboardTemplate.findAll({
@@ -38,6 +53,7 @@ exports.index = async (req, res) => {
       recentPrompts,
       sources,
       templates,
+      sourcePromptMap,
     });
   } catch (err) {
     console.error('Home page error:', err);
@@ -51,6 +67,7 @@ exports.index = async (req, res) => {
       recentPrompts: [],
       sources: [],
       templates: [],
+      sourcePromptMap: {},
     });
   }
 };
