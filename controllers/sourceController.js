@@ -3,6 +3,25 @@ const sourceIngestionService = require('../services/sourceIngestionService');
 const { safeJsonParse } = require('../utils/helpers');
 const { SOURCE_TYPES } = require('../utils/constants');
 
+function parseOptionalJsonObject(input, fieldLabel) {
+  const raw = (input == null ? '' : String(input)).trim();
+  if (!raw) return {};
+  // Common UX: users paste JSON wrapped in single quotes like '{"a":1}'
+  const unwrapped = ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"')))
+    ? raw.slice(1, -1).trim()
+    : raw;
+  let parsed;
+  try {
+    parsed = JSON.parse(unwrapped);
+  } catch {
+    throw new Error(`${fieldLabel} must be a valid JSON object (example: {"key":"value"}).`);
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${fieldLabel} must be a JSON object (not an array or value).`);
+  }
+  return parsed;
+}
+
 exports.list = async (req, res) => {
   try {
     const sources = await db.DataSource.findAll({ order: [['createdAt', 'DESC']] });
@@ -55,10 +74,19 @@ exports.create = async (req, res) => {
         req.flash('error', 'API URL is required for API sources.');
         return res.redirect('/sources/new');
       }
+      let headersObj = {};
+      let paramsObj = {};
+      try {
+        headersObj = parseOptionalJsonObject(apiHeaders, 'Headers');
+        paramsObj = parseOptionalJsonObject(apiParams, 'Query Params');
+      } catch (e) {
+        req.flash('error', e.message);
+        return res.redirect('/sources/new');
+      }
       sourceData.configJson = JSON.stringify({
         url: apiUrl.trim(),
-        headers: safeJsonParse(apiHeaders) || {},
-        params: safeJsonParse(apiParams) || {},
+        headers: headersObj,
+        params: paramsObj,
         method: 'GET',
       });
     }

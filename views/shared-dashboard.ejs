@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> — Shared Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; background:#f5f7fb; margin:0; padding:0; color:#111827; }
+    .share-topbar { background:#fff; border-bottom:1px solid #e5e7eb; padding:10px 20px; display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .share-topbar .brand { display:flex; align-items:center; gap:8px; font-weight:700; color:#1e293b; font-size:0.95rem; }
+    .share-topbar .brand i { color:#2563eb; font-size:1.2rem; }
+    .share-topbar .badge-shared { font-size:0.62rem; padding:3px 8px; border-radius:10px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; font-weight:700; letter-spacing:0.3px; }
+    .share-topbar .right { margin-left:auto; display:flex; align-items:center; gap:10px; font-size:0.72rem; color:#6b7280; }
+    .share-canvas { padding:0; }
+    #aiPanelGrid { position:relative; background:#fff; min-height:600px; }
+    @keyframes aiSlideIn { from {opacity:0;transform:translateY(12px)} to {opacity:1;transform:translateY(0)} }
+    @keyframes aiPulse { 0%,100% {transform:scale(1);opacity:1} 50% {transform:scale(1.08);opacity:0.85} }
+    .footer-share { text-align:center; padding:18px 12px; color:#9ca3af; font-size:0.72rem; }
+    [data-readonly="1"] [data-ai-resize-grip], [data-readonly="1"] select, [data-readonly="1"] [data-ai-panel-header] button { display:none !important; }
+    [data-readonly="1"] [data-ai-panel-header] { cursor:default !important; }
+  </style>
+</head>
+<body data-readonly="1">
+
+  <div class="share-topbar">
+    <div class="brand">
+      <i class="bi bi-bar-chart-line-fill"></i>
+      <span>AutoDash AI</span>
+      <span class="badge-shared"><i class="bi bi-link-45deg me-1"></i>Shared View</span>
+    </div>
+    <div class="right">
+      <span><i class="bi bi-eye me-1"></i><%= viewCount %> view<%= viewCount === 1 ? '' : 's' %></span>
+      <% if (permission.allowExport) { %>
+      <button class="btn btn-sm btn-outline-secondary" onclick="window.print()" style="font-size:0.7rem"><i class="bi bi-printer me-1"></i>Print</button>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="share-canvas">
+    <div id="aiCanvas" style="position:relative">
+      <div id="aiPanelGrid"></div>
+    </div>
+  </div>
+
+  <div class="footer-share">
+    <i class="bi bi-shield-check me-1"></i>This is a read-only shared dashboard. Powered by AutoDash AI.
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+  <script>
+    // Server-rendered safe payload (no credentials, panels + KPI + meta only)
+    window.__sharedConfig = <%- JSON.stringify(config) %>;
+    window.__sharedPermission = <%- JSON.stringify(permission) %>;
+
+    // ── Minimal helpers borrowed from the canvas renderer ────────────────────
+    var __aiCharts = {}, __aiECharts = {}, __aiPanelData = {};
+    var __aiPanelIdCtr = 0;
+    function _aiEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+
+    function aiBuildTableHTML(panel) {
+      if (!panel.tableData || !panel.tableData.rows || !panel.tableData.rows.length)
+        return '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.8rem"><i class="bi bi-inbox" style="font-size:1.5rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data</div>';
+      return '<div style="max-height:240px;overflow-y:auto"><table class="table table-sm table-striped mb-0">' +
+        '<thead class="table-dark" style="position:sticky;top:0"><tr>' +
+        panel.tableData.columns.map(function(c){ return '<th style="font-size:0.68rem;white-space:nowrap">'+_aiEsc(String(c))+'</th>'; }).join('') +
+        '</tr></thead><tbody>' +
+        panel.tableData.rows.slice(0,50).map(function(r){
+          return '<tr>'+panel.tableData.columns.map(function(c){
+            return '<td style="font-size:0.68rem">'+_aiEsc(String(r[c]!=null?r[c]:'-'))+'</td>';
+          }).join('')+'</tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+
+    function aiRenderCardsInPanel(uid, panel) {
+      var el = document.getElementById('aiCardBody-' + uid); if (!el || !panel.labels) return;
+      var formatVal = function(v) {
+        var n = parseFloat(v); if (isNaN(n)) return String(v);
+        var abs = Math.abs(n);
+        if (abs >= 1e9) return (n/1e9).toFixed(1).replace(/\.0$/,'')+'B';
+        if (abs >= 1e6) return (n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+        if (abs >= 1e3) return (n/1e3).toFixed(1).replace(/\.0$/,'')+'K';
+        return n % 1 !== 0 ? n.toFixed(2) : String(n);
+      };
+      var pal = (window.__sharedConfig && window.__sharedConfig.palette && window.__sharedConfig.palette.length)
+        ? window.__sharedConfig.palette : ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
+      el.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;padding:8px;justify-content:center';
+      el.innerHTML = (panel.labels||[]).slice(0,20).map(function(lbl,i){
+        var val = panel.values[i] != null ? panel.values[i] : '-';
+        var color = pal[i % pal.length];
+        return '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 12px;min-width:110px;flex:1;text-align:center;border-top:3px solid '+color+';box-shadow:0 1px 4px rgba(0,0,0,0.06)">' +
+          '<div style="font-size:1.2rem;font-weight:800;color:'+color+';line-height:1">'+_aiEsc(formatVal(val))+'</div>' +
+          '<div style="font-size:0.68rem;color:#6b7280;margin-top:6px;text-transform:uppercase;letter-spacing:0.3px">'+_aiEsc(lbl)+'</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function _renderPanelInto(panel, wrapper) {
+      var uid = 'sh' + (++__aiPanelIdCtr);
+      panel._uid = uid;
+      __aiPanelData[uid] = panel;
+
+      var card = document.createElement('div');
+      card.style.cssText = 'display:flex;flex-direction:column;height:100%;background:#fff;overflow:hidden';
+      var hdr = document.createElement('div');
+      hdr.setAttribute('data-ai-panel-header', '');
+      hdr.style.cssText = 'background:#f8fafc;padding:8px 10px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px;flex-shrink:0';
+      hdr.innerHTML = '<span style="font-size:0.58rem;background:#22c55e;color:#fff;padding:1px 5px;border-radius:3px;font-weight:700;flex-shrink:0">AI</span>' +
+        '<span style="font-size:0.82rem;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+_aiEsc(panel.title||'Panel')+'</span>';
+      card.appendChild(hdr);
+
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-height:0;padding:8px;overflow:hidden;display:flex;flex-direction:column';
+      var _isEChart = panel.chartEngine === 'echarts' ||
+        (!panel.chartEngine && panel.chartConfig &&
+          (panel.chartConfig.series !== undefined || panel.chartConfig.xAxis !== undefined || panel.chartConfig.tooltip !== undefined));
+
+      if (!panel.hasData) {
+        body.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;font-size:0.82rem"><i class="bi bi-inbox" style="font-size:1.8rem;display:block;opacity:0.3;margin-bottom:6px"></i>No data</div>';
+      } else if (panel.chartType === 'cards') {
+        body.innerHTML = '<div id="aiCardBody-'+uid+'" style="display:flex;flex-wrap:wrap;gap:7px;padding:4px"></div>';
+      } else if (panel.chartType === 'table' || !panel.chartConfig) {
+        body.innerHTML = aiBuildTableHTML(panel);
+      } else if (_isEChart) {
+        body.innerHTML = '<div id="aiEChart-'+uid+'" style="width:100%;height:100%;min-height:220px"></div>';
+      } else {
+        body.innerHTML = '<div style="position:relative;flex:1;min-height:0"><canvas id="aiChartCanvas-'+uid+'"></canvas></div>';
+      }
+      if (panel.aiInsight) {
+        var insight = document.createElement('div');
+        insight.style.cssText = 'padding:6px 10px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-top:1px solid #e2e8f0;font-size:0.68rem;color:#4c1d95';
+        insight.innerHTML = '<i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:4px"></i><strong>AI Insight:</strong> ' + _aiEsc(panel.aiInsight);
+        card.appendChild(body);
+        card.appendChild(insight);
+      } else {
+        card.appendChild(body);
+      }
+      wrapper.appendChild(card);
+
+      // Defer chart construction
+      setTimeout(function() {
+        try {
+          if (panel.chartType === 'cards') {
+            aiRenderCardsInPanel(uid, panel);
+          } else if (_isEChart && panel.chartConfig && panel.chartType !== 'table') {
+            var el = document.getElementById('aiEChart-' + uid);
+            if (el && typeof echarts !== 'undefined') {
+              var inst = echarts.init(el);
+              inst.setOption(panel.chartConfig);
+              __aiECharts[uid] = inst;
+            }
+          } else if (panel.chartConfig && panel.chartType !== 'table') {
+            var cv = document.getElementById('aiChartCanvas-' + uid);
+            if (cv && typeof Chart !== 'undefined') {
+              var cfg = JSON.parse(JSON.stringify(panel.chartConfig));
+              cfg.options = cfg.options || {};
+              cfg.options.animation = false; cfg.options.responsive = true; cfg.options.maintainAspectRatio = false;
+              __aiCharts[uid] = new Chart(cv.getContext('2d'), cfg);
+              setTimeout(function(){ try { __aiCharts[uid].resize(); } catch(e){} }, 80);
+            }
+          }
+        } catch(e) { console.error('Chart render failed:', panel.title, e); }
+      }, 30);
+    }
+
+    function renderShared(data, gridEl) {
+      var panels = data.panels || [];
+      var gap = 14;
+
+      // 1. Header
+      var headerDiv = document.createElement('div');
+      headerDiv.style.cssText = 'background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%);padding:18px 20px 14px;position:relative;overflow:hidden';
+      headerDiv.innerHTML =
+        '<div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.05)"></div>' +
+        '<div style="position:absolute;bottom:-30px;right:60px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;position:relative">' +
+          '<div>' +
+            '<div style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.55);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px"><i class="bi bi-stars me-1"></i>AI Executive Dashboard</div>' +
+            '<div style="font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:3px">' + _aiEsc(data.dashboardRole || 'Executive Dashboard') + '</div>' +
+            '<div style="font-size:0.72rem;color:rgba(255,255,255,0.6)">' + _aiEsc(data.dashboardSubtitle || 'AI-Generated Overview') + '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;align-items:center">' +
+            '<span style="font-size:0.65rem;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);font-weight:600"><i class="bi bi-cpu me-1"></i>AI-Curated</span>' +
+            '<span style="font-size:0.65rem;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);font-weight:600"><i class="bi bi-layout-wtf me-1"></i>' + panels.filter(function(p){return p.chartType!=='table';}).length + ' Charts</span>' +
+          '</div>' +
+        '</div>';
+      gridEl.appendChild(headerDiv);
+
+      // 2. Anomaly alert
+      if (data.anomalyAlert) {
+        var alertDiv = document.createElement('div');
+        alertDiv.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(90deg,#fff7ed,#fef3c7);border-left:3px solid #f59e0b;font-size:0.74rem;color:#92400e';
+        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill" style="color:#f59e0b;font-size:1rem;flex-shrink:0"></i><div><strong style="color:#78350f">AI Alert:</strong> ' + _aiEsc(data.anomalyAlert) + '</div>';
+        gridEl.appendChild(alertDiv);
+      }
+
+      // 3. KPI strip
+      var kpiData = data.kpiData || [];
+      if (kpiData.length > 0) {
+        var kpiDiv = document.createElement('div');
+        kpiDiv.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:12px 14px;background:#f8f9ff;border-bottom:1px solid #e5e7eb';
+        kpiData.forEach(function(kpi, ki) {
+          var color = kpi.color || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6'][ki % 6];
+          var trendColor = kpi.trendDirection === 'up' ? '#22c55e' : kpi.trendDirection === 'down' ? '#ef4444' : '#6b7280';
+          var trendIcon = kpi.trendDirection === 'up' ? 'bi-arrow-up-short' : kpi.trendDirection === 'down' ? 'bi-arrow-down-short' : 'bi-dash';
+          var c = document.createElement('div');
+          c.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;border-top:3px solid '+color+';box-shadow:0 1px 4px rgba(0,0,0,0.04);animation:aiSlideIn 0.3s ease '+(ki*0.06)+'s both';
+          c.innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+              '<div style="width:32px;height:32px;border-radius:8px;background:'+color+'18;display:flex;align-items:center;justify-content:center"><i class="bi '+(kpi.icon||'bi-bar-chart-fill')+'" style="font-size:1rem;color:'+color+'"></i></div>' +
+              (kpi.trend ? '<div style="font-size:0.68rem;font-weight:700;color:'+trendColor+';display:flex;align-items:center;gap:1px;padding:2px 6px;border-radius:8px;background:'+trendColor+'18"><i class="bi '+trendIcon+'"></i>'+_aiEsc(kpi.trend)+'</div>' : '') +
+            '</div>' +
+            '<div style="font-size:1.6rem;font-weight:800;color:#111827;line-height:1;margin-bottom:4px">'+_aiEsc(kpi.value||'—')+'</div>' +
+            '<div style="font-size:0.65rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px">'+_aiEsc(kpi.label||'')+'</div>' +
+            (kpi.subtitle ? '<div style="font-size:0.6rem;color:#9ca3af;margin-top:3px">'+_aiEsc(kpi.subtitle)+'</div>' : '');
+          kpiDiv.appendChild(c);
+        });
+        gridEl.appendChild(kpiDiv);
+      }
+
+      // 4. Sectioned charts
+      var chartPanels = panels.filter(function(p) { return p.chartType !== 'table'; });
+      var tablePanels = panels.filter(function(p) { return p.chartType === 'table'; });
+      var sectionOrder = ['Executive Summary','Performance Overview','Trend Analysis','Distribution & Breakdown','Operational Detail','Risk & Alerts'];
+      var sectionStyles = {
+        'Executive Summary':{accent:'#312e81',icon:'bi-graph-up-arrow'},
+        'Performance Overview':{accent:'#3b82f6',icon:'bi-speedometer2'},
+        'Trend Analysis':{accent:'#6366f1',icon:'bi-activity'},
+        'Distribution & Breakdown':{accent:'#8b5cf6',icon:'bi-pie-chart-fill'},
+        'Operational Detail':{accent:'#10b981',icon:'bi-kanban-fill'},
+        'Risk & Alerts':{accent:'#ef4444',icon:'bi-exclamation-diamond-fill'},
+      };
+      var sectionGroups = {};
+      chartPanels.forEach(function(p) {
+        var sec = p._section || p.section || 'Performance Overview';
+        if (!sectionGroups[sec]) sectionGroups[sec] = [];
+        sectionGroups[sec].push(p);
+      });
+      var ordered = sectionOrder.filter(function(s){return sectionGroups[s];});
+      Object.keys(sectionGroups).forEach(function(s){if(ordered.indexOf(s)===-1)ordered.push(s);});
+
+      var container = document.createElement('div');
+      container.style.cssText = 'padding:0 '+gap+'px '+gap+'px;display:flex;flex-direction:column;gap:'+gap+'px;margin-top:'+gap+'px';
+
+      ordered.forEach(function(secName, secIdx) {
+        var secPanels = sectionGroups[secName];
+        var style = sectionStyles[secName] || {accent:'#6b7280',icon:'bi-grid'};
+        var hdr = document.createElement('div');
+        hdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px 4px';
+        hdr.innerHTML =
+          '<div style="width:3px;height:18px;border-radius:2px;background:'+style.accent+';flex-shrink:0"></div>' +
+          '<i class="bi '+style.icon+'" style="font-size:0.85rem;color:'+style.accent+'"></i>' +
+          '<span style="font-size:0.78rem;font-weight:700;color:#1f2937">'+_aiEsc(secName)+'</span>' +
+          '<div style="flex:1;height:1px;background:linear-gradient(90deg,'+style.accent+'30,transparent);margin-left:4px"></div>';
+        container.appendChild(hdr);
+
+        var row = document.createElement('div');
+        row.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:'+gap+'px';
+        secPanels.forEach(function(panel, pi) {
+          var w = document.createElement('div');
+          w.style.cssText = 'height:300px;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);border:1px solid #e5e7eb;background:#fff;animation:aiSlideIn 0.35s ease '+((secIdx*0.1)+(pi*0.06))+'s both';
+          _renderPanelInto(panel, w);
+          row.appendChild(w);
+        });
+        container.appendChild(row);
+      });
+      gridEl.appendChild(container);
+
+      // 5. Tables (collapsed)
+      if (tablePanels.length > 0) {
+        var tWrap = document.createElement('div');
+        tWrap.style.cssText = 'padding:0 '+gap+'px '+gap+'px';
+        var toggle = document.createElement('div');
+        toggle.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px;cursor:pointer;user-select:none';
+        toggle.innerHTML = '<div style="width:3px;height:18px;border-radius:2px;background:#6b7280"></div><i class="bi bi-table" style="color:#6b7280"></i><span style="font-size:0.78rem;font-weight:700;color:#6b7280">Data Tables ('+tablePanels.length+')</span><i class="bi bi-chevron-down" style="color:#9ca3af;font-size:0.75rem;margin-left:auto"></i>';
+        var body = document.createElement('div');
+        body.style.display = 'none';
+        var grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:'+gap+'px';
+        tablePanels.forEach(function(panel) {
+          var w = document.createElement('div');
+          w.style.cssText = 'height:260px;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);border:1px solid #e5e7eb;background:#fff';
+          _renderPanelInto(panel, w);
+          grid.appendChild(w);
+        });
+        toggle.addEventListener('click', function(){ body.style.display = body.style.display === 'none' ? 'block' : 'none'; });
+        body.appendChild(grid);
+        tWrap.appendChild(toggle); tWrap.appendChild(body);
+        gridEl.appendChild(tWrap);
+      }
+
+      // 6. Executive summary
+      var summary = data.executiveSummary || '';
+      if (summary && summary.length > 20) {
+        var s = document.createElement('div');
+        s.style.cssText = 'margin:0 '+gap+'px '+gap+'px;padding:14px 18px;background:linear-gradient(135deg,#faf5ff,#eff6ff);border-radius:12px;border-left:4px solid #6366f1;box-shadow:0 1px 6px rgba(99,102,241,0.1)';
+        s.innerHTML = '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><i class="bi bi-robot" style="color:#6366f1"></i><span style="font-size:0.68rem;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:0.5px">AI Executive Summary</span></div><div style="font-size:0.78rem;color:#374151;line-height:1.65">' + _aiEsc(summary) + '</div>';
+        gridEl.appendChild(s);
+      }
+
+      // Resize charts after layout settles
+      setTimeout(function() {
+        Object.values(__aiECharts).forEach(function(ec){ try { ec.resize(); } catch(e){} });
+        Object.values(__aiCharts).forEach(function(ch){ try { ch.resize(); } catch(e){} });
+      }, 600);
+    }
+
+    window.addEventListener('load', function() {
+      var grid = document.getElementById('aiPanelGrid');
+      if (!grid) return;
+      try {
+        renderShared(window.__sharedConfig || {}, grid);
+      } catch(e) {
+        console.error('Shared render error:', e);
+        grid.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444">Failed to render dashboard.</div>';
+      }
+    });
+
+    // Resize charts on window resize so they always look right
+    window.addEventListener('resize', function() {
+      Object.values(__aiECharts).forEach(function(ec){ try { ec.resize(); } catch(e){} });
+      Object.values(__aiCharts).forEach(function(ch){ try { ch.resize(); } catch(e){} });
+    });
+  </script>
+</body>
+</html>

@@ -5,6 +5,7 @@
  */
 
 const db = require('../models');
+const { fn, col } = require('sequelize');
 
 /**
  * Generate KPIs based on focus area and query result.
@@ -51,27 +52,32 @@ async function employeeKPIs() {
   const active = await db.Employee.count({ where: { isActive: true } });
   const deptCount = await db.Department.count();
   return [
-    { label: 'Total Employees', value: total, icon: 'bi-people' },
-    { label: 'Active Employees', value: active, icon: 'bi-person-check' },
-    { label: 'Inactive', value: total - active, icon: 'bi-person-x' },
-    { label: 'Departments', value: deptCount, icon: 'bi-building' },
+    { _kpiKey: 'employee.total',    label: 'Total Employees',  value: total,           icon: 'bi-people' },
+    { _kpiKey: 'employee.active',   label: 'Active Employees', value: active,          icon: 'bi-person-check' },
+    { _kpiKey: 'employee.inactive', label: 'Inactive',         value: total - active,  icon: 'bi-person-x' },
+    { _kpiKey: 'employee.depts',    label: 'Departments',      value: deptCount,       icon: 'bi-building' },
   ];
 }
 
 async function productivityKPIs() {
-  const total = await db.ProductivityRecord.count();
-  const records = await db.ProductivityRecord.findAll({ attributes: ['productivityScore', 'hoursLogged'], raw: true });
-  const avgScore = records.length > 0
-    ? (records.reduce((sum, r) => sum + (r.productivityScore || 0), 0) / records.length).toFixed(1)
-    : 0;
-  const avgHours = records.length > 0
-    ? (records.reduce((sum, r) => sum + (r.hoursLogged || 0), 0) / records.length).toFixed(1)
-    : 0;
+  const [total, avgRow] = await Promise.all([
+    db.ProductivityRecord.count(),
+    db.ProductivityRecord.findOne({
+      attributes: [
+        [fn('AVG', col('productivityScore')), 'avgScore'],
+        [fn('AVG', col('hoursLogged')), 'avgHours'],
+      ],
+      raw: true,
+    }),
+  ]);
+
+  const avgScore = avgRow && avgRow.avgScore != null ? Number(avgRow.avgScore).toFixed(1) : 0;
+  const avgHours = avgRow && avgRow.avgHours != null ? Number(avgRow.avgHours).toFixed(1) : 0;
   return [
-    { label: 'Total Records', value: total, icon: 'bi-clipboard-data' },
-    { label: 'Avg Productivity Score', value: avgScore, icon: 'bi-speedometer2' },
-    { label: 'Avg Hours Logged', value: avgHours, icon: 'bi-clock' },
-    { label: 'Active Employees', value: await db.Employee.count({ where: { isActive: true } }), icon: 'bi-person-check' },
+    { _kpiKey: 'productivity.total',    label: 'Total Records',          value: total,    icon: 'bi-clipboard-data' },
+    { _kpiKey: 'productivity.avgScore', label: 'Avg Productivity Score', value: avgScore, icon: 'bi-speedometer2' },
+    { _kpiKey: 'productivity.avgHours', label: 'Avg Hours Logged',       value: avgHours, icon: 'bi-clock' },
+    { _kpiKey: 'productivity.active',   label: 'Active Employees',       value: await db.Employee.count({ where: { isActive: true } }), icon: 'bi-person-check' },
   ];
 }
 
@@ -82,10 +88,10 @@ async function ticketKPIs() {
   const high = await db.Ticket.count({ where: { priority: { [Op.in]: ['high', 'critical'] } } });
   const resolved = await db.Ticket.count({ where: { status: { [Op.in]: ['resolved', 'closed'] } } });
   return [
-    { label: 'Total Tickets', value: total, icon: 'bi-ticket-detailed' },
-    { label: 'Open Tickets', value: open, icon: 'bi-exclamation-circle' },
-    { label: 'High Priority', value: high, icon: 'bi-exclamation-triangle' },
-    { label: 'Resolved', value: resolved, icon: 'bi-check-circle' },
+    { _kpiKey: 'ticket.total',    label: 'Total Tickets', value: total,    icon: 'bi-ticket-detailed' },
+    { _kpiKey: 'ticket.open',     label: 'Open Tickets',  value: open,     icon: 'bi-exclamation-circle' },
+    { _kpiKey: 'ticket.high',     label: 'High Priority', value: high,     icon: 'bi-exclamation-triangle' },
+    { _kpiKey: 'ticket.resolved', label: 'Resolved',      value: resolved, icon: 'bi-check-circle' },
   ];
 }
 
@@ -95,10 +101,10 @@ async function projectKPIs() {
   const projects = await db.Project.findAll({ attributes: ['budget'], raw: true });
   const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
   return [
-    { label: 'Total Projects', value: total, icon: 'bi-kanban' },
-    { label: 'Active Projects', value: active, icon: 'bi-play-circle' },
-    { label: 'Total Budget', value: `$${totalBudget.toLocaleString()}`, icon: 'bi-currency-dollar' },
-    { label: 'Avg Budget', value: `$${total > 0 ? Math.round(totalBudget / total).toLocaleString() : 0}`, icon: 'bi-graph-up' },
+    { _kpiKey: 'project.total',       label: 'Total Projects',  value: total,  icon: 'bi-kanban' },
+    { _kpiKey: 'project.active',      label: 'Active Projects', value: active, icon: 'bi-play-circle' },
+    { _kpiKey: 'project.totalBudget', label: 'Total Budget',    value: `$${totalBudget.toLocaleString()}`,                                        icon: 'bi-currency-dollar' },
+    { _kpiKey: 'project.avgBudget',   label: 'Avg Budget',      value: `$${total > 0 ? Math.round(totalBudget / total).toLocaleString() : 0}`,   icon: 'bi-graph-up' },
   ];
 }
 
@@ -107,20 +113,84 @@ async function departmentKPIs() {
   const emps = await db.Employee.count();
   const projs = await db.Project.count();
   return [
-    { label: 'Departments', value: depts, icon: 'bi-building' },
-    { label: 'Total Employees', value: emps, icon: 'bi-people' },
-    { label: 'Total Projects', value: projs, icon: 'bi-kanban' },
-    { label: 'Avg Team Size', value: depts > 0 ? Math.round(emps / depts) : 0, icon: 'bi-person-lines-fill' },
+    { _kpiKey: 'dept.count',   label: 'Departments',    value: depts,                                      icon: 'bi-building' },
+    { _kpiKey: 'dept.emps',    label: 'Total Employees', value: emps,                                      icon: 'bi-people' },
+    { _kpiKey: 'dept.projs',   label: 'Total Projects',  value: projs,                                     icon: 'bi-kanban' },
+    { _kpiKey: 'dept.avgTeam', label: 'Avg Team Size',   value: depts > 0 ? Math.round(emps / depts) : 0, icon: 'bi-person-lines-fill' },
   ];
 }
 
 async function overviewKPIs() {
   return [
-    { label: 'Employees', value: await db.Employee.count(), icon: 'bi-people' },
-    { label: 'Projects', value: await db.Project.count(), icon: 'bi-kanban' },
-    { label: 'Tickets', value: await db.Ticket.count(), icon: 'bi-ticket-detailed' },
-    { label: 'Departments', value: await db.Department.count(), icon: 'bi-building' },
+    { _kpiKey: 'overview.emps',    label: 'Employees',   value: await db.Employee.count(),   icon: 'bi-people' },
+    { _kpiKey: 'overview.projs',   label: 'Projects',    value: await db.Project.count(),    icon: 'bi-kanban' },
+    { _kpiKey: 'overview.tickets', label: 'Tickets',     value: await db.Ticket.count(),     icon: 'bi-ticket-detailed' },
+    { _kpiKey: 'overview.depts',   label: 'Departments', value: await db.Department.count(), icon: 'bi-building' },
   ];
+}
+
+/**
+ * Recalculate a single KPI value by its key.
+ * Returns { value } or throws.
+ */
+async function refreshKpiValue(kpiKey) {
+  const { Op } = require('sequelize');
+  switch (kpiKey) {
+    case 'employee.total':    return { value: await db.Employee.count() };
+    case 'employee.active':   return { value: await db.Employee.count({ where: { isActive: true } }) };
+    case 'employee.inactive': { const t = await db.Employee.count(); const a = await db.Employee.count({ where: { isActive: true } }); return { value: t - a }; }
+    case 'employee.depts':    return { value: await db.Department.count() };
+
+    case 'productivity.total':    return { value: await db.ProductivityRecord.count() };
+    case 'productivity.avgScore': {
+      const row = await db.ProductivityRecord.findOne({
+        attributes: [[fn('AVG', col('productivityScore')), 'avg']],
+        raw: true,
+      });
+      return { value: row && row.avg != null ? Number(row.avg).toFixed(1) : 0 };
+    }
+    case 'productivity.avgHours': {
+      const row = await db.ProductivityRecord.findOne({
+        attributes: [[fn('AVG', col('hoursLogged')), 'avg']],
+        raw: true,
+      });
+      return { value: row && row.avg != null ? Number(row.avg).toFixed(1) : 0 };
+    }
+    case 'productivity.active':   return { value: await db.Employee.count({ where: { isActive: true } }) };
+
+    case 'ticket.total':    return { value: await db.Ticket.count() };
+    case 'ticket.open':     return { value: await db.Ticket.count({ where: { status: { [Op.in]: ['open', 'in_progress'] } } }) };
+    case 'ticket.high':     return { value: await db.Ticket.count({ where: { priority: { [Op.in]: ['high', 'critical'] } } }) };
+    case 'ticket.resolved': return { value: await db.Ticket.count({ where: { status: { [Op.in]: ['resolved', 'closed'] } } }) };
+
+    case 'project.total':  return { value: await db.Project.count() };
+    case 'project.active': return { value: await db.Project.count({ where: { status: 'active' } }) };
+    case 'project.totalBudget': {
+      const projs = await db.Project.findAll({ attributes: ['budget'], raw: true });
+      const sum = projs.reduce((s, p) => s + (p.budget || 0), 0);
+      return { value: `$${sum.toLocaleString()}` };
+    }
+    case 'project.avgBudget': {
+      const projs = await db.Project.findAll({ attributes: ['budget'], raw: true });
+      const sum = projs.reduce((s, p) => s + (p.budget || 0), 0);
+      return { value: `$${projs.length > 0 ? Math.round(sum / projs.length).toLocaleString() : 0}` };
+    }
+
+    case 'dept.count':   return { value: await db.Department.count() };
+    case 'dept.emps':    return { value: await db.Employee.count() };
+    case 'dept.projs':   return { value: await db.Project.count() };
+    case 'dept.avgTeam': {
+      const d = await db.Department.count(); const e = await db.Employee.count();
+      return { value: d > 0 ? Math.round(e / d) : 0 };
+    }
+
+    case 'overview.emps':    return { value: await db.Employee.count() };
+    case 'overview.projs':   return { value: await db.Project.count() };
+    case 'overview.tickets': return { value: await db.Ticket.count() };
+    case 'overview.depts':   return { value: await db.Department.count() };
+
+    default: throw new Error(`Unknown KPI key: ${kpiKey}`);
+  }
 }
 
 function generateExternalKPIs(queryResult) {
@@ -160,4 +230,4 @@ function generateExternalKPIs(queryResult) {
   return kpis;
 }
 
-module.exports = { generateKPIs };
+module.exports = { generateKPIs, refreshKpiValue };

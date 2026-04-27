@@ -1,0 +1,907 @@
+<%
+  // Wizard data passed from controller
+  var allThemes = themes || [];
+  var allLayouts = layouts || [];
+  var allDashboardTypes = dashboardTypes || [];
+  var allDataSources = dataSources || [];
+  var allTemplates = templates || [];
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Dashboard via Wizard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .wizard-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 100%;
+      overflow: hidden;
+      animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .wizard-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px;
+      color: white;
+    }
+
+    .wizard-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wizard-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    /* Progress Stepper */
+    .wizard-stepper {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 30px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      overflow-x: auto;
+    }
+
+    .stepper-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .stepper-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: calc(100% + 8px);
+      width: 40px;
+      height: 2px;
+      background: #e5e7eb;
+      transition: background 0.3s;
+    }
+
+    .stepper-step.active:not(:last-child)::after {
+      background: #667eea;
+    }
+
+    .stepper-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      background: #e5e7eb;
+      color: #6b7280;
+      transition: all 0.3s;
+    }
+
+    .stepper-step.active .stepper-circle {
+      background: #667eea;
+      color: white;
+    }
+
+    .stepper-step.completed .stepper-circle {
+      background: #10b981;
+      color: white;
+    }
+
+    .stepper-label {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+    }
+
+    .stepper-step.active .stepper-label {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    /* Wizard Body */
+    .wizard-body {
+      padding: 40px;
+      min-height: 500px;
+    }
+
+    .wizard-step {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .wizard-step.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .step-description {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    /* Step 1: Data Source Selection */
+    .source-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .source-option {
+      padding: 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .source-option:hover {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .source-option.selected {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .source-icon {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #667eea;
+    }
+
+    .source-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    /* File Upload Area */
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafbfc;
+    }
+
+    .upload-area:hover {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .upload-area.dragover {
+      border-color: #667eea;
+      background: #f0f3ff;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 40px;
+      color: #667eea;
+      margin-bottom: 12px;
+    }
+
+    .upload-text {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .upload-subtext {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    #dataFileInput {
+      display: none;
+    }
+
+    /* Database Form */
+    .db-form {
+      display: grid;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    /* Step 2: Analysis Progress */
+    .analysis-progress {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .progress-text {
+      font-size: 16px;
+      color: #1f2937;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .progress-subtext {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    /* Analysis Results */
+    .analysis-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .analysis-stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    .stat-label {
+      color: #6b7280;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    /* Step 3: Recommendations */
+    .recommendations-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .recommendation-card {
+      background: #f9fafb;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .recommendation-card:hover {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .recommendation-card.selected {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .recommendation-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .recommendation-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+
+    .recommendation-desc {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
+
+    /* Step 4: Style Selection */
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .style-option {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .style-option:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .style-option.selected {
+      border-color: #667eea;
+      background: #f0f3ff;
+    }
+
+    .style-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+
+    .style-desc {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .color-preview {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+    }
+
+    /* Footer */
+    .wizard-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      border-top: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .footer-nav {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-outline {
+      background: white;
+      color: #667eea;
+      border: 1px solid #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #f0f3ff;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .step-info {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .wizard-container {
+        max-width: 100%;
+        border-radius: 8px;
+      }
+
+      .wizard-body {
+        padding: 24px;
+        min-height: auto;
+      }
+
+      .source-options {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .recommendations-grid,
+      .style-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .wizard-stepper {
+        overflow-x: auto;
+        padding: 16px;
+      }
+
+      .stepper-label {
+        display: none;
+      }
+    }
+
+    /* Loading & Status Messages */
+    .alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .alert-error {
+      background: #fee2e2;
+      color: #7f1d1d;
+      border: 1px solid #fecaca;
+    }
+
+    .alert-info {
+      background: #dbeafe;
+      color: #1e3a8a;
+      border: 1px solid #bfdbfe;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wizard-container">
+    <!-- Header -->
+    <div class="wizard-header">
+      <div class="wizard-title">
+        <i class="bi bi-magic"></i> Create Dashboard via Wizard
+      </div>
+      <div class="wizard-subtitle">Guided, AI-assisted dashboard creation in 6 simple steps</div>
+    </div>
+
+    <!-- Stepper -->
+    <div class="wizard-stepper" id="wizardStepper">
+      <div class="stepper-step active" data-step="1">
+        <div class="stepper-circle">1</div>
+        <div class="stepper-label">Data Source</div>
+      </div>
+      <div class="stepper-step" data-step="2">
+        <div class="stepper-circle">2</div>
+        <div class="stepper-label">Analyze</div>
+      </div>
+      <div class="stepper-step" data-step="3">
+        <div class="stepper-circle">3</div>
+        <div class="stepper-label">AI Recommend</div>
+      </div>
+      <div class="stepper-step" data-step="4">
+        <div class="stepper-circle">4</div>
+        <div class="stepper-label">Style</div>
+      </div>
+      <div class="stepper-step" data-step="5">
+        <div class="stepper-circle">5</div>
+        <div class="stepper-label">Generate</div>
+      </div>
+      <div class="stepper-step" data-step="6">
+        <div class="stepper-circle">6</div>
+        <div class="stepper-label">Save</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="wizard-body">
+      <div id="alertBox" class="hidden"></div>
+
+      <!-- Step 1: Data Source Selection -->
+      <div class="wizard-step active" data-step="1">
+        <div class="step-title"><i class="bi bi-cloud-upload"></i> Step 1: Select Your Data Source</div>
+        <div class="step-description">Choose where your data lives. You can upload files or connect to databases.</div>
+
+        <div>
+          <label style="font-weight: 600; font-size: 13px; margin-bottom: 12px; display: block; color: #374151;">
+            Data Source Type
+          </label>
+          <div class="source-options">
+            <div class="source-option" data-source="file">
+              <div class="source-icon"><i class="bi bi-file-earmark-arrow-up"></i></div>
+              <div class="source-label">File Upload</div>
+            </div>
+            <div class="source-option" data-source="database">
+              <div class="source-icon"><i class="bi bi-database"></i></div>
+              <div class="source-label">Database</div>
+            </div>
+            <div class="source-option" data-source="api">
+              <div class="source-icon"><i class="bi bi-plug"></i></div>
+              <div class="source-label">API</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Upload Section -->
+        <div id="fileUploadSection" class="hidden">
+          <div class="upload-area" onclick="document.getElementById('dataFileInput').click()">
+            <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
+            <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
+            <div class="upload-subtext">CSV, Excel (.xlsx), or JSON files supported</div>
+          </div>
+          <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls,.json">
+          <div id="fileUploadStatus" style="margin-top: 16px; font-size: 13px; color: #6b7280;"></div>
+        </div>
+
+        <!-- Database Section -->
+        <div id="databaseSection" class="hidden">
+          <select id="dbSourceSelect" class="form-control" style="margin-bottom: 16px;">
+            <option value="">Select existing connection or create new…</option>
+            <% allDataSources.forEach(function(s) { %>
+              <% if (s.sourceType === 'database') { %>
+                <option value="<%= s.id %>"><%= s.name %></option>
+              <% } %>
+            <% }); %>
+          </select>
+
+          <div id="newDbForm" class="db-form hidden">
+            <div class="form-group">
+              <label>Database Type</label>
+              <select id="dbType">
+                <option value="mysql">MySQL</option>
+                <option value="postgres">PostgreSQL</option>
+                <option value="sqlserver">SQL Server</option>
+                <option value="sqlite">SQLite</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Host</label>
+              <input type="text" id="dbHost" placeholder="localhost">
+            </div>
+            <div class="form-group">
+              <label>Port</label>
+              <input type="text" id="dbPort" placeholder="3306">
+            </div>
+            <div class="form-group">
+              <label>Database Name</label>
+              <input type="text" id="dbName" placeholder="my_database">
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="dbUser" placeholder="root">
+            </div>
+            <div class="form-group">
+              <label>Password</label>
+              <input type="password" id="dbPassword" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary" onclick="testDatabaseConnection()" style="width: 100%;">
+              <i class="bi bi-plug-fill"></i> Test Connection
+            </button>
+          </div>
+        </div>
+
+        <!-- API Section -->
+        <div id="apiSection" class="hidden">
+          <div class="db-form">
+            <div class="form-group">
+              <label>API Endpoint</label>
+              <input type="text" id="apiUrl" placeholder="https://api.example.com/data">
+            </div>
+            <div class="form-group">
+              <label>Authentication Token (Optional)</label>
+              <input type="password" id="apiToken" placeholder="Bearer token">
+            </div>
+            <button class="btn btn-primary" onclick="testApiConnection()" style="width: 100%;">
+              <i class="bi bi-plug-fill"></i> Test Connection
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Analysis -->
+      <div class="wizard-step" data-step="2">
+        <div class="step-title"><i class="bi bi-graph-up"></i> Step 2: Data Analysis</div>
+        <div class="step-description">AI is analyzing your data…</div>
+
+        <div id="analysisContent">
+          <div class="analysis-progress">
+            <div class="spinner"></div>
+            <div class="progress-text">Analyzing your data…</div>
+            <div class="progress-subtext">This may take 10-30 seconds</div>
+          </div>
+        </div>
+
+        <div id="analysisResults" class="hidden">
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div class="analysis-card">
+              <div class="analysis-stat">
+                <span class="stat-label">Total Rows</span>
+                <span class="stat-value" id="stat-rows">-</span>
+              </div>
+            </div>
+            <div class="analysis-card">
+              <div class="analysis-stat">
+                <span class="stat-label">Total Columns</span>
+                <span class="stat-value" id="stat-cols">-</span>
+              </div>
+            </div>
+            <div class="analysis-card">
+              <div class="analysis-stat">
+                <span class="stat-label">Data Quality</span>
+                <span class="stat-value" id="stat-quality">-</span>
+              </div>
+            </div>
+            <div class="analysis-card">
+              <div class="analysis-stat">
+                <span class="stat-label">Data Completeness</span>
+                <span class="stat-value" id="stat-complete">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Key Metrics Found:</p>
+            <div id="kpiList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: AI Recommendations -->
+      <div class="wizard-step" data-step="3">
+        <div class="step-title"><i class="bi bi-lightbulb"></i> Step 3: AI Recommendations</div>
+        <div class="step-description">Based on your data, here are the best options for your dashboard:</div>
+
+        <div id="recommendationsContent">
+          <div class="analysis-progress">
+            <div class="spinner"></div>
+            <div class="progress-text">Getting AI recommendations…</div>
+          </div>
+        </div>
+
+        <div id="recommendationsResults" class="hidden">
+          <div>
+            <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Recommended Dashboard Type:</p>
+            <div id="dashboardTypeRecommendation" class="recommendation-card" style="cursor: auto;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div id="typeIcon" style="font-size: 32px;"></div>
+                <div>
+                  <div id="typeName" style="font-size: 14px; font-weight: 700; color: #1f2937;"></div>
+                  <div id="typeReason" style="font-size: 12px; color: #6b7280;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Recommended KPIs:</p>
+            <div id="kpiRecommendations" class="recommendations-grid"></div>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Recommended Charts:</p>
+            <div id="chartRecommendations" class="recommendations-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Style Selection -->
+      <div class="wizard-step" data-step="4">
+        <div class="step-title"><i class="bi bi-palette"></i> Step 4: Dashboard Style</div>
+        <div class="step-description">Customize the look and feel of your dashboard</div>
+
+        <div>
+          <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Theme</p>
+          <div class="style-grid" id="themeGrid"></div>
+        </div>
+
+        <div style="margin-top: 32px;">
+          <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Layout</p>
+          <div class="style-grid" id="layoutGrid"></div>
+        </div>
+
+        <div style="margin-top: 32px;">
+          <p style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">Dashboard Title</p>
+          <input type="text" id="dashboardTitle" class="form-control" placeholder="e.g., Sales Performance Report" style="font-size: 14px;">
+        </div>
+      </div>
+
+      <!-- Step 5: Generate Dashboard -->
+      <div class="wizard-step" data-step="5">
+        <div class="step-title"><i class="bi bi-lightning-fill"></i> Step 5: Generate Dashboard</div>
+        <div class="step-description">Ready to create your professional dashboard?</div>
+
+        <div style="background: linear-gradient(135deg, #f0f3ff 0%, #f9f5ff 100%); border: 1px solid #667eea; border-radius: 8px; padding: 24px; margin-top: 24px;">
+          <div style="display: flex; gap: 16px; align-items: flex-start;">
+            <div style="font-size: 32px; color: #667eea;">✨</div>
+            <div>
+              <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Your dashboard will include:</div>
+              <ul style="font-size: 13px; color: #6b7280; margin-left: 20px; line-height: 1.8;">
+                <li>Premium KPI cards with real-time updates</li>
+                <li>Executive summary with key insights</li>
+                <li>AI-powered anomaly detection</li>
+                <li>Interactive charts and visualizations</li>
+                <li>Smart filters and drill-down capabilities</li>
+                <li>Fully draggable and resizable widgets</li>
+                <li>Professional styling and theme</li>
+                <li>Export to PNG, PDF, or Excel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div id="generationProgress" class="analysis-progress hidden" style="margin-top: 32px;">
+          <div class="spinner"></div>
+          <div class="progress-text">Generating your dashboard…</div>
+          <div class="progress-subtext">This may take 30-60 seconds</div>
+        </div>
+
+        <div id="generationSuccess" class="hidden" style="margin-top: 24px;">
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>Dashboard generated successfully! Review it before saving.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6: Save & Share -->
+      <div class="wizard-step" data-step="6">
+        <div class="step-title"><i class="bi bi-check-lg"></i> Step 6: Save & Share</div>
+        <div class="step-description">Your dashboard is ready! Choose what to do next:</div>
+
+        <div class="recommendations-grid" style="margin-top: 24px;">
+          <div class="recommendation-card" onclick="saveDashboard()" style="cursor: pointer;">
+            <div class="recommendation-icon">💾</div>
+            <div class="recommendation-title">Save Dashboard</div>
+            <div class="recommendation-desc">Save to your dashboards library</div>
+          </div>
+          <div class="recommendation-card" onclick="editInCanvas()" style="cursor: pointer;">
+            <div class="recommendation-icon">✏️</div>
+            <div class="recommendation-title">Edit in Canvas</div>
+            <div class="recommendation-desc">Customize and refine your dashboard</div>
+          </div>
+          <div class="recommendation-card" onclick="exportDashboard('png')" style="cursor: pointer;">
+            <div class="recommendation-icon">📸</div>
+            <div class="recommendation-title">Export PNG</div>
+            <div class="recommendation-desc">Download as image</div>
+          </div>
+          <div class="recommendation-card" onclick="exportDashboard('pdf')" style="cursor: pointer;">
+            <div class="recommendation-icon">📄</div>
+            <div class="recommendation-title">Export PDF</div>
+            <div class="recommendation-desc">Download as PDF report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="wizard-footer">
+      <div class="step-info">
+        Step <span id="currentStep">1</span> of 6
+      </div>
+      <div class="footer-nav">
+        <button class="btn btn-secondary" onclick="previousStep()" id="prevBtn" disabled>
+          <i class="bi bi-chevron-left"></i> Back
+        </button>
+        <button class="btn btn-primary" onclick="nextStep()" id="nextBtn">
+          Continue <i class="bi bi-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/wizard.js"></script>
+</body>
+</html>

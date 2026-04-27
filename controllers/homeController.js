@@ -1,5 +1,5 @@
 const db = require('../models');
-const { SAMPLE_PROMPTS, CHART_TYPES } = require('../utils/constants');
+const { SAMPLE_PROMPTS, CHART_TYPES, CHART_TYPE_GROUPS } = require('../utils/constants');
 const { take } = require('../utils/helpers');
 const aiService = require('../services/aiService');
 
@@ -48,6 +48,7 @@ exports.index = async (req, res) => {
       title: 'AI Auto-Dashboard Builder',
       samplePrompts: take(SAMPLE_PROMPTS, 10),
       chartTypes: CHART_TYPES,
+      chartTypeGroups: CHART_TYPE_GROUPS,
       recentDashboards,
       recentSources,
       recentPrompts,
@@ -62,6 +63,7 @@ exports.index = async (req, res) => {
       title: 'AI Auto-Dashboard Builder',
       samplePrompts: SAMPLE_PROMPTS,
       chartTypes: CHART_TYPES,
+      chartTypeGroups: CHART_TYPE_GROUPS,
       recentDashboards: [],
       recentSources: [],
       recentPrompts: [],

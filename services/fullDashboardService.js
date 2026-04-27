@@ -13,6 +13,7 @@
 
 const { safeJsonParse } = require('../utils/helpers');
 const builderService    = require('./builderService');
+const { buildRawTablePanel } = builderService;
 const db                = require('../models');
 const aiService         = require('./aiService');
 
@@ -36,6 +37,16 @@ async function safePanel(params) {
     return await builderService.buildPanel(params);
   } catch (e) {
     console.warn('[fullDashboard] panel skipped:', e.message, params);
+    return null;
+  }
+}
+
+/** Safely build a raw all-columns table panel — returns null on error. */
+async function safeRawPanel(params) {
+  try {
+    return await buildRawTablePanel(params);
+  } catch (e) {
+    console.warn('[fullDashboard] raw table panel skipped:', e.message, params);
     return null;
   }
 }
@@ -104,10 +115,16 @@ async function planInternalDashboard() {
   // 12 – Project status pie
   panels.push(await safePanel({ sourceId: sid, tableKey: 'projects', dimension: 'status',   measure: 'id', aggregation: 'COUNT', chartType: 'pie', limit: 10, title: 'Project Status Distribution' }));
 
-  // 13 – Employee roster table
-  panels.push(await safePanel({ sourceId: sid, tableKey: 'employees', joinTableKey: 'departments', dimension: 'departments.name', measure: 'employees.id', aggregation: 'COUNT', chartType: 'table', limit: 50, title: 'Employee Roster by Department' }));
-  // 14 – Open tickets detail table
-  panels.push(await safePanel({ sourceId: sid, tableKey: 'tickets',  dimension: 'status', measure: 'id', aggregation: 'COUNT', chartType: 'table', limit: 50, title: 'All Tickets (Detail)' }));
+  // 13 – Employees — all columns
+  panels.push(await safeRawPanel({ sourceId: sid, tableKey: 'employees',            limit: 200, title: 'Employees — All Columns' }));
+  // 14 – Departments — all columns
+  panels.push(await safeRawPanel({ sourceId: sid, tableKey: 'departments',          limit: 200, title: 'Departments — All Columns' }));
+  // 15 – Projects — all columns
+  panels.push(await safeRawPanel({ sourceId: sid, tableKey: 'projects',             limit: 200, title: 'Projects — All Columns' }));
+  // 16 – Tickets — all columns
+  panels.push(await safeRawPanel({ sourceId: sid, tableKey: 'tickets',              limit: 200, title: 'Tickets — All Columns' }));
+  // 17 – Productivity Records — all columns
+  panels.push(await safeRawPanel({ sourceId: sid, tableKey: 'productivity_records', limit: 200, title: 'Productivity Records — All Columns' }));
 
   return panels.filter(Boolean);
 }
@@ -187,13 +204,11 @@ async function planExternalDashboard(sourceId) {
       }));
     }
 
-    // Detail table (last per sheet)
-    panels.push(await safePanel({
+    // Detail table — all columns
+    panels.push(await safeRawPanel({
       sourceId, tableKey,
-      dimension: mainDim.key, measure: mainMes.key,
-      aggregation: mainMes.type === 'integer' || mainMes.type === 'float' ? 'SUM' : 'COUNT',
-      chartType: 'table', limit: 50,
-      title: `${table.displayName} — Detail Table`,
+      limit: 200,
+      title: `${table.displayName} — All Columns`,
     }));
   }
 
@@ -202,32 +217,60 @@ async function planExternalDashboard(sourceId) {
 
 // ─── AI Panel Curation ────────────────────────────────────────────────────────
 
-const PANEL_CURATOR_PROMPT = `You are a senior data analyst designing a 1-page executive dashboard.
-Given a list of candidate dashboard panels with their data, select the BEST panels that:
+const PANEL_CURATOR_PROMPT = `You are a senior BI consultant designing a premium executive dashboard — Power BI / Tableau quality.
+Given a list of candidate dashboard panels with their data, you must:
 
-1. Provide maximum business insight at a glance
-2. Cover diverse aspects (don't repeat similar views)
-3. Prioritize: KPI summary first, then comparison charts, trends, distributions
-4. Remove panels with very little data variance (all same values) or redundant views
-5. Prefer charts over tables for a visual executive dashboard
+1. Select the BEST 4-8 chart panels that provide maximum business insight at a glance
+2. Eliminate panels with near-zero variance, very few rows (<3), or duplicated perspectives
+3. Assign each selected panel to a dashboard SECTION for structured layout storytelling
+4. Generate 4-6 premium KPI cards with trend indicators and business context
+5. Detect the likely business DOMAIN from the data (HR, Finance, Operations, Sales, IT, etc.)
+6. Optionally detect an anomaly or risk across the data
 
-Return a JSON object:
+Sections (use these exact names):
+  "Executive Summary"  — KPI cards row (always first)
+  "Performance Overview"  — primary comparison/ranking charts (1-3 panels)
+  "Trend Analysis"  — time-based or sequential charts (1-2 panels)
+  "Distribution & Breakdown"  — pie/funnel/treemap/heatmap (1-2 panels)
+  "Operational Detail"  — bar charts for operational metrics (1-2 panels)
+  "Risk & Alerts"  — any anomaly, bottleneck, or lagging metric (optional, 0-1 panels)
+
+Return ONLY a valid JSON object with this exact structure:
 {
   "selectedIndices": [0, 2, 5, ...],
+  "sections": ["Performance Overview", "Trend Analysis", "Performance Overview", ...],
   "kpiData": [
-    { "label": "Total Revenue", "value": "$2.4M", "trend": "+12%", "icon": "bi-currency-dollar" },
-    ...
+    {
+      "label": "Total Employees",
+      "value": "248",
+      "trend": "+12%",
+      "trendDirection": "up",
+      "status": "good",
+      "subtitle": "vs last month",
+      "icon": "bi-people-fill",
+      "color": "#3b82f6"
+    }
   ],
-  "layoutHint": "2x2" or "3+1" or "2+2",
-  "reasoning": "Brief explanation of why these panels were selected"
+  "dashboardRole": "HR Dashboard",
+  "dashboardSubtitle": "Workforce & Operations Overview",
+  "layoutHint": "3+2" ,
+  "anomalyAlert": "Ticket backlog increased 34% — may indicate staffing gap",
+  "reasoning": "Brief explanation"
 }
 
-Rules:
-- Select 4-6 chart panels (NOT cards/tables) for the main grid
-- Generate 4-6 KPI cards from the data that summarize the most important metrics
-- kpiData values should be formatted nicely (K, M for thousands/millions, % where appropriate)
-- For kpiData trend, use arrow direction and % change if inferable, otherwise use descriptive like "Stable" or the count
-- icon should be a Bootstrap Icons class (bi-people, bi-currency-dollar, bi-graph-up, bi-ticket-detailed, bi-kanban, bi-clock, bi-lightning, bi-bar-chart, bi-pie-chart, etc.)`;
+Field rules:
+- selectedIndices: array of panel indices to include (4-8 panels, no cards/table types)
+- sections[i] maps to selectedIndices[i] — must be same length
+- kpiData: 4-6 items; value formatted (1.2M, 48K, 94.3%, $2.4M); trend like "+12%", "-6%", "Stable", "18 open"
+- trendDirection: "up" | "down" | "neutral"
+- status: "good" | "warning" | "danger" | "neutral"
+- icon: Bootstrap Icons class (bi-people-fill, bi-currency-dollar, bi-graph-up-arrow, bi-ticket-detailed, bi-kanban, bi-clock-history, bi-lightning-charge-fill, bi-shield-check, bi-trophy, bi-exclamation-triangle-fill)
+- color: a hex color appropriate to the metric (blue for volume, green for good, red/orange for risk, purple for financial)
+- anomalyAlert: null if none detected, or a 1-sentence business concern
+- dashboardRole: e.g. "HR Dashboard", "Finance Dashboard", "Operations Dashboard", "Sales Dashboard"
+- layoutHint: "3+2", "2+2", "3+1", "2+3"
+
+IMPORTANT: Return ONLY the JSON. No markdown, no extra text.`;
 
 /**
  * Use AI to curate the best panels for a 1-page dashboard.
@@ -235,47 +278,59 @@ Rules:
  */
 async function curatePanels(allPanels) {
   const validPanels = allPanels.filter(p => p && p.hasData);
-  if (validPanels.length <= 6) return { panels: validPanels, kpiData: null, reasoning: null };
+  if (validPanels.length <= 4) {
+    return {
+      panels: validPanels,
+      sections: validPanels.map((_, i) => i === 0 ? 'Performance Overview' : 'Operational Detail'),
+      kpiData: generateBasicKPIs(validPanels),
+      dashboardRole: null,
+      dashboardSubtitle: null,
+      anomalyAlert: null,
+      reasoning: null,
+    };
+  }
 
   // Build panel summaries for AI
   const panelSummaries = validPanels.map((p, i) => {
     const dataPreview = (p.labels || []).slice(0, 8).map((l, j) => `${l}: ${(p.values || [])[j]}`).join(', ');
-    return `[${i}] "${p.title}" (${p.chartType}) — ${(p.labels || []).length} items. Top data: ${dataPreview}`;
+    return `[${i}] "${p.title}" (${p.chartType}) — ${(p.labels || []).length} rows. Top: ${dataPreview}`;
   }).join('\n');
 
   if (aiService.isAvailable()) {
     try {
-      const result = await aiService.chatJSON(PANEL_CURATOR_PROMPT,
+      const result = await aiService.chatJSON(
+        PANEL_CURATOR_PROMPT,
         `Total candidate panels: ${validPanels.length}\n\n${panelSummaries}`,
-        { max_tokens: 800 }
+        { max_tokens: 1200 }
       );
 
-      if (result && Array.isArray(result.selectedIndices)) {
-        const selected = result.selectedIndices
-          .filter(i => i >= 0 && i < validPanels.length)
-          .slice(0, 6)
-          .map(i => validPanels[i]);
+      if (result && Array.isArray(result.selectedIndices) && result.selectedIndices.length >= 3) {
+        const selectedIndices = result.selectedIndices.filter(i => i >= 0 && i < validPanels.length).slice(0, 8);
+        const selected = selectedIndices.map(i => validPanels[i]);
+        const sections = Array.isArray(result.sections) ? result.sections.slice(0, selectedIndices.length) : selected.map(() => 'Performance Overview');
 
-        if (selected.length >= 3) {
-          return {
-            panels: selected,
-            kpiData: result.kpiData || null,
-            reasoning: result.reasoning || null,
-          };
-        }
+        return {
+          panels: selected,
+          sections,
+          kpiData: Array.isArray(result.kpiData) && result.kpiData.length ? result.kpiData : generateBasicKPIs(validPanels),
+          dashboardRole: result.dashboardRole || null,
+          dashboardSubtitle: result.dashboardSubtitle || null,
+          anomalyAlert: result.anomalyAlert || null,
+          layoutHint: result.layoutHint || '2+2',
+          reasoning: result.reasoning || null,
+        };
       }
     } catch (err) {
       console.warn('[fullDashboard] AI curation failed, using heuristic:', err.message);
     }
   }
 
-  // Heuristic fallback: pick diverse panel types
+  // Heuristic fallback
   return heuristicCurate(validPanels);
 }
 
 /**
  * Heuristic panel selection when AI is unavailable.
- * Picks: 1 cards panel, 2 bar charts, 1 pie, 1 line, 1 table (max 6).
  */
 function heuristicCurate(panels) {
   const byType = {};
@@ -286,31 +341,47 @@ function heuristicCurate(panels) {
   });
 
   const picks = [];
-  // 1 cards
-  if (byType.cards) picks.push(byType.cards[0]);
+  const sectionMap = [];
+
   // 2 bars (most data variance = most interesting)
   const bars = (byType.bar || [])
     .map(p => ({ p, variance: calcVariance(p.values || []) }))
     .sort((a, b) => b.variance - a.variance);
-  bars.slice(0, 2).forEach(b => picks.push(b.p));
-  // 1 pie
-  if (byType.pie) picks.push(byType.pie[0]);
+  bars.slice(0, 2).forEach(b => { picks.push(b.p); sectionMap.push('Performance Overview'); });
+
+  // 1 pie / doughnut
+  const pies = [...(byType.pie || []), ...(byType.doughnut || [])];
+  if (pies[0]) { picks.push(pies[0]); sectionMap.push('Distribution & Breakdown'); }
+
   // 1 line
-  if (byType.line) picks.push(byType.line[0]);
-  // Fill to 6 with remaining
+  if (byType.line && byType.line[0]) { picks.push(byType.line[0]); sectionMap.push('Trend Analysis'); }
+
+  // 1 hbar or stacked
+  const hbars = [...(byType.hbar || []), ...(byType.stackedbar || [])];
+  if (hbars[0]) { picks.push(hbars[0]); sectionMap.push('Operational Detail'); }
+
+  // Fill to 6 with remaining charts
   const pickedTitles = new Set(picks.map(p => p.title));
+  const sections = ['Performance Overview', 'Trend Analysis', 'Operational Detail', 'Distribution & Breakdown'];
   for (const p of panels) {
-    if (picks.length >= 6) break;
-    if (!pickedTitles.has(p.title) && p.chartType !== 'table') {
+    if (picks.length >= 7) break;
+    if (!pickedTitles.has(p.title) && p.chartType !== 'table' && p.chartType !== 'cards') {
       picks.push(p);
       pickedTitles.add(p.title);
+      sectionMap.push(sections[picks.length % sections.length]);
     }
   }
 
-  // Generate basic KPI data
-  const kpiData = generateBasicKPIs(panels);
-
-  return { panels: picks, kpiData, reasoning: null };
+  return {
+    panels: picks,
+    sections: sectionMap,
+    kpiData: generateBasicKPIs(panels),
+    dashboardRole: null,
+    dashboardSubtitle: null,
+    anomalyAlert: null,
+    layoutHint: '2+2',
+    reasoning: null,
+  };
 }
 
 function calcVariance(values) {
@@ -320,19 +391,29 @@ function calcVariance(values) {
   return nums.reduce((s, v) => s + (v - mean) ** 2, 0) / nums.length;
 }
 
+const KPI_ICON_MAP = [
+  'bi-people-fill', 'bi-graph-up-arrow', 'bi-pie-chart-fill',
+  'bi-collection-fill', 'bi-speedometer2', 'bi-lightning-charge-fill',
+];
+const KPI_COLOR_MAP = ['#3b82f6', '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+
 function generateBasicKPIs(panels) {
   const kpis = [];
-  const icons = ['bi-bar-chart', 'bi-graph-up', 'bi-pie-chart', 'bi-collection', 'bi-speedometer2', 'bi-lightning'];
-  panels.filter(p => p.hasData && p.values && p.values.length > 0).slice(0, 5).forEach((p, i) => {
+  panels.filter(p => p.hasData && p.values && p.values.length > 0).slice(0, 6).forEach((p, i) => {
     const total = (p.values || []).reduce((s, v) => s + (Number(v) || 0), 0);
     const formatted = total >= 1000000 ? (total / 1000000).toFixed(1) + 'M'
-                    : total >= 1000 ? (total / 1000).toFixed(1) + 'K'
+                    : total >= 1000    ? (total / 1000).toFixed(1) + 'K'
                     : total.toLocaleString();
+    const count = (p.labels || []).length;
     kpis.push({
-      label: (p.title || 'Metric').replace(/^Top \d+ /, '').substring(0, 30),
+      label: (p.title || 'Metric').replace(/^Top \d+ /, '').replace(/ — All Columns$/, '').substring(0, 32),
       value: formatted,
-      trend: `${(p.labels || []).length} items`,
-      icon: icons[i % icons.length],
+      trend: count + ' items',
+      trendDirection: 'neutral',
+      status: 'neutral',
+      subtitle: 'total',
+      icon: KPI_ICON_MAP[i % KPI_ICON_MAP.length],
+      color: KPI_COLOR_MAP[i % KPI_COLOR_MAP.length],
     });
   });
   return kpis;
@@ -341,10 +422,8 @@ function generateBasicKPIs(panels) {
 // ─── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * Generate a complete corporate dashboard for a given source.
- * AI curates the best panels for a 1-page executive view.
+ * Generate a complete executive dashboard for a given source.
  * @param {number|null} sourceId — null = internal DB
- * @returns {Promise<{ title: string, panels: object[], kpiData: object[]|null, reasoning: string|null, isFullDashboard: boolean }>}
  */
 async function generateFullDashboard(sourceId) {
   const sid = sourceId ? parseInt(sourceId, 10) : null;
@@ -359,11 +438,41 @@ async function generateFullDashboard(sourceId) {
     ? await planExternalDashboard(sid)
     : await planInternalDashboard();
 
-  // AI-curated selection for 1-page executive dashboard
-  const { panels, kpiData, reasoning } = await curatePanels(allPanels);
+  // Separate table panels from chart panels
+  const chartPanels = allPanels.filter(p => p.chartType !== 'table');
+  const tablePanels = allPanels.filter(p => p.chartType === 'table');
 
-  const title = `${sourceName} -- Executive Dashboard`;
-  return { title, panels, kpiData, reasoning, isFullDashboard: true };
+  // AI-curated selection
+  const {
+    panels: curatedCharts,
+    sections,
+    kpiData,
+    dashboardRole,
+    dashboardSubtitle,
+    anomalyAlert,
+    layoutHint,
+    reasoning,
+  } = await curatePanels(chartPanels);
+
+  // Attach section label to each panel
+  curatedCharts.forEach((p, i) => { p._section = sections[i] || 'Performance Overview'; });
+
+  // Always append table panels
+  const panels = [...curatedCharts, ...tablePanels];
+
+  const title = `${sourceName} — Executive Dashboard`;
+  return {
+    title,
+    panels,
+    sections,
+    kpiData,
+    dashboardRole: dashboardRole || `${sourceName} Dashboard`,
+    dashboardSubtitle: dashboardSubtitle || 'AI-Generated Executive Overview',
+    anomalyAlert,
+    layoutHint,
+    reasoning,
+    isFullDashboard: true,
+  };
 }
 
 module.exports = { generateFullDashboard };

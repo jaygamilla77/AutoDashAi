@@ -1,148 +1,230 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-  <div>
-    <h1>Dashboards</h1>
-    <p>All your saved dashboards</p>
-  </div>
-  <a href="/" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Dashboard</a>
-</div>
-
-<% if (typeof dashboards !== 'undefined' && dashboards.length > 0) { %>
-<div class="row g-3">
-  <% dashboards.forEach(function(d) {
+<%
+  var cardData = (typeof dashboards !== 'undefined' ? dashboards : []).map(function(d) {
     var cfg = {};
     try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
-    var isPanels = !!(cfg.panels && cfg.panels.length);
+    var panels = cfg.panels || [];
+    var isExec = cfg.dashboardType === 'executive' || (cfg.dashboardRole && cfg.kpiData && cfg.kpiData.length > 0);
     var prompts = (d.promptText || '').split('\n').filter(function(p){ return p.trim(); });
-  %>
-  <div class="col-lg-4 col-md-6">
-    <div class="card h-100" style="border:1px solid #e5e7eb;overflow:hidden;transition:box-shadow 0.12s,border-color 0.12s" onmouseover="this.style.borderColor='#aaa';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.08)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.boxShadow=''">
+    return {
+      id: d.id,
+      title: d.title,
+      isExec: isExec,
+      sourceName: d.DataSource ? d.DataSource.name : 'Internal',
+      panelCount: panels.length,
+      kpiCount: (cfg.kpiData || []).length,
+      createdAt: d.createdAt,
+      firstPrompt: prompts[0] || '',
+      promptCount: prompts.length,
+      chartTypes: panels.slice(0,8).map(function(p){ return (p.chartType||'bar').toLowerCase(); }),
+      role: cfg.dashboardRole || null,
+    };
+  });
+%>
 
-      <!-- Chart thumbnail area -->
-      <div style="background:linear-gradient(155deg,#eef2ff 0%,#f0f9ff 55%,#f8fafc 100%);border-bottom:1px solid #e5e7eb;height:185px;position:relative;overflow:hidden">
-        <% if (isPanels) {
-          var thumbCols = cfg.panels.length === 1 ? 1 : 2;
-          var thumbRows = cfg.panels.length <= 2 ? 1 : 2;
-          var thumbSlice = cfg.panels.slice(0, thumbCols * thumbRows);
-        %>
-          <!-- Meta bar: panel count + chart type icons -->
-          <div style="position:absolute;top:0;left:0;right:0;height:22px;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.1);display:flex;align-items:center;padding:0 8px;gap:4px;z-index:5">
-            <span style="font-size:0.58rem;font-weight:700;color:#3b82f6;letter-spacing:0.2px"><%= cfg.panels.length %> panels</span>
-            <div style="flex:1"></div>
-            <% cfg.panels.slice(0,7).forEach(function(p){ var ct=(p.chartType||'bar').toLowerCase(); %>
-              <i class="bi <%= ct==='line'?'bi-graph-up':ct==='pie'?'bi-pie-chart-fill':ct==='doughnut'?'bi-circle-half':ct==='cards'?'bi-card-list':ct==='table'?'bi-table':'bi-bar-chart-fill' %>" style="font-size:0.5rem;color:<%= ct==='line'?'#10b981':ct==='pie'?'#f59e0b':ct==='doughnut'?'#8b5cf6':ct==='cards'?'#0ea5e9':ct==='table'?'#64748b':'#3b82f6' %>"></i>
-            <% }); %>
-          </div>
-          <!-- Panel grid -->
-          <div style="position:absolute;top:22px;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(<%= thumbCols %>,1fr);grid-template-rows:repeat(<%= thumbRows %>,1fr);gap:4px;padding:5px">
-            <% thumbSlice.forEach(function(panel, pi) {
-              var ct = (panel.chartType||'bar').toLowerCase();
-              var ico = ct==='line'?'bi-graph-up':ct==='pie'?'bi-pie-chart-fill':ct==='doughnut'?'bi-circle-half':ct==='cards'?'bi-card-list':ct==='table'?'bi-table':'bi-bar-chart-fill';
-              var clr = ct==='line'?'#10b981':ct==='pie'?'#f59e0b':ct==='doughnut'?'#8b5cf6':ct==='cards'?'#0ea5e9':ct==='table'?'#64748b':'#3b82f6';
-              var pTitle = (panel.title||ct).substring(0,32);
-            %>
-            <div style="background:#fff;border-radius:5px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;min-height:0">
-              <div style="height:2.5px;background:<%= clr %>;flex-shrink:0"></div>
-              <div style="padding:2px 4px;display:flex;align-items:center;gap:2px;flex-shrink:0">
-                <i class="bi <%= ico %>" style="font-size:0.45rem;color:<%= clr %>"></i>
-                <span style="font-size:0.45rem;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= pTitle %></span>
-              </div>
-              <div style="flex:1;min-height:0;position:relative">
-                <% if (ct === 'cards') { %>
-                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:3px;gap:2px">
-                    <% for(var kk=0;kk<(thumbCols===1?4:2);kk++) { %>
-                    <div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:3px;flex:1;height:80%;display:flex;align-items:center;justify-content:center">
-                      <i class="bi bi-hash" style="font-size:0.5rem;color:#0ea5e9"></i>
-                    </div>
-                    <% } %>
-                  </div>
-                <% } else if (ct === 'table') { %>
-                  <div style="position:absolute;inset:2px 3px;display:flex;flex-direction:column;gap:1.5px">
-                    <div style="height:3px;background:#e2e8f0;border-radius:1px"></div>
-                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
-                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
-                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
-                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
-                    <div style="height:2px;background:#f1f5f9;border-radius:1px"></div>
-                  </div>
-                <% } else { %>
-                  <canvas id="thumb-<%= d.id %>-<%= pi %>" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
-                <% } %>
-              </div>
-            </div>
-            <% }); %>
-            <% for (var fill = thumbSlice.length; fill < thumbCols * thumbRows; fill++) { %>
-            <div style="background:#f8fafc;border-radius:5px;border:1px dashed #e2e8f0"></div>
-            <% } %>
-          </div>
-          <% if (cfg.panels.length > thumbCols * thumbRows) { %>
-          <div style="position:absolute;bottom:4px;right:6px;font-size:0.55rem;color:#94a3b8;font-weight:600;background:rgba(248,250,252,0.9);padding:1px 5px;border-radius:3px">+<%= cfg.panels.length - thumbCols * thumbRows %> more</div>
-          <% } %>
-        <% } else { %>
-          <div style="position:absolute;inset:0;padding:8px">
-            <canvas id="thumb-<%= d.id %>" style="display:block;width:100%;height:100%"></canvas>
-          </div>
-        <% } %>
-        <div id="no-thumb-<%= d.id %>" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;flex-direction:column">
-          <i class="bi bi-bar-chart" style="font-size:2.2rem;color:#d1d5db"></i>
-          <div style="font-size:0.65rem;color:#d1d5db;margin-top:5px">No preview</div>
-        </div>
-      </div>
+<style>
+  .gallery-toolbar { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.03); }
+  .gallery-toolbar .form-control, .gallery-toolbar .form-select { font-size:0.78rem; }
+  .gallery-toolbar .search-box { flex:1; min-width:200px; max-width:340px; position:relative; }
+  .gallery-toolbar .search-box i { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:0.85rem; }
+  .gallery-toolbar .search-box input { padding-left:30px; }
+  .gallery-stats { font-size:0.72rem; color:#6b7280; margin-left:auto; }
 
-      <div class="card-body pb-2">
-        <div class="d-flex justify-content-between align-items-start mb-1">
-          <h6 class="mb-0 fw-semibold text-truncate me-2" style="font-size:0.85rem" title="<%= d.title %>"><%= d.title %></h6>
-          <small class="text-muted text-nowrap" style="font-size:0.68rem">
-            <%= new Date(d.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}) %>
-          </small>
-        </div>
-        <% prompts.slice(0,2).forEach(function(pr) { %>
-        <div class="text-muted text-truncate" style="font-size:0.71rem" title="<%= pr %>">
-          <i class="bi bi-chat-left-text me-1" style="opacity:0.35"></i><%= pr %>
-        </div>
-        <% }); %>
-        <% if (prompts.length > 2) { %>
-        <div class="text-muted" style="font-size:0.67rem">+<%= prompts.length-2 %> more</div>
-        <% } %>
-        <div class="mt-2">
-          <span class="badge bg-light text-dark border" style="font-size:0.62rem">
-            <i class="bi bi-database me-1"></i><%= d.DataSource ? d.DataSource.name : 'Internal' %>
-          </span>
-        </div>
-      </div>
+  .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
 
-      <div class="card-footer bg-white d-flex gap-2 py-2">
-        <a href="/dashboard/<%= d.id %>" class="btn btn-sm btn-outline-primary flex-grow-1">
-          <i class="bi bi-eye me-1"></i>Open
-        </a>
-        <a href="/dashboard/<%= d.id %>/edit-canvas" class="btn btn-sm btn-outline-info flex-grow-1" title="Continue editing in canvas mode">
-          <i class="bi bi-pencil me-1"></i>Edit in Canvas
-        </a>
-        <a href="/dashboard/<%= d.id %>#prompt-history" class="btn btn-sm btn-outline-secondary" title="View full prompt history">
-          <i class="bi bi-clock-history"></i>
-        </a>
-        <a href="/?prompt=<%= encodeURIComponent(prompts[0] || d.title) %>" class="btn btn-sm btn-outline-secondary" title="Re-run first prompt">
-          <i class="bi bi-arrow-repeat"></i>
-        </a>
-        <button type="button" class="btn btn-sm btn-outline-danger" title="Delete dashboard"
-          onclick="confirmDelete(<%= d.id %>, this)">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    </div>
+  .dash-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; transition:all 0.18s ease; display:flex; flex-direction:column; min-height:0; }
+  .dash-card:hover { border-color:#93c5fd; box-shadow:0 6px 18px rgba(59,130,246,0.12); transform:translateY(-2px); }
+
+  .dash-thumb { position:relative; height:130px; background:linear-gradient(155deg,#eef2ff 0%,#f0f9ff 55%,#f8fafc 100%); border-bottom:1px solid #e5e7eb; overflow:hidden; }
+  .dash-thumb .meta-bar { position:absolute; top:0; left:0; right:0; height:18px; background:rgba(59,130,246,0.06); border-bottom:1px solid rgba(59,130,246,0.1); display:flex; align-items:center; padding:0 6px; gap:3px; z-index:5; }
+  .dash-thumb .panel-grid { position:absolute; top:18px; bottom:0; left:0; right:0; display:grid; gap:3px; padding:4px; }
+  .dash-thumb .panel-cell { background:#fff; border-radius:4px; border:1px solid #e2e8f0; overflow:hidden; display:flex; flex-direction:column; min-height:0; }
+  .dash-thumb .panel-cell .accent { height:2px; flex-shrink:0; }
+  .dash-thumb .panel-cell .ptitle { padding:2px 4px; font-size:0.42rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; display:flex; align-items:center; gap:2px; }
+  .dash-thumb .panel-cell .pbody { flex:1; min-height:0; position:relative; }
+  .dash-thumb .more-pill { position:absolute; bottom:4px; right:5px; font-size:0.55rem; color:#64748b; font-weight:700; background:rgba(255,255,255,0.92); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,0,0,0.05); box-shadow:0 1px 2px rgba(0,0,0,0.04); }
+  .exec-ribbon { position:absolute; top:24px; left:6px; font-size:0.55rem; font-weight:700; padding:2px 7px; border-radius:8px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; z-index:6; box-shadow:0 1px 4px rgba(99,102,241,0.4); }
+
+  .dash-card .body { padding:9px 12px 7px; }
+  .dash-card .title { font-size:0.85rem; font-weight:600; color:#1f2937; line-height:1.25; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .dash-card .subtitle { font-size:0.68rem; color:#6b7280; margin-top:2px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
+  .dash-card .meta-row { display:flex; align-items:center; gap:5px; margin-top:6px; flex-wrap:wrap; }
+  .dash-card .meta-pill { font-size:0.6rem; padding:2px 7px; border-radius:8px; background:#f3f4f6; color:#4b5563; font-weight:600; display:inline-flex; align-items:center; gap:3px; }
+  .dash-card .meta-pill.src { background:#eff6ff; color:#1d4ed8; }
+  .dash-card .meta-pill.date { background:transparent; color:#9ca3af; padding:0; margin-left:auto; }
+
+  .dash-card .actions { display:flex; gap:4px; padding:7px 10px; border-top:1px solid #f3f4f6; background:#fafbfc; }
+  .dash-card .actions .btn { font-size:0.7rem; padding:3px 8px; border-radius:6px; }
+  .dash-card .actions .btn.icon { padding:3px 7px; }
+  .dash-card .actions .primary { flex:1; }
+
+  .empty-state { text-align:center; padding:50px 20px; background:#fff; border:1px dashed #e5e7eb; border-radius:12px; }
+</style>
+
+<div class="page-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1 class="mb-0" style="font-size:1.4rem">Dashboards</h1>
+    <p class="text-muted mb-0" style="font-size:0.78rem">All your saved dashboards</p>
   </div>
-  <% }); %>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <a href="/wizard" class="btn btn-success" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; display: flex; align-items: center; gap: 6px;">
+      <i class="bi bi-magic"></i>Create Dashboard via Wizard
+    </a>
+    <a href="/" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Dashboard</a>
+  </div>
+</div>
+
+<% if (cardData.length > 0) { %>
+
+<div class="gallery-toolbar">
+  <div class="search-box">
+    <i class="bi bi-search"></i>
+    <input type="text" id="galSearch" class="form-control form-control-sm" placeholder="Search dashboards…">
+  </div>
+  <select id="galFilterSource" class="form-select form-select-sm" style="width:auto;max-width:170px">
+    <option value="">All sources</option>
+    <% var srcs = Array.from(new Set(cardData.map(function(c){return c.sourceName;}))); %>
+    <% srcs.forEach(function(s){ %><option value="<%= s %>"><%= s %></option><% }); %>
+  </select>
+  <select id="galFilterType" class="form-select form-select-sm" style="width:auto">
+    <option value="">All types</option>
+    <option value="exec">Executive</option>
+    <option value="standard">Standard</option>
+  </select>
+  <select id="galSort" class="form-select form-select-sm" style="width:auto">
+    <option value="newest">Newest first</option>
+    <option value="oldest">Oldest first</option>
+    <option value="name">Name (A→Z)</option>
+    <option value="panels">Most panels</option>
+  </select>
+  <span class="gallery-stats" id="galStats"><%= cardData.length %> dashboard<%= cardData.length === 1 ? '' : 's' %></span>
+</div>
+
+<div id="galleryGrid" class="gallery-grid"></div>
+
+<div id="galLoadMoreWrap" class="text-center mt-3" style="display:none">
+  <button id="galLoadMore" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-arrow-down-circle me-1"></i>Load More
+  </button>
+</div>
+
+<div id="galEmptyFiltered" class="empty-state" style="display:none">
+  <i class="bi bi-search" style="font-size:2.6rem;color:#d1d5db"></i>
+  <p class="text-muted mt-3 mb-1" style="font-size:0.85rem">No dashboards match your filters.</p>
+  <button class="btn btn-link btn-sm" onclick="galClearFilters()">Clear filters</button>
 </div>
 
 <script>
 (function() {
-  var THUMBS = <%- JSON.stringify(dashboards.map(function(d) {
+  var DATA = <%- JSON.stringify(cardData) %>;
+  var THUMB_PAYLOAD = <%- JSON.stringify(dashboards.map(function(d){
     var cfg = {};
     try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
-    var panels = cfg.panels ? cfg.panels.slice(0,4).map(function(p) {
-      return { chartConfig: p.chartConfig || null, chartType: (p.chartType || 'bar').toLowerCase() };
+    var panels = cfg.panels ? cfg.panels.slice(0,4).map(function(p){
+      return { chartConfig: p.chartConfig || null, chartType: (p.chartType || 'bar').toLowerCase(), title: p.title || '' };
     }) : null;
     return { id: d.id, single: cfg.chartConfig || null, panels: panels };
   })) %>;
+  var THUMB_BY_ID = {}; THUMB_PAYLOAD.forEach(function(t){ THUMB_BY_ID[t.id] = t; });
+
+  var PAGE_SIZE = 12;
+  var rendered = 0;
+  var filtered = DATA.slice();
+
+  var grid       = document.getElementById('galleryGrid');
+  var loadMoreEl = document.getElementById('galLoadMoreWrap');
+  var loadBtn    = document.getElementById('galLoadMore');
+  var statsEl    = document.getElementById('galStats');
+  var emptyEl    = document.getElementById('galEmptyFiltered');
+  var searchEl   = document.getElementById('galSearch');
+  var srcEl      = document.getElementById('galFilterSource');
+  var typeEl     = document.getElementById('galFilterType');
+  var sortEl     = document.getElementById('galSort');
+
+  function fmtDate(s) { try { return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}); } catch(e) { return ''; } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function chartIcon(t) { return ({line:'bi-graph-up',pie:'bi-pie-chart-fill',doughnut:'bi-circle-half',cards:'bi-card-list',table:'bi-table'})[t] || 'bi-bar-chart-fill'; }
+  function chartColor(t) { return ({line:'#10b981',pie:'#f59e0b',doughnut:'#8b5cf6',cards:'#0ea5e9',table:'#64748b'})[t] || '#3b82f6'; }
+
+  function buildThumbHtml(card) {
+    var thumb = THUMB_BY_ID[card.id] || {};
+    var panels = thumb.panels || [];
+    var n = panels.length;
+    var cols = n <= 1 ? 1 : 2;
+    var rows = n <= 2 ? 1 : 2;
+    var slice = panels.slice(0, cols*rows);
+
+    var panelHtml = slice.map(function(p, pi) {
+      var ct = p.chartType || 'bar';
+      var ico = chartIcon(ct), clr = chartColor(ct);
+      var inner = '';
+      if (ct === 'cards') {
+        inner = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:2px;gap:2px">' +
+          '<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:2px;flex:1;height:70%"></div>' +
+          '<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:2px;flex:1;height:70%"></div></div>';
+      } else if (ct === 'table') {
+        inner = '<div style="position:absolute;inset:2px 3px;display:flex;flex-direction:column;gap:1.5px">' +
+          '<div style="height:2.5px;background:#e2e8f0;border-radius:1px"></div>' +
+          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div>' +
+          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div>' +
+          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div></div>';
+      } else {
+        inner = '<canvas id="thumb-' + card.id + '-' + pi + '" style="position:absolute;inset:0;width:100%;height:100%"></canvas>';
+      }
+      return '<div class="panel-cell">' +
+        '<div class="accent" style="background:' + clr + '"></div>' +
+        '<div class="ptitle"><i class="bi ' + ico + '" style="color:' + clr + '"></i><span>' + esc((p.title||ct).substring(0,24)) + '</span></div>' +
+        '<div class="pbody">' + inner + '</div>' +
+        '</div>';
+    }).join('');
+    for (var fill = slice.length; fill < cols*rows; fill++) {
+      panelHtml += '<div style="background:#f8fafc;border-radius:4px;border:1px dashed #e2e8f0"></div>';
+    }
+
+    var metaIcons = (card.chartTypes || []).slice(0,5).map(function(ct){
+      return '<i class="bi ' + chartIcon(ct) + '" style="font-size:0.5rem;color:' + chartColor(ct) + '"></i>';
+    }).join('');
+
+    var more = (card.panelCount > cols*rows)
+      ? '<div class="more-pill">+' + (card.panelCount - cols*rows) + ' more</div>' : '';
+    var execRibbon = card.isExec ? '<div class="exec-ribbon"><i class="bi bi-stars"></i> Executive</div>' : '';
+    var noThumb = (n === 0 && !thumb.single)
+      ? '<div style="position:absolute;inset:18px 0 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#cbd5e1"><i class="bi bi-bar-chart" style="font-size:1.6rem"></i><div style="font-size:0.6rem;margin-top:3px">No preview</div></div>'
+      : '';
+
+    return '<div class="dash-thumb">' +
+      '<div class="meta-bar">' +
+        '<span style="font-size:0.55rem;font-weight:700;color:#3b82f6;letter-spacing:0.2px">' + card.panelCount + ' panel' + (card.panelCount === 1 ? '' : 's') + '</span>' +
+        (card.kpiCount ? '<span style="font-size:0.55rem;font-weight:700;color:#10b981;margin-left:6px">' + card.kpiCount + ' KPI</span>' : '') +
+        '<div style="flex:1"></div>' + metaIcons +
+      '</div>' +
+      execRibbon +
+      '<div class="panel-grid" style="grid-template-columns:repeat(' + cols + ',1fr);grid-template-rows:repeat(' + rows + ',1fr)">' +
+      panelHtml +
+      '</div>' + more + noThumb +
+      '</div>';
+  }
+
+  function buildCard(card) {
+    var subtitle = card.role || card.firstPrompt || '';
+    return '<div class="dash-card" data-id="' + card.id + '">' +
+      buildThumbHtml(card) +
+      '<div class="body">' +
+        '<div class="title" title="' + esc(card.title) + '">' + esc(card.title) + '</div>' +
+        (subtitle ? '<div class="subtitle" title="' + esc(subtitle) + '">' + esc(subtitle) + '</div>' : '') +
+        '<div class="meta-row">' +
+          '<span class="meta-pill src"><i class="bi bi-database"></i>' + esc(card.sourceName) + '</span>' +
+          (card.promptCount > 1 ? '<span class="meta-pill"><i class="bi bi-chat-left-text"></i>' + card.promptCount + '</span>' : '') +
+          '<span class="meta-pill date">' + fmtDate(card.createdAt) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="actions">' +
+        '<a href="/dashboard/' + card.id + '/edit-canvas" class="btn btn-outline-primary primary"><i class="bi bi-pencil-square me-1"></i>Edit</a>' +
+        '<a href="/dashboard/' + card.id + '" class="btn btn-outline-secondary icon" title="Open"><i class="bi bi-eye"></i></a>' +
+        '<button type="button" class="btn btn-outline-info icon" title="Share" onclick="galShare(' + card.id + ')"><i class="bi bi-share-fill"></i></button>' +
+        '<button type="button" class="btn btn-outline-danger icon" title="Delete" onclick="confirmDelete(' + card.id + ', this)"><i class="bi bi-trash"></i></button>' +
+      '</div>' +
+      '</div>';
+  }
 
   var PALETTES = {
     bar:      ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#6366f1'],
@@ -150,103 +232,153 @@
     doughnut: ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#06b6d4','#f97316','#84cc16'],
     line:     ['#10b981','#3b82f6','#f59e0b','#8b5cf6']
   };
-
   function miniChart(canvasId, chartCfg, chartType) {
     var el = document.getElementById(canvasId);
-    if (!el || !chartCfg) return;
+    if (!el || !chartCfg || typeof Chart === 'undefined') return;
     try {
       var c = JSON.parse(JSON.stringify(chartCfg));
       var type = chartType || (c.type || 'bar').toLowerCase();
       var pal = PALETTES[type] || PALETTES.bar;
-
       if (c.data && c.data.datasets) {
         if (type === 'bar') {
-          var barColors = (c.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
-          c.data.datasets.forEach(function(ds) {
-            ds.backgroundColor = barColors.length ? barColors : pal;
-            ds.borderColor = 'transparent';
-            ds.borderWidth = 0;
-            ds.borderRadius = 2;
-          });
+          var bc = (c.data.labels || []).map(function(_, i){ return pal[i % pal.length]; });
+          c.data.datasets.forEach(function(ds){ ds.backgroundColor = bc.length?bc:pal; ds.borderColor='transparent'; ds.borderWidth=0; ds.borderRadius=2; });
         } else if (type === 'line') {
-          c.data.datasets.forEach(function(ds, i) {
-            ds.borderColor = pal[i % pal.length];
-            ds.backgroundColor = i === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(59,130,246,0.10)';
-            ds.fill = true;
-            ds.pointRadius = 0;
-            ds.tension = 0.4;
-            ds.borderWidth = 1.5;
-          });
+          c.data.datasets.forEach(function(ds, i){ ds.borderColor=pal[i%pal.length]; ds.backgroundColor=i===0?'rgba(16,185,129,0.12)':'rgba(59,130,246,0.10)'; ds.fill=true; ds.pointRadius=0; ds.tension=0.4; ds.borderWidth=1.5; });
         } else if (type === 'pie' || type === 'doughnut') {
-          var sliceColors = (c.data.labels || []).map(function(_, i) { return pal[i % pal.length]; });
-          c.data.datasets.forEach(function(ds) {
-            ds.backgroundColor = sliceColors.length ? sliceColors : pal;
-            ds.borderColor = '#fff';
-            ds.borderWidth = 1;
-          });
+          var sc = (c.data.labels || []).map(function(_, i){ return pal[i % pal.length]; });
+          c.data.datasets.forEach(function(ds){ ds.backgroundColor=sc.length?sc:pal; ds.borderColor='#fff'; ds.borderWidth=1; });
         }
       }
-
       if (c.data && c.data.labels && c.data.labels.length > 20) {
-        c.data.labels = c.data.labels.slice(0, 20);
-        (c.data.datasets || []).forEach(function(ds) { if (ds.data) ds.data = ds.data.slice(0, 20); });
+        c.data.labels = c.data.labels.slice(0,20);
+        (c.data.datasets || []).forEach(function(ds){ if (ds.data) ds.data = ds.data.slice(0,20); });
       }
-
       c.options = c.options || {};
-      c.options.animation = false;
-      c.options.responsive = true;
-      c.options.maintainAspectRatio = false;
-      c.options.plugins = { legend: { display: false }, title: { display: false }, tooltip: { enabled: false } };
+      c.options.animation = false; c.options.responsive = true; c.options.maintainAspectRatio = false;
+      c.options.plugins = { legend:{display:false}, title:{display:false}, tooltip:{enabled:false} };
       c.options.scales = {};
       if (type === 'bar' || type === 'line') {
-        ['x','y'].forEach(function(ax) {
-          c.options.scales[ax] = { ticks: { display: false }, grid: { display: false, drawBorder: false }, border: { display: false } };
-        });
+        ['x','y'].forEach(function(ax){ c.options.scales[ax] = { ticks:{display:false}, grid:{display:false,drawBorder:false}, border:{display:false} }; });
       }
-
       new Chart(el.getContext('2d'), c);
-    } catch(e) { /* silently ignore */ }
+    } catch(e) {}
   }
 
-  function showEmpty(dashId) {
-    var el = document.getElementById('no-thumb-' + dashId);
-    if (el) el.style.display = 'flex';
+  function drawThumbsForCard(card) {
+    var thumb = THUMB_BY_ID[card.id] || {};
+    (thumb.panels || []).forEach(function(p, pi) {
+      if (p.chartType !== 'table' && p.chartType !== 'cards') {
+        miniChart('thumb-' + card.id + '-' + pi, p.chartConfig, p.chartType);
+      }
+    });
   }
 
-  THUMBS.forEach(function(t) {
-    if (t.panels) {
-      t.panels.forEach(function(p, pi) {
-        if (p.chartType !== 'table' && p.chartType !== 'cards') {
-          miniChart('thumb-' + t.id + '-' + pi, p.chartConfig, p.chartType);
-        }
-      });
-    } else {
-      if (t.single) { miniChart('thumb-' + t.id, t.single, null); }
-      else { showEmpty(t.id); }
+  function applyFilters() {
+    var q = (searchEl.value || '').trim().toLowerCase();
+    var src = srcEl.value;
+    var typ = typeEl.value;
+    filtered = DATA.filter(function(c) {
+      if (q) {
+        var hay = (c.title + ' ' + (c.firstPrompt||'') + ' ' + (c.role||'')).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      if (src && c.sourceName !== src) return false;
+      if (typ === 'exec' && !c.isExec) return false;
+      if (typ === 'standard' && c.isExec) return false;
+      return true;
+    });
+    var s = sortEl.value;
+    filtered.sort(function(a, b) {
+      if (s === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (s === 'name')   return a.title.localeCompare(b.title);
+      if (s === 'panels') return b.panelCount - a.panelCount;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+    rendered = 0;
+    grid.innerHTML = '';
+    if (!filtered.length) {
+      emptyEl.style.display = 'block';
+      loadMoreEl.style.display = 'none';
+      statsEl.textContent = '0 of ' + DATA.length;
+      return;
     }
-  });
+    emptyEl.style.display = 'none';
+    renderNextPage();
+  }
+
+  function renderNextPage() {
+    var slice = filtered.slice(rendered, rendered + PAGE_SIZE);
+    var holder = document.createElement('div');
+    holder.innerHTML = slice.map(buildCard).join('');
+    var frag = document.createDocumentFragment();
+    while (holder.firstChild) frag.appendChild(holder.firstChild);
+    grid.appendChild(frag);
+    slice.forEach(function(card) { drawThumbsForCard(card); });
+    rendered += slice.length;
+    loadMoreEl.style.display = (rendered < filtered.length) ? '' : 'none';
+    statsEl.textContent = 'Showing ' + rendered + ' of ' + filtered.length +
+      (filtered.length !== DATA.length ? ' (filtered from ' + DATA.length + ')' : '');
+  }
+
+  loadBtn.addEventListener('click', renderNextPage);
+  function debounce(fn, ms) { var t; return function(){ clearTimeout(t); var a=arguments, c=this; t=setTimeout(function(){ fn.apply(c,a); }, ms); }; }
+  searchEl.addEventListener('input', debounce(applyFilters, 180));
+  [srcEl, typeEl, sortEl].forEach(function(e){ e.addEventListener('change', applyFilters); });
+
+  window.galClearFilters = function() {
+    searchEl.value = ''; srcEl.value = ''; typeEl.value = ''; sortEl.value = 'newest';
+    applyFilters();
+  };
+
+  window.confirmDelete = function(id, btn) {
+    var card = btn.closest('.dash-card');
+    var title = card ? (card.querySelector('.title') || {}).textContent || 'this dashboard' : 'this dashboard';
+    if (!confirm('Delete "' + title.trim() + '"?\nThis cannot be undone.')) return;
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = '/dashboard/' + id + '/delete';
+    document.body.appendChild(f);
+    f.submit();
+  };
+
+  window.galShare = function(id) {
+    fetch('/dashboard/' + id + '/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ permissionType: 'interactive', allowFilters: true, allowExport: true }),
+    }).then(function(r){return r.json();}).then(function(data) {
+      if (data.error) { alert('Share failed: ' + data.error); return; }
+      var url = data.share.shareUrl;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() { showToast('Share link copied!', url); });
+      } else {
+        prompt('Share link:', url);
+      }
+    }).catch(function(e) { alert('Share failed: ' + e.message); });
+  };
+
+  function showToast(msg, url) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:10px 14px;border-radius:8px;font-size:0.78rem;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px';
+    t.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#22c55e"></i>' +
+      '<div><div style="font-weight:600">' + msg + '</div><div style="font-size:0.66rem;color:#9ca3af;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + url + '</div></div>' +
+      '<a href="' + url + '" target="_blank" style="color:#60a5fa" title="Open"><i class="bi bi-box-arrow-up-right"></i></a>';
+    document.body.appendChild(t);
+    setTimeout(function(){ t.style.transition='opacity 0.4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 400); }, 3500);
+  }
+
+  window.addEventListener('load', applyFilters);
 })();
 </script>
 
-<script>
-function confirmDelete(id, btn) {
-  var card = btn.closest('.col-lg-4, .col-md-6');
-  var title = card ? (card.querySelector('h6') || {}).textContent || 'this dashboard' : 'this dashboard';
-  if (!confirm('Delete "' + title.trim() + '"?\nThis cannot be undone.')) return;
-  var f = document.createElement('form');
-  f.method = 'POST';
-  f.action = '/dashboard/' + id + '/delete';
-  document.body.appendChild(f);
-  f.submit();
-}
-</script>
-
 <% } else { %>
-<div class="card">
-  <div class="card-body text-center py-5">
-    <i class="bi bi-grid-3x3-gap" style="font-size:3rem;opacity:0.15"></i>
-    <p class="text-muted mt-3 mb-3">No saved dashboards yet.</p>
-    <a href="/" class="btn btn-primary">Generate your first dashboard</a>
-  </div>
+
+<div class="empty-state">
+  <i class="bi bi-grid-3x3-gap" style="font-size:3rem;color:#d1d5db"></i>
+  <h5 class="mt-3 mb-2" style="font-size:1.05rem;color:#374151">No saved dashboards yet</h5>
+  <p class="text-muted mb-3" style="font-size:0.82rem">Generate your first dashboard to see it here.</p>
+  <a href="/" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Create New Dashboard</a>
 </div>
+
 <% } %>

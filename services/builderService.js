@@ -194,10 +194,28 @@ async function buildPanel({ sourceId, tableKey, joinTableKey, dimension, measure
 
   if (!mainTable.dbTable) {
     // External source — in-memory aggregation on previewRows
-    return buildExternalPanel({ mainTable, dimension, measure, agg, type, lim, filters, title });
+    const result = await buildExternalPanel({ mainTable, dimension, measure, agg, type, lim, filters, title });
+    // Attach source config so Manual Builder can retrieve and edit the calculation
+    result.table       = tableKey;
+    result.joinTable   = joinTableKey || null;
+    result.dimension   = dimension   || null;
+    result.measure     = measure     || null;
+    result.aggregation = agg;
+    result.limit       = lim;
+    if (sourceId) result.sourceId = sourceId;
+    return result;
   }
 
-  return buildInternalPanel({ schema, mainTable, joinTableKey, dimension, measure, agg, type, lim, filters, title });
+  const result = await buildInternalPanel({ schema, mainTable, joinTableKey, dimension, measure, agg, type, lim, filters, title });
+  // Attach source config so Manual Builder can retrieve and edit the calculation
+  result.table       = tableKey;
+  result.joinTable   = joinTableKey || null;
+  result.dimension   = dimension   || null;
+  result.measure     = measure     || null;
+  result.aggregation = agg;
+  result.limit       = lim;
+  if (sourceId) result.sourceId = sourceId;
+  return result;
 }
 
 // ─── Internal DB query ─────────────────────────────────────────────────────────
@@ -300,9 +318,11 @@ async function buildInternalPanel({ schema, mainTable, joinTableKey, dimension, 
 
   const autoTitle = title || `${agg} of ${mesColInfo.displayName} by ${dimColInfo.displayName}`;
   const effectiveChartType = (type === 'table' || type === 'cards') ? 'bar' : type;
-  const chartConfig = (values.length > 0 && type !== 'table' && type !== 'cards')
+  const chartResult = (values.length > 0 && type !== 'table' && type !== 'cards')
     ? chartService.buildChartConfig(labels, values, effectiveChartType, autoTitle, null)
     : null;
+  const chartConfig = chartResult ? chartResult.config : null;
+  const chartEngine = chartResult ? chartResult.engine : 'chartjs';
 
   const tableData = {
     columns: [dimColInfo.displayName, `${agg}(${mesColInfo.displayName})`],
@@ -317,6 +337,7 @@ async function buildInternalPanel({ schema, mainTable, joinTableKey, dimension, 
     title: autoTitle,
     originalPrompt: `Manual: ${agg}(${mesColInfo.displayName}) by ${dimColInfo.displayName}`,
     chartType: type,
+    chartEngine,
     hasData: labels.length > 0,
     chartConfig: type === 'table' ? null : chartConfig,
     labels,
@@ -473,15 +494,18 @@ function buildExternalPanel({ mainTable, dimension, measure, agg, type, lim, fil
   const values = pairs.map((p) => parseFloat(p.value.toFixed(4)));
   const autoTitle = title || `${agg} of ${mesCol} by ${dimCol}`;
   const effectiveChartType = (type === 'table' || type === 'cards') ? 'bar' : type;
-  const chartConfig = (values.length > 0 && type !== 'table' && type !== 'cards')
+  const chartResult2 = (values.length > 0 && type !== 'table' && type !== 'cards')
     ? chartService.buildChartConfig(labels, values, effectiveChartType, autoTitle, null)
     : null;
+  const chartConfig = chartResult2 ? chartResult2.config : null;
+  const chartEngine = chartResult2 ? chartResult2.engine : 'chartjs';
 
   const ds = chartConfig && chartConfig.data && chartConfig.data.datasets && chartConfig.data.datasets[0];
   return {
     title: autoTitle,
     originalPrompt: `Manual: ${agg}(${mesCol}) by ${dimCol}`,
     chartType: type,
+    chartEngine,
     hasData: labels.length > 0,
     chartConfig: type === 'table' ? null : chartConfig,
     labels,
@@ -510,4 +534,324 @@ function emptyPanel(title, type) {
   };
 }
 
-module.exports = { getSchema, buildPanel, INTERNAL_SCHEMA };
+// ─── Raw table panel (all columns, no aggregation) ────────────────────────────
+/**
+ * Builds a table panel with ALL available columns for a given table.
+ * For internal DB tables: runs a SELECT * with optional JOINs.
+ * For external sources: returns all preview rows with all columns.
+ */
+async function buildRawTablePanel({ sourceId, tableKey, limit = 200, title }) {
+  const lim = Math.min(parseInt(limit, 10) || 200, 500);
+
+  // ── External source ──────────────────────────────────────────────────────────
+  if (sourceId) {
+    const schema = await getSchema(parseInt(sourceId, 10));
+    const table = schema.tables.find((t) => t.key === String(tableKey));
+    if (!table) return emptyPanel(title || tableKey, 'table');
+
+    const rows = (table.previewRows || []).slice(0, lim);
+    const columns = table.columns.map((c) => c.displayName || c.key);
+    const colKeys = table.columns.map((c) => c.key);
+
+    return {
+      title: title || `${table.displayName} — All Columns`,
+      originalPrompt: `Table: all columns from ${table.displayName}`,
+      chartType: 'table',
+      hasData: rows.length > 0,
+      chartConfig: null,
+      labels: columns,
+      values: [],
+      bgColors: [],
+      borderColors: [],
+      tableData: {
+        columns,
+        rows: rows.map((r) => {
+          const out = {};
+          table.columns.forEach((c) => { out[c.displayName || c.key] = r[c.key] != null ? r[c.key] : '-'; });
+          return out;
+        }),
+      },
+    };
+  }
+
+  // ── Internal DB ──────────────────────────────────────────────────────────────
+  const tableDef = INTERNAL_SCHEMA.tables.find((t) => t.key === tableKey);
+  if (!tableDef) return emptyPanel(title || tableKey, 'table');
+
+  // Build SELECT of all columns explicitly (avoid SELECT * to control column order)
+  const colSelects = tableDef.columns
+    .filter((c) => c.dbCol)
+    .map((c) => `"${tableDef.dbTable}"."${c.dbCol}" AS "${c.displayName}"`)
+    .join(', ');
+
+  const sql = `SELECT ${colSelects} FROM "${tableDef.dbTable}" LIMIT ?`;
+  const rawRows = await db.sequelize.query(sql, {
+    replacements: [lim],
+    type: db.Sequelize.QueryTypes.SELECT,
+  });
+
+  const columns = tableDef.columns.filter((c) => c.dbCol).map((c) => c.displayName);
+
+  return {
+    title: title || `${tableDef.displayName} — All Columns`,
+    originalPrompt: `Table: all columns from ${tableDef.displayName}`,
+    chartType: 'table',
+    hasData: rawRows.length > 0,
+    chartConfig: null,
+    labels: columns,
+    values: [],
+    bgColors: [],
+    borderColors: [],
+    tableData: {
+      columns,
+      rows: rawRows,
+    },
+  };
+}
+
+// ─── Multi-column flexible table panel ────────────────────────────────────────
+/**
+ * Builds a table panel with user-defined columns.
+ * Each column in `tableColumns` is: { colRef, expr, agg, label }
+ *   colRef — "tableKey.columnKey" reference, or null if custom expr
+ *   expr   — custom expression string (used as-is when colRef is null)
+ *   agg    — aggregation: 'none' | 'COUNT' | 'SUM' | 'AVG' | 'MIN' | 'MAX'
+ *   label  — display label (auto-derived if empty)
+ *
+ * For internal DB: runs one SQL query fetching all requested columns.
+ * For external sources: applies aggregations over previewRows in-memory.
+ */
+async function buildMultiColTablePanel({ sourceId, tableKey, joinTableKey, tableColumns, limit, filters, title }) {
+  const lim = Math.min(parseInt(limit, 10) || 100, 500);
+  const schema = await getSchema(sourceId ? parseInt(sourceId, 10) : null);
+  const mainTable = schema.tables.find((t) => t.key === tableKey);
+  if (!mainTable) throw new Error(`Table "${tableKey}" not found.`);
+
+  if (!tableColumns || !tableColumns.length) throw new Error('No columns specified.');
+
+  // ── External source (in-memory) ──────────────────────────────────────────────
+  if (!mainTable.dbTable) {
+    let rows = mainTable.previewRows || [];
+
+    // Apply filters
+    if (Array.isArray(filters)) {
+      for (const f of filters) {
+        if (!f || !f.column || !f.operator || f.value == null) continue;
+        if (!ALLOWED_OPS.has(f.operator)) continue;
+        const stripPrefix = (ref) => { const dot = ref.indexOf('.'); return dot >= 0 ? ref.substring(dot + 1) : ref; };
+        const col = stripPrefix(f.column);
+        rows = rows.filter((r) => {
+          const v = r[col];
+          if (v == null) return false;
+          switch (f.operator) {
+            case '=':        return String(v) === String(f.value);
+            case '!=':       return String(v) !== String(f.value);
+            case '>':        return parseFloat(v) > parseFloat(f.value);
+            case '<':        return parseFloat(v) < parseFloat(f.value);
+            case '>=':       return parseFloat(v) >= parseFloat(f.value);
+            case '<=':       return parseFloat(v) <= parseFloat(f.value);
+            case 'LIKE':     return String(v).toLowerCase().includes(String(f.value).toLowerCase());
+            case 'NOT LIKE': return !String(v).toLowerCase().includes(String(f.value).toLowerCase());
+            default:         return true;
+          }
+        });
+      }
+    }
+
+    // For each column spec, compute the value per row (if agg=none) or aggregate
+    const resolveColKey = (colRef) => {
+      if (!colRef) return null;
+      const dot = colRef.indexOf('.');
+      return dot >= 0 ? colRef.substring(dot + 1) : colRef;
+    };
+
+    const buildLabel = (spec, colKey) => {
+      if (spec.label) return spec.label;
+      if (spec.expr) return spec.expr;
+      if (colKey) {
+        const allCols = mainTable.columns;
+        const colDef = allCols.find((c) => c.key === colKey);
+        const displayName = colDef ? colDef.displayName || colDef.key : colKey;
+        return spec.agg && spec.agg !== 'none' ? `${spec.agg}(${displayName})` : displayName;
+      }
+      return 'Column';
+    };
+
+    // Separate: cols with agg=none → keep as row data; cols with agg → aggregate into one summary row
+    const rawCols = tableColumns.filter((c) => c.agg === 'none' || !c.agg);
+    const aggCols = tableColumns.filter((c) => c.agg && c.agg !== 'none');
+
+    if (aggCols.length > 0 && rawCols.length === 0) {
+      // All columns are aggregates → one summary row
+      const summaryRow = {};
+      const columns = [];
+      for (const spec of aggCols) {
+        const colKey = resolveColKey(spec.colRef);
+        const label = buildLabel(spec, colKey);
+        columns.push(label);
+        const vals = rows.map((r) => parseFloat(r[colKey]) || 0).filter((v) => !isNaN(v));
+        let val = 0;
+        switch (spec.agg.toUpperCase()) {
+          case 'COUNT': val = rows.length; break;
+          case 'SUM':   val = vals.reduce((a, b) => a + b, 0); break;
+          case 'AVG':   val = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0; break;
+          case 'MIN':   val = vals.length ? Math.min(...vals) : 0; break;
+          case 'MAX':   val = vals.length ? Math.max(...vals) : 0; break;
+        }
+        summaryRow[label] = parseFloat(val.toFixed(4));
+      }
+      return { title: title || 'Summary Table', originalPrompt: 'Multi-col table', chartType: 'table',
+        hasData: true, chartConfig: null, labels: columns, values: Object.values(summaryRow),
+        bgColors: [], borderColors: [],
+        tableData: { columns, rows: [summaryRow] }, table: tableKey, tableColumns, limit: lim };
+    }
+
+    // Has raw cols → use raw rows + optionally add aggregated columns
+    const columns = tableColumns.map((spec) => {
+      const colKey = resolveColKey(spec.colRef);
+      return buildLabel(spec, colKey);
+    });
+
+    const outputRows = rows.slice(0, lim).map((r) => {
+      const out = {};
+      for (const spec of tableColumns) {
+        const colKey = resolveColKey(spec.colRef);
+        const label = buildLabel(spec, colKey);
+        let val;
+        if (spec.expr && !spec.colRef) {
+          // Custom expression — evaluate safely over row
+          try {
+            // Build a safe context from row keys
+            const keys = Object.keys(r);
+            const vals = keys.map((k) => r[k]);
+            // eslint-disable-next-line no-new-func
+            val = new Function(...keys, `return (${spec.expr})`).apply(null, vals);
+          } catch { val = null; }
+        } else {
+          val = r[colKey];
+        }
+        out[label] = val != null ? val : '-';
+      }
+      return out;
+    });
+
+    return { title: title || 'Custom Table', originalPrompt: 'Multi-col table', chartType: 'table',
+      hasData: outputRows.length > 0, chartConfig: null, labels: columns, values: [],
+      bgColors: [], borderColors: [],
+      tableData: { columns, rows: outputRows }, table: tableKey, tableColumns, limit: lim };
+  }
+
+  // ── Internal DB ──────────────────────────────────────────────────────────────
+  // Resolve join
+  let extraTable = null;
+  if (joinTableKey && joinTableKey !== tableKey) {
+    extraTable = schema.tables.find((t) => t.key === joinTableKey);
+  }
+
+  // For each column spec resolve display label and column ref
+  const colDefs = tableColumns.map((spec) => {
+    let colKey = null, tKey = tableKey;
+    if (spec.colRef) {
+      const dot = spec.colRef.indexOf('.');
+      tKey = dot >= 0 ? spec.colRef.substring(0, dot) : tableKey;
+      colKey = dot >= 0 ? spec.colRef.substring(dot + 1) : spec.colRef;
+    }
+    const tableDef = schema.tables.find((t) => t.key === tKey) || mainTable;
+    const colDef = tableDef && colKey ? tableDef.columns.find((c) => c.key === colKey) : null;
+    const displayName = spec.label || (colDef ? colDef.displayName || colDef.key : colKey || spec.expr || 'col');
+    const label = spec.agg && spec.agg !== 'none' ? (spec.label || `${spec.agg}(${displayName})`) : displayName;
+    return { spec, tKey, colKey, tableDef, colDef, label };
+  });
+
+  // Build SELECT expressions
+  const selects = colDefs.map(({ spec, tKey, colKey, tableDef, colDef, label }) => {
+    if (spec.expr && !spec.colRef) {
+      // Custom expression — injected only after validation: must contain no semicolons or quotes
+      const cleaned = spec.expr.replace(/[;'"]/g, '');
+      if (spec.agg && spec.agg !== 'none' && ALLOWED_AGGS.has(spec.agg.toUpperCase())) {
+        return `${spec.agg.toUpperCase()}(${cleaned}) AS "${label}"`;
+      }
+      return `(${cleaned}) AS "${label}"`;
+    }
+    if (!colDef || !tableDef) return null;
+    const ref = `"${tableDef.dbTable}"."${colDef.dbCol}"`;
+    if (spec.agg && spec.agg !== 'none' && ALLOWED_AGGS.has(spec.agg.toUpperCase())) {
+      return `${spec.agg.toUpperCase()}(${ref}) AS "${label}"`;
+    }
+    return `${ref} AS "${label}"`;
+  }).filter(Boolean);
+
+  if (!selects.length) throw new Error('No valid column expressions could be built.');
+
+  // Determine if we need GROUP BY (any aggregated column present)
+  const hasAgg = colDefs.some((d) => d.spec.agg && d.spec.agg !== 'none');
+
+  let sql = `SELECT ${selects.join(', ')} FROM "${mainTable.dbTable}"`;
+
+  // Join
+  if (extraTable) {
+    const rel = schema.relationships.find((r) =>
+      (r.from === mainTable.key && r.to === joinTableKey) ||
+      (r.to === mainTable.key   && r.from === joinTableKey));
+    if (rel) {
+      const [mFk, ePk] = rel.from === mainTable.key
+        ? [rel.fromCol, rel.toCol]
+        : [rel.toCol,   rel.fromCol];
+      sql += ` LEFT JOIN "${extraTable.dbTable}" ON "${mainTable.dbTable}"."${mFk}" = "${extraTable.dbTable}"."${ePk}"`;
+    }
+  }
+
+  // Parameterised filters
+  const replacements = [];
+  const conditions = [];
+  if (Array.isArray(filters)) {
+    for (const f of filters) {
+      if (!f || !f.column || !f.operator || f.value == null) continue;
+      const dot = (f.column || '').indexOf('.');
+      const fTKey = dot >= 0 ? f.column.substring(0, dot) : tableKey;
+      const fCKey = dot >= 0 ? f.column.substring(dot + 1) : f.column;
+      const fTable = schema.tables.find((t) => t.key === fTKey);
+      const fCol = fTable ? fTable.columns.find((c) => c.key === fCKey) : null;
+      if (!fTable || !fCol || !ALLOWED_OPS.has(f.operator)) continue;
+      conditions.push(`"${fTable.dbTable}"."${fCol.dbCol}" ${f.operator} ?`);
+      replacements.push(f.value);
+    }
+  }
+  if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
+
+  // GROUP BY non-aggregated columns
+  if (hasAgg) {
+    const groupByCols = colDefs
+      .filter((d) => (!d.spec.agg || d.spec.agg === 'none') && d.colDef && d.tableDef)
+      .map((d) => `"${d.tableDef.dbTable}"."${d.colDef.dbCol}"`);
+    if (groupByCols.length) sql += ' GROUP BY ' + groupByCols.join(', ');
+  }
+
+  sql += ' LIMIT ?';
+  replacements.push(lim);
+
+  const rawRows = await db.sequelize.query(sql, {
+    replacements,
+    type: db.Sequelize.QueryTypes.SELECT,
+  });
+
+  const columns = colDefs.map((d) => d.label);
+
+  return {
+    title: title || 'Custom Table',
+    originalPrompt: 'Multi-col table',
+    chartType: 'table',
+    hasData: rawRows.length > 0,
+    chartConfig: null,
+    labels: columns,
+    values: [],
+    bgColors: [],
+    borderColors: [],
+    tableData: { columns, rows: rawRows },
+    table: tableKey,
+    tableColumns,
+    limit: lim,
+  };
+}
+
+module.exports = { getSchema, buildPanel, buildRawTablePanel, buildMultiColTablePanel, INTERNAL_SCHEMA };

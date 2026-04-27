@@ -1,5 +1,9 @@
 const db = require('../models');
 const dashboardService = require('../services/dashboardService');
+const queryService = require('../services/queryService');
+const chartService = require('../services/chartService');
+const aiInsightService = require('../services/aiInsightService');
+const { refreshKpiValue } = require('../services/kpiService');
 const { safeJsonParse } = require('../utils/helpers');
 
 exports.generateMulti = async (req, res) => {
@@ -111,6 +115,53 @@ exports.save = async (req, res) => {
   }
 };
 
+/**
+ * POST /dashboard/save-direct — AJAX save that persists the full canvas state
+ * and returns { id, redirectUrl } so the frontend can navigate straight to the
+ * canvas renderer. Used by the Executive Dashboard "Generate & Save" flow to
+ * avoid the legacy dashboard-multi intermediate page that visually downgrades
+ * the dashboard.
+ *
+ * Body: { title, promptText, dashboardConfig (object), dataSourceId }
+ */
+exports.saveDirect = async (req, res) => {
+  try {
+    const { title, promptText, dashboardConfig, dataSourceId } = req.body || {};
+
+    if (!dashboardConfig || typeof dashboardConfig !== 'object') {
+      return res.status(400).json({ error: 'dashboardConfig (object) is required.' });
+    }
+
+    // Stamp metadata for forward-compatibility on reopen
+    const cfg = Object.assign({}, dashboardConfig);
+    cfg.dashboardType   = cfg.dashboardType   || (cfg.dashboardRole ? 'executive' : null);
+    cfg.renderMode      = cfg.renderMode      || (cfg.dashboardType === 'executive' ? 'executive-layout' : 'canvas');
+    cfg.dashboardVersion = cfg.dashboardVersion || 'v2';
+    cfg.schemaVersion   = cfg.schemaVersion   || 'executive-dashboard-v1';
+    cfg.savedAt         = new Date().toISOString();
+
+    const finalTitle = (title && title.trim()) ||
+      cfg.dashboardRole ||
+      'Executive Dashboard';
+
+    const saved = await db.SavedDashboard.create({
+      title: finalTitle.substring(0, 255),
+      promptText: promptText || '',
+      dashboardConfigJson: JSON.stringify(cfg),
+      dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
+    });
+
+    return res.json({
+      id: saved.id,
+      title: saved.title,
+      redirectUrl: '/dashboard/' + saved.id + '/edit-canvas',
+    });
+  } catch (err) {
+    console.error('Dashboard save-direct error:', err);
+    return res.status(500).json({ error: 'Failed to save dashboard: ' + err.message });
+  }
+};
+
 exports.generatePanel = async (req, res) => {
   try {
     const { prompt, chartType, dataSourceId } = req.body;
@@ -122,12 +173,27 @@ exports.generatePanel = async (req, res) => {
       templateId: null,
     });
     const cfg = r.chartConfig || null;
+    const chartEngine = r.chartEngine || 'chartjs';
     const ds = cfg && cfg.data && cfg.data.datasets && cfg.data.datasets[0] ? cfg.data.datasets[0] : null;
     const td = r.tableData || { columns: [], rows: [] };
+
+    // Build a human-readable calculation label from the structuredRequest
+    const sr = r.structuredRequest || {};
+    const metricStr = sr.metrics && sr.metrics.length ? sr.metrics[0].toUpperCase() : 'COUNT';
+    const entityStr = sr.focusArea || '?';
+    const dimStr = sr.dimensions && sr.dimensions.length ? sr.dimensions[0] : entityStr;
+    const limitStr = sr.limit ? `, TOP ${sr.limit}` : '';
+    const sortStr = sr.sort && sr.sort.direction ? ` (${sr.sort.direction === 'desc' ? '↓' : '↑'})` : '';
+    const calculationLabel = `AI: ${metricStr}(${entityStr}) by ${dimStr}${sortStr}${limitStr}`;
+
     res.json({
       title: r.title,
       originalPrompt: prompt.trim(),
+      calculationLabel,
+      structuredRequest: sr,
+      dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
       chartType: r.chartType,
+      chartEngine,
       hasData: r.hasData,
       chartConfig: cfg,
       labels: cfg && cfg.data ? (cfg.data.labels || []) : [],
@@ -216,6 +282,17 @@ exports.detail = async (req, res) => {
     const config = safeJsonParse(dashboard.dashboardConfigJson) || {};
     const sources = await db.DataSource.findAll({ where: { status: 'active' }, order: [['name', 'ASC']] });
 
+    // Executive dashboards must always be rendered with the canvas renderer
+    // to preserve their original premium layout (header, KPI strip, sectioned
+    // charts, anomaly alert, executive summary). The legacy dashboard-detail
+    // view is a basic flat layout and would visually downgrade them.
+    const isExec = config.dashboardType === 'executive'
+      || config.renderMode === 'executive-layout'
+      || (config.dashboardRole && Array.isArray(config.kpiData) && config.kpiData.length > 0);
+    if (isExec) {
+      return res.redirect('/dashboard/' + dashboard.id + '/edit-canvas');
+    }
+
     res.render('dashboard-detail', {
       title: dashboard.title,
       dashboard,
@@ -283,13 +360,175 @@ exports.editInCanvas = async (req, res) => {
         sourceId: dashboard.dataSourceId,
         panels: config.panels || [],
         kpiData: config.kpiData || [],
+        kpiPositions: config.kpiPositions || [],
         executiveSummary: config.executiveSummary || '',
         palette: config.palette || [],
+        dashboardType: config.dashboardType || null,
+        dashboardRole: config.dashboardRole || null,
+        dashboardSubtitle: config.dashboardSubtitle || null,
+        anomalyAlert: config.anomalyAlert || null,
+        layoutHint: config.layoutHint || null,
+        sections: config.sections || [],
+        schemaVersion: config.schemaVersion || null,
       },
     });
   } catch (err) {
     console.error('Edit in canvas error:', err);
     req.flash('error', 'Failed to load dashboard for editing.');
     res.redirect('/dashboard/history');
+  }
+};
+
+/**
+ * POST /dashboard/recalculate-panel
+ * Re-run a panel query with a user-edited structuredRequest (skips AI parsing).
+ */
+exports.recalculatePanel = async (req, res) => {
+  try {
+    const { structuredRequest, dataSourceId } = req.body;
+    if (!structuredRequest || !structuredRequest.focusArea) {
+      return res.json({ error: 'structuredRequest with focusArea is required.' });
+    }
+
+    const sr = structuredRequest;
+    const dataSource = dataSourceId ? await db.DataSource.findByPk(parseInt(dataSourceId, 10)) : null;
+
+    // Run query directly — bypass AI parser
+    const queryResult = await queryService.execute(sr, dataSource);
+
+    const chartResult = (queryResult.labels && queryResult.labels.length)
+      ? chartService.buildChartConfig(queryResult.labels, queryResult.values, sr.chartPreference || 'bar', sr.title, null)
+      : null;
+
+    const cfg = chartResult ? chartResult.config : null;
+    const chartEngine = chartResult ? chartResult.engine : 'chartjs';
+    const ds = cfg && cfg.data && cfg.data.datasets && cfg.data.datasets[0] ? cfg.data.datasets[0] : null;
+    const td = { columns: queryResult.columns || [], rows: queryResult.rows || [] };
+
+    // Rebuild calculation label
+    const metricStr = sr.metrics && sr.metrics.length ? sr.metrics[0].toUpperCase() : 'COUNT';
+    const entityStr = sr.focusArea || '?';
+    const dimStr = sr.dimensions && sr.dimensions.length ? sr.dimensions[0] : entityStr;
+    const limitStr = sr.limit ? `, TOP ${sr.limit}` : '';
+    const sortStr = sr.sort && sr.sort.direction ? ` (${sr.sort.direction === 'desc' ? '↓' : '↑'})` : '';
+    const calculationLabel = `AI: ${metricStr}(${entityStr}) by ${dimStr}${sortStr}${limitStr}`;
+
+    let aiInsight = null;
+    try {
+      aiInsight = await aiInsightService.generateInsight({
+        title: sr.title,
+        chartType: sr.chartPreference,
+        labels: queryResult.labels,
+        values: queryResult.values,
+        kpis: [],
+      });
+    } catch (e) { /* non-fatal */ }
+
+    res.json({
+      title: sr.title,
+      originalPrompt: sr.originalPrompt || '',
+      calculationLabel,
+      structuredRequest: sr,
+      chartType: sr.chartPreference || 'bar',
+      chartEngine,
+      hasData: queryResult.rows && queryResult.rows.length > 0,
+      chartConfig: cfg,
+      labels: queryResult.labels || [],
+      values: queryResult.values || [],
+      bgColors: ds ? (Array.isArray(ds.backgroundColor) ? ds.backgroundColor : [ds.backgroundColor]) : [],
+      borderColors: ds ? (Array.isArray(ds.borderColor) ? ds.borderColor : [ds.borderColor]) : [],
+      tableData: td,
+      aiInsight,
+      parsedByAI: false,
+    });
+  } catch (err) {
+    console.error('Recalculate panel error:', err);
+    res.json({ error: err.message });
+  }
+};
+
+exports.refreshKpi = async (req, res) => {
+  try {
+    const { kpiKey } = req.body;
+    if (!kpiKey) return res.json({ error: 'kpiKey is required.' });
+    const result = await refreshKpiValue(kpiKey);
+    res.json(result);
+  } catch (err) {
+    console.error('Refresh KPI error:', err);
+    res.json({ error: err.message });
+  }
+};
+
+/**
+ * Save/update dashboard layout (drag-and-drop positions and sizes)
+ * POST /dashboard/:id/layout
+ */
+exports.saveLayout = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { widgets, isLocked } = req.body;
+
+    if (!id || isNaN(id)) {
+      return res.json({ error: 'Invalid dashboard ID.' });
+    }
+
+    if (!Array.isArray(widgets)) {
+      return res.json({ error: 'widgets array is required.' });
+    }
+
+    // Validate widget data
+    const validWidgets = widgets.every(
+      (w) =>
+        w.id &&
+        typeof w.x === 'number' &&
+        typeof w.y === 'number' &&
+        typeof w.w === 'number' &&
+        typeof w.h === 'number'
+    );
+
+    if (!validWidgets) {
+      return res.json({ error: 'Invalid widget data structure.' });
+    }
+
+    // Find the dashboard
+    const dashboard = await db.SavedDashboard.findByPk(parseInt(id, 10));
+    if (!dashboard) {
+      return res.json({ error: 'Dashboard not found.' });
+    }
+
+    // Parse existing config
+    let config = {};
+    try {
+      config = JSON.parse(dashboard.dashboardConfigJson || '{}');
+    } catch (e) {
+      /* ignore parse errors */
+    }
+
+    // Merge layout config
+    config.layoutConfig = {
+      widgets: widgets.map((w) => ({
+        id: w.id,
+        x: w.x,
+        y: w.y,
+        w: w.w,
+        h: w.h,
+      })),
+      isLocked: isLocked || false,
+      savedAt: new Date().toISOString(),
+    };
+
+    // Update dashboard
+    dashboard.dashboardConfigJson = JSON.stringify(config);
+    await dashboard.save();
+
+    console.log(`[Dashboard] Layout saved for dashboard #${id}`);
+    res.json({
+      success: true,
+      message: 'Layout saved successfully.',
+      dashboardId: id,
+    });
+  } catch (err) {
+    console.error('[Dashboard] Save layout error:', err);
+    res.json({ error: err.message });
   }
 };

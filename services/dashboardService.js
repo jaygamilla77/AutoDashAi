@@ -20,6 +20,54 @@ const aiInsightService = require('./aiInsightService');
 const aiService = require('./aiService');
 
 /**
+ * Smartly pick a chart type from the structuredRequest context when chartPreference is 'auto'.
+ */
+function resolveAutoChartType(sr) {
+  const prompt = (sr.originalPrompt || sr.title || '').toLowerCase();
+  const dims = sr.dimensions || [];
+  const metrics = sr.metrics || [];
+  const limit = sr.limit || 0;
+  const focus = (sr.focusArea || '').toLowerCase();
+
+  // KPI / single value indicators
+  if (metrics.length === 1 && dims.length === 0) return 'gauge';
+  if (/\btotal\b|\bcount\b|\bsum\b|\bkpi\b/.test(prompt) && dims.length <= 1 && limit <= 1) return 'gauge';
+
+  // Time-series indicators
+  const timeWords = ['month','year','week','day','date','quarter','daily','monthly','weekly','yearly','trend','over time','timeline'];
+  if (timeWords.some(w => prompt.includes(w))) {
+    return limit > 20 ? 'timeline' : 'line';
+  }
+
+  // Forecast
+  if (/forecast|predict|projection|next month|next year/.test(prompt)) return 'forecast';
+
+  // Funnel / pipeline
+  if (/funnel|pipeline|stage|conversion/.test(prompt)) return 'funnel';
+
+  // Distribution
+  if (/distribut|histogram|spread|frequency/.test(prompt)) return 'histogram';
+  if (/scatter|correlation/.test(prompt)) return 'scatter';
+
+  // Part-to-whole — small number of items
+  if (/share|portion|breakdown|composition|by category|by type|mix/.test(prompt) && limit <= 8) return 'pie';
+
+  // Treemap for many categories
+  if (/treemap|by department|by region|by product/.test(prompt) && limit > 5) return 'treemap';
+
+  // Many items → horizontal bar
+  if (limit > 10) return 'hbar';
+
+  // Few items comparison
+  if (limit > 0 && limit <= 5) return 'pie';
+
+  // Heatmap
+  if (/heat|intensity|matrix/.test(prompt)) return 'heatmap';
+
+  return 'bar'; // sensible default
+}
+
+/**
  * Generate a complete dashboard from a prompt.
  * @param {{ prompt: string, chartType: string, dataSourceId: number|null, templateId: number|null }} options
  * @returns {object} dashboard result
@@ -79,6 +127,11 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
     } catch { /* ignore parse errors */ }
   }
 
+  // Smart auto chart-type resolution
+  if (!structuredRequest.chartPreference || structuredRequest.chartPreference === 'auto') {
+    structuredRequest.chartPreference = resolveAutoChartType(structuredRequest);
+  }
+
   // 3. Query data
   const queryResult = await queryService.execute(structuredRequest, dataSource);
 
@@ -86,13 +139,15 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
   const kpis = await kpiService.generateKPIs(structuredRequest.focusArea, queryResult, dataSource);
 
   // 5. Build chart config
-  const chartConfig = chartService.buildChartConfig(
+  const chartResult = chartService.buildChartConfig(
     queryResult.labels,
     queryResult.values,
     structuredRequest.chartPreference,
     structuredRequest.title,
     template
   );
+  const chartConfig = chartResult ? chartResult.config : null;
+  const chartEngine = chartResult ? chartResult.engine : 'chartjs';
 
   // 6. Assemble dashboard
   const dashboard = {
@@ -100,6 +155,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
     subtitle: `Focus: ${structuredRequest.focusArea} | Chart: ${structuredRequest.chartPreference}`,
     originalPrompt: prompt,
     chartType: structuredRequest.chartPreference,
+    chartEngine,
     dataSourceId: dataSourceId,
     dataSourceName: dataSource ? dataSource.name : 'Internal App Database',
     structuredRequest,

@@ -1,0 +1,304 @@
+<% var tmpl = (typeof panels !== 'undefined' && panels.length && panels[0].template) ? panels[0].template : null; %>
+<% var isExecDash = (typeof isFullDashboard !== 'undefined' && isFullDashboard); %>
+
+<%
+  // Helper: generate layout data for frontend
+  var config = {};
+  try { config = JSON.parse(dashboardConfig || '{}'); } catch(e) {}
+  var layoutConfig = config.layoutConfig || {};
+  var existingLayout = layoutConfig.widgets || [];
+  var isLocked = layoutConfig.isLocked !== false;
+%>
+
+<% if (tmpl) { %>
+<style>
+  .dash-multi-wrapper { font-family: '<%= tmpl.fontFamily %>', sans-serif; }
+  .dash-multi-wrapper .kpi-value { color: <%= tmpl.accentColor %>; }
+  .dash-multi-wrapper h1, .dash-multi-wrapper h2, .dash-multi-wrapper h3 { color: <%= tmpl.accentColor %>; }
+</style>
+<% } %>
+
+<% if (isExecDash) { %>
+<style>
+  /* ── Executive 1-page dashboard compact styles ── */
+  .exec-dash { max-width: 1400px; margin: 0 auto; }
+  .exec-header { padding: 10px 0 6px; margin-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+  .exec-header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; color: #1e293b; }
+  .exec-header .sub { font-size: 0.72rem; color: #6b7280; }
+
+  /* KPI strip */
+  .exec-kpi-strip { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .exec-kpi-card {
+    flex: 1; min-width: 120px; max-width: 220px;
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 12px 14px; text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: transform 0.15s;
+  }
+  .exec-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .exec-kpi-icon {
+    width: 32px; height: 32px; border-radius: 8px; margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; color: #fff;
+  }
+  .exec-kpi-val { font-size: 1.35rem; font-weight: 800; line-height: 1.1; }
+  .exec-kpi-label { font-size: 0.65rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+  .exec-kpi-trend { font-size: 0.62rem; margin-top: 2px; font-weight: 600; }
+
+  /* Layout control bar */
+  .layout-control-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; font-size: 0.75rem; }
+  .layout-control-bar i { color: #64748b; }
+  .layout-control-bar .spacer { flex: 1; }
+
+  /* GridStack styles */
+  .grid-stack { display: grid; }
+  .gs-grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; }
+  .grid-stack-item { display: contents; }
+  .gs-item { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s, border-color 0.2s; position: relative; overflow: hidden; }
+  .gs-item.gs-item-resizing { box-shadow: 0 8px 24px rgba(59,130,246,0.15); border-color: #93c5fd; }
+  .gs-item.gs-item-moving { box-shadow: 0 12px 30px rgba(99,102,241,0.2); border-color: #818cf8; opacity: 0.95; }
+  .gs-drag-handle { cursor: grab; user-select: none; padding: 8px 12px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 1px solid #e2e8f0; }
+  .gs-drag-handle:active { cursor: grabbing; }
+  .gs-drag-handle i { margin-right: 6px; color: #94a3b8; font-size: 0.8rem; }
+
+  /* Executive panel in grid */
+  .exec-panel { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+  .exec-panel-hdr { padding: 8px 12px; font-size: 0.78rem; font-weight: 600; color: #1e293b; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .exec-panel-hdr .badge { font-size: 0.58rem; }
+  .exec-panel-body { padding: 6px 10px 10px; flex: 1; overflow-y: auto; }
+  .exec-panel .exec-chart-wrap { position: relative; height: 100%; min-height: 100px; }
+  .exec-panel .exec-insight {
+    font-size: 0.68rem; color: #4c1d95; padding: 5px 10px;
+    background: linear-gradient(90deg,#f5f3ff,#ede9fe); border-top: 1px solid #e2e8f0;
+    line-height: 1.4; flex-shrink: 0;
+  }
+  .exec-panel .exec-kpi-footer {
+    display: flex; border-top: 1px solid #e5e7eb; flex-shrink: 0;
+  }
+  .exec-panel .exec-kpi-footer .kpi-item {
+    flex: 1; text-align: center; padding: 5px 2px; border-right: 1px solid #f1f5f9;
+  }
+  .exec-panel .exec-kpi-footer .kpi-item:last-child { border-right: none; }
+  .exec-panel .exec-kpi-footer .kpi-item .val { font-size: 0.82rem; font-weight: 700; }
+  .exec-panel .exec-kpi-footer .kpi-item .lbl { font-size: 0.55rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  /* Print-friendly */
+  @media print {
+    .exec-header .actions, .layout-control-bar { display: none !important; }
+    .exec-panel { break-inside: avoid; }
+  }
+
+  @media (max-width: 768px) {
+    .layout-control-bar { flex-wrap: wrap; }
+    .gs-grid-layout { grid-template-columns: repeat(6, 1fr); }
+  }
+</style>
+<% } %>
+
+<div class="<%= tmpl ? 'dash-multi-wrapper' : '' %>">
+
+<% if (isExecDash) { %>
+<!-- ═══════ EXECUTIVE 1-PAGE DASHBOARD WITH DRAG-DROP ═══════ -->
+<div class="exec-dash">
+
+  <!-- Header -->
+  <div class="exec-header d-flex justify-content-between align-items-center">
+    <div>
+      <h1><i class="bi bi-speedometer2 me-2" style="color:#6366f1"></i><%= title || 'Executive Dashboard' %></h1>
+      <div class="sub">
+        <%= panels.length %> panel<%= panels.length === 1 ? '' : 's' %>
+        <% if (tmpl) { %> &middot; <span style="color:<%= tmpl.accentColor %>"><%= tmpl.name %></span><% } %>
+        &middot; Generated <%= new Date().toLocaleDateString() %>
+      </div>
+    </div>
+    <div class="actions d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()" title="Print">
+        <i class="bi bi-printer"></i>
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="saveDashboard()">
+        <i class="bi bi-bookmark"></i> Save
+      </button>
+      <a href="/" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg"></i> New
+      </a>
+    </div>
+  </div>
+
+  <!-- Layout Control Bar -->
+  <div class="layout-control-bar">
+    <i class="bi bi-arrows-move"></i>
+    <span id="layoutStatus">Drag & drop to rearrange • Drag corners to resize</span>
+    <div class="spacer"></div>
+    <button type="button" id="layoutLockBtn" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="aiLayoutLock()" style="font-size:0.7rem">
+      <i class="bi <%= isLocked ? 'bi-lock-fill' : 'bi-unlock-fill' %>"></i> <%= isLocked ? 'Unlock' : 'Lock' %> Layout
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" onclick="aiLayoutReset()" style="font-size:0.7rem">
+      <i class="bi bi-arrow-clockwise"></i> Reset
+    </button>
+    <button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="aiLayoutSave()" style="font-size:0.7rem">
+      <i class="bi bi-check-circle"></i> Save Layout
+    </button>
+  </div>
+
+  <!-- KPI Strip -->
+  <% var kpiPalRaw = (typeof palette !== 'undefined' && palette && palette.length >= 2) ? palette : null; %>
+  <% var kpiColors = kpiPalRaw || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']; %>
+  <% if (typeof kpiData !== 'undefined' && kpiData && kpiData.length) { %>
+  <div class="exec-kpi-strip">
+    <% kpiData.forEach(function(kpi, ki) { %>
+    <div class="exec-kpi-card">
+      <div class="exec-kpi-icon" style="background:<%= kpiColors[ki % kpiColors.length] %>">
+        <i class="bi <%= kpi.icon || 'bi-bar-chart' %>"></i>
+      </div>
+      <div class="exec-kpi-val" style="color:<%= kpiColors[ki % kpiColors.length] %>"><%= kpi.value %></div>
+      <div class="exec-kpi-label"><%= kpi.label %></div>
+      <% if (kpi.trend) { %>
+      <div class="exec-kpi-trend" style="color:<%= String(kpi.trend).indexOf('-') === 0 ? '#ef4444' : (String(kpi.trend).indexOf('+') === 0 ? '#22c55e' : '#6b7280') %>">
+        <%= kpi.trend %>
+      </div>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+
+  <!-- Chart Grid with GridStack -->
+  <div class="gs-grid-layout" id="panelGrid">
+    <% panels.forEach(function(panel, idx) { %>
+    <% var isTableDefault = panel.chartType === 'table' || !panel.chartConfig; %>
+    <% var isCardsDefault = panel.chartType === 'cards'; %>
+    <div class="gs-item" id="panel-<%= idx %>" data-gs-x="0" data-gs-y="0" data-gs-w="6" data-gs-h="3" data-gs-id="panel-<%= idx %>">
+
+      <!-- Drag Handle -->
+      <div class="gs-drag-handle">
+        <i class="bi bi-grip-vertical"></i><%= panel.title %>
+      </div>
+
+      <!-- Panel -->
+      <div class="exec-panel">
+        <!-- Panel header -->
+        <div class="exec-panel-hdr">
+          <span class="text-truncate" style="flex:1" title="<%= panel.originalPrompt %>"><%= panel.title %></span>
+          <% if (panel.hasData) { %>
+          <div class="d-flex gap-1 flex-shrink-0" role="group">
+            <% [
+              {type:'bar',icon:'bi-bar-chart'},{type:'line',icon:'bi-graph-up'},
+              {type:'pie',icon:'bi-pie-chart'},{type:'doughnut',icon:'bi-pie-chart-fill'},
+              {type:'table',icon:'bi-table'},{type:'cards',icon:'bi-grid-1x2-fill'},
+            ].forEach(function(ct) {
+              var active = panel.chartType === ct.type || (isTableDefault && ct.type === 'table' && !panel.chartConfig);
+            %>
+            <button type="button"
+              class="btn chart-switch-btn <%= active ? 'btn-secondary' : 'btn-outline-secondary' %>"
+              data-panel="<%= idx %>" data-type="<%= ct.type %>"
+              onclick="switchChartType(<%= idx %>, '<%= ct.type %>')"
+              title="<%= ct.type %>" style="padding:2px 5px;font-size:0.62rem;line-height:1.4">
+              <i class="bi <%= ct.icon %>"></i>
+            </button>
+            <% }); %>
+          </div>
+          <% } %>
+        </div>
+
+        <div class="exec-panel-body">
+          <% if (!panel.hasData) { %>
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-bar-chart" style="font-size:1.8rem;opacity:0.2"></i>
+            <p class="mt-2 mb-0" style="font-size:0.75rem">No data</p>
+          </div>
+          <% } else { %>
+
+          <!-- Chart -->
+          <div id="chart-wrapper-<%= idx %>" style="display:<%= (isTableDefault || isCardsDefault) ? 'none' : 'block' %>">
+            <% if (panel.chartConfig) { %>
+            <div class="exec-chart-wrap">
+              <canvas id="chart-<%= idx %>"></canvas>
+            </div>
+            <% } %>
+          </div>
+
+          <!-- Cards view -->
+          <div id="cards-wrapper-<%= idx %>" style="display:<%= isCardsDefault ? 'flex' : 'none' %>;flex-wrap:wrap;gap:6px;padding:2px 0"></div>
+
+          <!-- Table view -->
+          <div id="table-wrapper-<%= idx %>" style="display:<%= (isTableDefault && !isCardsDefault) ? 'block' : 'none' %>">
+            <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
+            <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+              <table class="table table-sm table-striped table-hover mb-0" style="font-size:0.72rem">
+                <thead class="table-dark" style="position:sticky;top:0">
+                  <tr><% panel.tableData.columns.forEach(function(col) { %><th style="white-space:nowrap"><%= col %></th><% }); %></tr>
+                </thead>
+                <tbody>
+                  <% panel.tableData.rows.slice(0,20).forEach(function(row) { %>
+                  <tr><% panel.tableData.columns.forEach(function(col) { %><td><%= row[col] != null ? row[col] : '-' %></td><% }); %></tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+            <% } %>
+          </div>
+
+          <% } %>
+        </div>
+
+        <!-- KPI footer -->
+        <% if (panel.kpis && panel.kpis.length > 0) { %>
+        <div class="exec-kpi-footer">
+          <% panel.kpis.slice(0, 3).forEach(function(kpi) { %>
+          <div class="kpi-item">
+            <div class="val" style="<%= tmpl ? 'color:' + tmpl.accentColor + ';' : '' %>"><%= kpi.value %></div>
+            <div class="lbl"><%= kpi.label %></div>
+          </div>
+          <% }); %>
+        </div>
+        <% } %>
+
+        <!-- AI Insight -->
+        <% if (panel.aiInsight) { %>
+        <div class="exec-insight">
+          <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:3px"></i>
+          <span style="font-weight:600">Insight:</span> <%= panel.aiInsight %>
+        </div>
+        <% } %>
+
+      </div>
+    </div>
+    <% }); %>
+  </div>
+
+</div>
+<!-- ═══════ END EXECUTIVE DASHBOARD WITH DRAG-DROP ═══════ -->
+
+<% } else { %>
+<!-- Standard multi-panel dashboard (non-executive) - keep original for now -->
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="mb-2"><%= panels.length %> panel<%= panels.length === 1 ? '' : 's' %> generated</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="saveDashboard()">
+      <i class="bi bi-bookmark"></i> Save
+    </button>
+    <a href="/" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg"></i> New
+    </a>
+  </div>
+</div>
+
+<!-- Standard layout - kept as-is for now -->
+<div id="panelGrid"></div>
+
+<% } %>
+
+</div>
+
+<!-- Initialize layout manager with data -->
+<script>
+  // Pass layout data to frontend
+  window.__LAYOUT_DATA__ = <%- JSON.stringify(existingLayout) %>;
+  window.__DEFAULT_LAYOUT__ = <%- JSON.stringify([]) %>;  // Will be computed by frontend
+  window.__LAYOUT_LOCKED__ = <%= isLocked %>;
+</script>

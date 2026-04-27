@@ -66,6 +66,14 @@ app.use((err, req, res, next) => {
   res.status(500).send('Internal Server Error');
 });
 
+// Prevent unhandled rejections from silently crashing the server
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Uncaught Exception]', err);
+});
+
 // Start server
 const PORT = appConfig.port;
 
@@ -75,9 +83,18 @@ async function start() {
     await db.sequelize.sync();
     console.log('Database synchronized.');
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`AI Auto-Dashboard Builder running at http://localhost:${PORT}`);
       console.log(`Environment: ${appConfig.nodeEnv}`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`\n[ERROR] Port ${PORT} is already in use.\nRun this to free it, then try again:\n  npx kill-port ${PORT}\nor:\n  Get-NetTCPConnection -LocalPort ${PORT} | Select OwningProcess | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\n`);
+      } else {
+        console.error('[Server Error]', err);
+      }
+      process.exit(1);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

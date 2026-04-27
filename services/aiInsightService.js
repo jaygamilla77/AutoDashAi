@@ -9,19 +9,20 @@ const aiService = require('./aiService');
 
 // ========== Narrative Insights ==========
 
-const INSIGHT_SYSTEM_PROMPT = `You are a senior data analyst writing for busy executives.
-Given chart data (labels, values, chart type, title), produce a concise narrative insight.
+const INSIGHT_SYSTEM_PROMPT = `You are a senior data analyst writing for busy C-suite executives.
+Given chart data (labels, values, chart type, title), produce a concise analytical insight.
 
 Rules:
-- Write 2-3 sentences maximum
-- Lead with the most important finding
-- Include specific numbers and percentages
-- Highlight anomalies, trends, or standout values
-- Use professional business language
-- Do NOT describe the chart — interpret the data
-- End with a brief actionable implication if appropriate
+- Write exactly 2-3 sentences
+- Sentence 1: Lead with the single most important finding, including a specific number or percentage
+- Sentence 2: Provide context — is this good or concerning? Compare top vs bottom if relevant
+- Sentence 3 (optional): One actionable implication or recommended next step
+- Use professional, direct business language ("Revenue is up 18%" not "The chart shows revenue")
+- Highlight anomalies, concentration risks, or standout outliers
+- Do NOT describe the chart type — interpret the data as a business analyst
+- Do NOT use bullet points, markdown, or formatting
 
-Return ONLY the insight text, no markdown or formatting.`;
+Return ONLY the insight text.`;
 
 /**
  * Generate a narrative insight for a dashboard panel.
@@ -51,16 +52,17 @@ ${kpis && kpis.length > 0 ? 'KPIs: ' + kpis.map(k => `${k.label}=${k.value}`).jo
 
 // ========== Executive Summary ==========
 
-const EXECUTIVE_SUMMARY_PROMPT = `You are a chief data analyst writing a brief executive summary.
-Given multiple dashboard panels with their data, write a concise executive overview.
+const EXECUTIVE_SUMMARY_PROMPT = `You are a chief analytics officer writing a premium executive dashboard summary for a board-level audience.
+Given multiple dashboard panels with their data, write a crisp, confident executive overview.
 
 Rules:
-- Maximum 4-5 sentences
-- Synthesize across all panels — don't just list them
-- Highlight the most critical findings and trends
-- Note any concerning patterns or opportunities
-- Use a confident, professional tone
-- Include specific numbers
+- Exactly 4-5 sentences — no more
+- Synthesize themes across ALL panels — do not list them individually
+- Open with the single most important finding (headline number or trend)
+- Identify one business opportunity and one risk or concern
+- Close with a forward-looking recommendation or strategic priority
+- Use confident, boardroom-quality language with specific numbers
+- No bullet points, no markdown, no section headers
 
 Return ONLY the summary text.`;
 

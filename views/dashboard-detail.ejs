@@ -1,5 +1,103 @@
 <% if (typeof dashboard !== 'undefined' && dashboard) { %>
 
+<style>
+/* ── Dashboard Detail: canvas-replica layout ─────────────────────────── */
+html, body { overflow: hidden !important; height: 100vh !important; }
+.main-wrapper { height: 100vh; overflow: hidden; }
+.main-content {
+  height: 100vh;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column;
+  padding: 10px 16px !important;
+}
+
+/* Compact header */
+.main-content .page-header {
+  flex-shrink: 0;
+  margin-bottom: 6px !important;
+  padding-bottom: 6px !important;
+}
+.main-content .page-header h1 { font-size: 0.95rem !important; }
+
+/* Executive summary — bottom strip */
+#dd-exec-summary {
+  flex-shrink: 0;
+  font-size: 0.78rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Canvas container — mirrors the AI canvas editor */
+#dashCanvas {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  background: #f1f5f9;
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Inner grid holds all absolute-positioned cards */
+#dashGrid {
+  position: relative;
+  width: 100%;
+}
+
+/* KPI individual cards */
+.dd-kpi-card {
+  position: absolute;
+  width: 150px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  text-align: center;
+}
+
+/* Chart / data panels */
+.dd-panel {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.dd-panel .card-header {
+  flex-shrink: 0;
+  padding: 5px 10px !important;
+  background: #f8fafc;
+  border-bottom: 1px solid #f1f5f9;
+}
+.dd-panel .card-body {
+  flex: 1 1 0 !important;
+  min-height: 0;
+  padding: 6px 8px !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dd-panel [id^="schart-wrapper-"] {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.dd-panel [id^="schart-wrapper-"] > div {
+  height: 100% !important;
+  position: relative;
+}
+.dd-panel [id^="scards-wrapper-"] {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.dd-panel [id^="stable-wrapper-"] .table-responsive {
+  max-height: 100% !important;
+}
+</style>
 <div class="page-header d-flex justify-content-between align-items-start">
   <div>
     <h1><%= dashboard.title %></h1>
@@ -51,142 +149,125 @@
   </div>
   <% } else { %>
 
-  <!-- KPI Strip (from saved config) -->
+  <!-- Canvas-style layout: KPI cards + panels at their saved absolute positions -->
   <% var savedKpi = config.kpiData || []; %>
+  <% var savedKpiPos = config.kpiPositions || []; %>
   <% var savedPalette = config.palette || []; %>
   <% var kpiPal = (savedPalette.length >= 2) ? savedPalette : ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']; %>
-  <% if (savedKpi.length) { %>
-  <div class="d-flex flex-wrap gap-2 mb-3">
-    <% savedKpi.forEach(function(kpi, ki) { %>
-    <div style="flex:1;min-width:110px;max-width:200px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center;border-top:3px solid <%= kpiPal[ki % kpiPal.length] %>;box-shadow:0 1px 3px rgba(0,0,0,0.04)">
-      <div style="width:28px;height:28px;border-radius:6px;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:#fff;background:<%= kpiPal[ki % kpiPal.length] %>"><i class="bi <%= kpi.icon || 'bi-bar-chart' %>"></i></div>
-      <div style="font-size:1.25rem;font-weight:800;color:<%= kpiPal[ki % kpiPal.length] %>;line-height:1.1"><%= kpi.value %></div>
-      <div style="font-size:0.6rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;margin-top:2px"><%= kpi.label %></div>
-      <% if (kpi.trend) { %>
-      <div style="font-size:0.58rem;font-weight:600;margin-top:2px;color:<%= String(kpi.trend).indexOf('-') === 0 ? '#ef4444' : (String(kpi.trend).indexOf('+') === 0 ? '#22c55e' : '#6b7280') %>"><%= kpi.trend %></div>
-      <% } %>
-    </div>
-    <% }); %>
-  </div>
-  <% } %>
-
-  <!-- Executive Summary (from saved config) -->
   <% var savedSummary = config.executiveSummary || ''; %>
-  <% if (savedSummary && savedSummary.length > 30) { %>
-  <div style="padding:12px 16px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-radius:8px;border-left:3px solid #7c3aed;font-size:0.82rem;color:#374151;line-height:1.55;margin-bottom:16px">
-    <span style="font-size:0.78rem;color:#4c1d95;font-weight:700"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span> <%= savedSummary %>
-  </div>
-  <% } %>
+  <%
+    // Compute default positions for panels that don't have saved positions
+    var _gap = 14, _panelW = 420, _panelH = 300, _cols = 2;
+    var _kpiH = savedKpi.length ? 130 : 0;
+    var _topStart = _kpiH + _gap;
+    savedPanels.forEach(function(p, idx) {
+      if (!p.position || typeof p.position.left !== 'number') {
+        var col = idx % _cols;
+        var row = Math.floor(idx / _cols);
+        p.position = { left: _gap + col * (_panelW + _gap), top: _topStart + row * (_panelH + _gap), width: _panelW, height: _panelH };
+      }
+    });
+    // Canvas height = max bottom edge + padding
+    var _canvasH = 500;
+    savedPanels.forEach(function(p) {
+      var b = (p.position.top || 0) + (p.position.height || 300) + 40;
+      if (b > _canvasH) _canvasH = b;
+    });
+    if (savedKpi.length) { var _kb = 10 + 140; if (_kb > _canvasH) _canvasH = _kb; }
+  %>
 
-  <!-- Multi-panel saved dashboard grid -->
-  <div class="row g-3 mb-3" id="panelGrid">
-    <% savedPanels.forEach(function(panel, idx) { %>
-      <% var isTableDef = panel.chartType === 'table' || !panel.chartConfig; %>
-      <% var isCardsDef = panel.chartType === 'cards'; %>
-      <% var colClass = savedPanels.length === 1 ? 'col-12' : ((isTableDef || isCardsDef) ? 'col-12' : 'col-lg-6'); %>
-      <div class="<%= colClass %>" id="spanel-col-<%= idx %>">
-        <div class="card h-100">
+  <!-- Scrollable canvas container -->
+  <div id="dashCanvas">
+    <div id="dashGrid" style="min-height:<%= _canvasH %>px">
 
-          <div class="card-header bg-white d-flex justify-content-between align-items-center gap-2 py-2">
-            <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">
-              <span class="badge bg-secondary flex-shrink-0 spanel-num" style="font-size:0.65rem;min-width:22px;text-align:center"><%= idx+1 %></span>
-              <!-- View mode title -->
-              <span class="fw-semibold text-truncate edit-off" style="font-size:0.85rem" title="<%= panel.originalPrompt || panel.title %>"><%= panel.title %></span>
-              <!-- Edit mode title input -->
-              <input type="text" class="form-control form-control-sm edit-on" id="spanel-title-<%= idx %>"
-                value="<%= panel.title %>" style="display:none;font-size:0.82rem;font-weight:600;max-width:280px">
-            </div>
-            <div class="d-flex gap-1 flex-shrink-0 align-items-center">
-              <% if (panel.hasData && panel.chartConfig) { %>
-              <% [['bar','bi-bar-chart','Bar'],['line','bi-graph-up','Line'],['pie','bi-pie-chart','Pie'],['doughnut','bi-pie-chart-fill','Donut'],['scatter','bi-diagram-3','Scatter'],['table','bi-table','Table'],['cards','bi-grid-1x2-fill','Cards']].forEach(function(ct){ %>
-              <button type="button"
-                class="btn schart-switch-btn <%= panel.chartType === ct[0] || (isTableDef && ct[0]==='table') || (isCardsDef && ct[0]==='cards') ? 'btn-secondary' : 'btn-outline-secondary' %>"
-                data-spanel="<%= idx %>" data-type="<%= ct[0] %>"
-                onclick="switchSavedChart(<%= idx %>, '<%= ct[0] %>')"
-                title="<%= ct[2] %>" style="padding:3px 7px;font-size:0.72rem;line-height:1.5">
-                <i class="bi <%= ct[1] %>"></i>
-              </button>
-              <% }); %>
-              <% } %>
-              <!-- Remove button (edit mode only) -->
-              <button type="button" class="btn btn-sm btn-outline-danger edit-on" style="display:none;padding:3px 7px;font-size:0.72rem"
-                onclick="removePanel(<%= idx %>)" title="Remove panel"><i class="bi bi-x-lg"></i></button>
-            </div>
+      <!-- KPI cards at saved (or default) absolute positions -->
+      <% savedKpi.forEach(function(kpi, ki) { %>
+      <%   var kp = savedKpiPos[ki] || { left: 14 + ki * 162, top: 10 }; %>
+      <%   var kc = kpiPal[ki % kpiPal.length]; %>
+      <%   var kpW = kp.width || 150; %>
+      <%   var kpH = kp.height ? ('height:' + kp.height + 'px;') : ''; %>
+      <%   var kpFs = kp.fontSize || 1.3; %>
+      <%   var kpIconSz = Math.max(0.55, kpFs * 0.65); %>
+      <%   var kpIconBox = Math.max(22, Math.round(kpFs * 23)); %>
+      <%   var kpLabelSz = Math.max(0.45, kpFs * 0.44); %>
+      <%   var kpTrendSz = Math.max(0.45, kpFs * 0.46); %>
+      <div class="dd-kpi-card" style="left:<%= kp.left %>px;top:<%= kp.top %>px;width:<%= kpW %>px;<%= kpH %>border-top:3px solid <%= kc %>">
+        <div style="padding:10px 12px 12px">
+          <div style="width:<%= kpIconBox %>px;height:<%= kpIconBox %>px;border-radius:7px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:<%= kpIconSz %>rem;color:#fff;background:<%= kc %>"><i class="bi <%= kpi.icon || 'bi-bar-chart' %>"></i></div>
+          <div style="font-size:<%= kpFs %>rem;font-weight:800;color:<%= kc %>;line-height:1.1;letter-spacing:-0.5px"><%= kpi.value %></div>
+          <div style="font-size:<%= kpLabelSz %>rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;word-break:break-word"><%= kpi.label %></div>
+          <% if (kpi.trend) { %>
+          <div style="font-size:<%= kpTrendSz %>rem;font-weight:600;margin-top:3px;color:<%= String(kpi.trend).indexOf('-') === 0 ? '#ef4444' : (String(kpi.trend).indexOf('+') === 0 ? '#22c55e' : '#6b7280') %>"><%= kpi.trend %></div>
+          <% } %>
+        </div>
+      </div>
+      <% }); %>
+
+      <!-- Chart panels at saved positions -->
+      <% savedPanels.forEach(function(panel, idx) { %>
+      <%   var pos = panel.position; %>
+      <%   var isTableDef = panel.chartType === 'table' || !panel.chartConfig; %>
+      <%   var isCardsDef = panel.chartType === 'cards'; %>
+      <div class="dd-panel" id="spanel-col-<%= idx %>"
+           style="left:<%= pos.left %>px;top:<%= pos.top %>px;width:<%= pos.width || 420 %>px;height:<%= pos.height || 300 %>px">
+
+        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">
+            <span class="badge bg-secondary flex-shrink-0 spanel-num" style="font-size:0.65rem;min-width:22px;text-align:center"><%= idx+1 %></span>
+            <span class="fw-semibold text-truncate edit-off" style="font-size:0.82rem" title="<%= panel.originalPrompt || panel.title %>"><%= panel.title %></span>
+            <input type="text" class="form-control form-control-sm edit-on" id="spanel-title-<%= idx %>"
+              value="<%= panel.title %>" style="display:none;font-size:0.78rem;font-weight:600;max-width:220px">
           </div>
+          <div class="d-flex gap-1 flex-shrink-0 align-items-center">
+            <% if (panel.hasData && panel.chartConfig) { %>
+            <% [['bar','bi-bar-chart'],['line','bi-graph-up'],['pie','bi-pie-chart'],['doughnut','bi-pie-chart-fill'],['table','bi-table'],['cards','bi-grid-1x2-fill']].forEach(function(ct){ %>
+            <button type="button"
+              class="btn schart-switch-btn <%= panel.chartType === ct[0] || (isTableDef && ct[0]==='table') || (isCardsDef && ct[0]==='cards') ? 'btn-secondary' : 'btn-outline-secondary' %>"
+              data-spanel="<%= idx %>" data-type="<%= ct[0] %>"
+              onclick="switchSavedChart(<%= idx %>, '<%= ct[0] %>')"
+              style="padding:2px 6px;font-size:0.68rem;line-height:1.4">
+              <i class="bi <%= ct[1] %>"></i>
+            </button>
+            <% }); %>
+            <% } %>
+            <button type="button" class="btn btn-sm btn-outline-danger edit-on" style="display:none;padding:2px 6px;font-size:0.68rem"
+              onclick="removePanel(<%= idx %>)" title="Remove"><i class="bi bi-x-lg"></i></button>
+          </div>
+        </div>
 
-          <div class="card-body p-3">
-            <% if (!panel.hasData) { %>
-            <div class="text-center py-5 text-muted">
-              <i class="bi bi-bar-chart" style="font-size:2.5rem;opacity:0.2"></i>
-              <p class="mt-3" style="font-size:0.9rem">No data</p>
-            </div>
-            <% } else { %>
-            <div id="scards-wrapper-<%= idx %>" style="display:<%= isCardsDef ? 'flex' : 'none' %>;flex-wrap:wrap;gap:10px;padding:4px 0"></div>
-            <div id="schart-wrapper-<%= idx %>" style="display:<%= (isTableDef || isCardsDef) ? 'none' : 'block' %>">
-              <% if (panel.chartConfig) { %>
-              <div style="position:relative;height:320px">
-                <canvas id="schart-<%= idx %>"></canvas>
-              </div>
-              <% } %>
-            </div>
-            <div id="stable-wrapper-<%= idx %>" style="display:<%= (isTableDef && !isCardsDef) ? 'block' : 'none' %>">
-              <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
-              <div class="table-responsive" style="max-height:340px;overflow-y:auto">
-                <table class="table table-sm table-striped mb-0">
-                  <thead class="table-dark" style="position:sticky;top:0">
-                    <tr><% panel.tableData.columns.forEach(function(col){ %><th style="font-size:0.78rem;white-space:nowrap"><%= col %></th><% }); %></tr>
-                  </thead>
-                  <tbody>
-                    <% panel.tableData.rows.forEach(function(row){ %>
-                    <tr><% panel.tableData.columns.forEach(function(col){ %><td style="font-size:0.78rem"><%= row[col]!=null?row[col]:'-' %></td><% }); %></tr>
-                    <% }); %>
-                  </tbody>
-                </table>
-              </div>
-              <% } else { %><div class="text-center py-4 text-muted"><small>No rows</small></div><% } %>
-            </div>
+        <div class="card-body">
+          <% if (!panel.hasData) { %>
+          <div class="text-center py-4 text-muted"><i class="bi bi-bar-chart" style="font-size:2rem;opacity:0.2"></i><p class="mt-2" style="font-size:0.85rem">No data</p></div>
+          <% } else { %>
+          <div id="scards-wrapper-<%= idx %>" style="display:<%= isCardsDef ? 'flex' : 'none' %>;flex-wrap:wrap;gap:8px;padding:4px 0;overflow-y:auto"></div>
+          <div id="schart-wrapper-<%= idx %>" style="display:<%= (isTableDef || isCardsDef) ? 'none' : 'flex' %>;flex:1;min-height:0;position:relative">
+            <% if (panel.chartConfig) { %>
+            <canvas id="schart-<%= idx %>"></canvas>
             <% } %>
           </div>
-
-        </div>
-      </div>
-    <% }); %>
-
-    <!-- Add Panel card (edit mode only) -->
-    <div class="col-lg-6 edit-on" id="addPanelCard" style="display:none">
-      <div class="card h-100" style="border:2px dashed #d1d5db;background:#f9fafb">
-        <div class="card-body d-flex flex-column gap-3 p-4">
-          <div class="text-center mb-1">
-            <i class="bi bi-plus-circle" style="font-size:1.6rem;color:#9ca3af"></i>
-            <div class="fw-semibold mt-1" style="font-size:0.88rem">Add a Panel</div>
+          <div id="stable-wrapper-<%= idx %>" style="display:<%= (isTableDef && !isCardsDef) ? 'block' : 'none' %>;overflow-y:auto;flex:1;min-height:0">
+            <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
+            <div class="table-responsive">
+              <table class="table table-sm table-striped mb-0">
+                <thead class="table-dark" style="position:sticky;top:0">
+                  <tr><% panel.tableData.columns.forEach(function(col){ %><th style="font-size:0.75rem;white-space:nowrap"><%= col %></th><% }); %></tr>
+                </thead>
+                <tbody>
+                  <% panel.tableData.rows.forEach(function(row){ %>
+                  <tr><% panel.tableData.columns.forEach(function(col){ %><td style="font-size:0.75rem"><%= row[col]!=null?row[col]:'-' %></td><% }); %></tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+            <% } else { %><div class="text-center py-3 text-muted"><small>No rows</small></div><% } %>
           </div>
-          <textarea class="form-control" id="newPanelPrompt" rows="3"
-            placeholder="e.g. Total Hours by EmployeeName in Time Entries"
-            style="font-size:0.85rem;resize:none"></textarea>
-          <select class="form-select form-select-sm" id="newPanelSource" style="font-size:0.82rem">
-            <option value="">Internal Database</option>
-            <% if (typeof sources !== 'undefined') { sources.forEach(function(s){ %>
-              <option value="<%= s.id %>"><%= s.name %></option>
-            <% }); } %>
-          </select>
-          <select class="form-select form-select-sm" id="newPanelChart" style="font-size:0.82rem">
-            <option value="auto">Auto</option>
-            <option value="bar">Bar</option>
-            <option value="line">Line</option>
-            <option value="pie">Pie</option>
-            <option value="doughnut">Doughnut</option>
-            <option value="scatter">Scatter</option>
-            <option value="table">Table</option>
-            <option value="cards">Cards</option>
-          </select>
-          <button type="button" class="btn btn-primary btn-sm" id="addPanelBtn" onclick="addNewPanel()">
-            <i class="bi bi-plus-lg me-1"></i>Generate &amp; Add Panel
-          </button>
-          <div id="addPanelStatus" style="font-size:0.76rem;color:#6b7280;text-align:center;display:none"></div>
+          <% } %>
         </div>
       </div>
-    </div>
-  </div>
+      <% }); %>
+
+    </div><!-- #dashGrid -->
+  </div><!-- #dashCanvas -->
 
   <script>
   // ── Expose globals so edit mode functions can access them ──────────────────
@@ -284,7 +365,7 @@
       _renderSCards(idx, p);
       if(__sc[idx]){__sc[idx].destroy();delete __sc[idx];} return;
     }
-    if(cw)cw.style.display='block'; if(tw)tw.style.display='none'; if(kw)kw.style.display='none';
+    if(cw)cw.style.display='flex'; if(tw)tw.style.display='none'; if(kw)kw.style.display='none';
     if (__sc[idx]) { __sc[idx].destroy(); delete __sc[idx]; }
     var canvas = document.getElementById('schart-'+idx);
     if (!canvas) return;
@@ -317,8 +398,6 @@
     document.getElementById('cancelEditBtn').style.display = 'none';
     document.querySelectorAll('.edit-on').forEach(function(el){ el.style.display = 'none'; });
     document.querySelectorAll('.edit-off').forEach(function(el){ el.style.display = ''; });
-    document.getElementById('newPanelPrompt').value = '';
-    document.getElementById('addPanelStatus').style.display = 'none';
   }
 
   function removePanel(idx) {
@@ -355,7 +434,7 @@
       // Build card HTML
       var isTableDef = panel.chartType === 'table' || !panel.chartConfig;
       var isCardsDef = panel.chartType === 'cards';
-      var html = '<div class="col-lg-6 spanel-dynamic" id="spanel-col-' + newIdx + '">' +
+      var html = '<div class="exec-panel spanel-dynamic" id="spanel-col-' + newIdx + '">' +
         '<div class="card h-100">' +
           '<div class="card-header bg-white d-flex justify-content-between align-items-center gap-2 py-2">' +
             '<div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">' +
@@ -447,10 +526,26 @@
       if (!p.chartConfig || p.chartType==='table') return;
       var canvas = document.getElementById('schart-'+idx);
       if (!canvas) return;
-      __sc[idx] = new Chart(canvas.getContext('2d'), _buildSCfg(p, p.chartType));
+      var cfg = _buildSCfg(p, p.chartType);
+      cfg.options.responsive = true;
+      cfg.options.maintainAspectRatio = false;
+      __sc[idx] = new Chart(canvas.getContext('2d'), cfg);
+    });
+    // Resize charts to fill their panels after layout
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        Object.keys(__sc).forEach(function(k) { if (__sc[k]) __sc[k].resize(); });
+      });
     });
   });
   </script>
+
+  <!-- Executive Summary at bottom -->
+  <% if (savedSummary && savedSummary.length > 30) { %>
+  <div id="dd-exec-summary" style="flex-shrink:0;margin-top:6px;padding:8px 14px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-radius:8px;border-left:3px solid #7c3aed;font-size:0.78rem;color:#374151;line-height:1.45">
+    <span style="font-size:0.74rem;color:#4c1d95;font-weight:700"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span> <%= savedSummary %>
+  </div>
+  <% } %>
 
   <% } /* end hasChartData */ %>
 <% } else { /* single-panel */ %>

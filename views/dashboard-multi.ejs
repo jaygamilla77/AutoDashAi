@@ -1,5 +1,13 @@
 <% var tmpl = (typeof panels !== 'undefined' && panels.length && panels[0].template) ? panels[0].template : null; %>
 <% var isExecDash = (typeof isFullDashboard !== 'undefined' && isFullDashboard); %>
+<%
+  var config = {};
+  try { config = JSON.parse(dashboardConfig || '{}'); } catch(e) {}
+  var layoutConfig = config.layoutConfig || {};
+  var existingLayout = layoutConfig.widgets || [];
+  var isLocked = layoutConfig.isLocked !== false;
+%>
+
 <% if (tmpl) { %>
 <style>
   .dash-multi-wrapper { font-family: '<%= tmpl.fontFamily %>', sans-serif; }
@@ -10,7 +18,7 @@
 
 <% if (isExecDash) { %>
 <style>
-  /* ── Executive 1-page dashboard compact styles ── */
+  /* ── Executive 1-page dashboard with drag-and-drop ── */
   .exec-dash { max-width: 1400px; margin: 0 auto; }
   .exec-header { padding: 10px 0 6px; margin-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
   .exec-header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; color: #1e293b; }
@@ -35,32 +43,36 @@
   .exec-kpi-label { font-size: 0.65rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
   .exec-kpi-trend { font-size: 0.62rem; margin-top: 2px; font-weight: 600; }
 
-  /* Executive summary compact */
-  .exec-summary { font-size: 0.75rem; color: #374151; line-height: 1.55; padding: 8px 14px; margin-bottom: 10px;
-    background: linear-gradient(90deg,#f5f3ff,#ede9fe); border-radius: 8px; border-left: 3px solid #7c3aed; }
-  .exec-summary .label { font-size: 0.7rem; color: #4c1d95; font-weight: 700; }
+  /* Layout control bar */
+  .layout-control-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; font-size: 0.75rem; }
+  .layout-control-bar i { color: #64748b; }
+  .layout-control-bar .spacer { flex: 1; }
 
-  /* Chart grid compact */
-  .exec-chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
-  @media (min-width: 1200px) {
-    .exec-chart-grid.g3 { grid-template-columns: repeat(3, 1fr); }
-  }
-  .exec-panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-  .exec-panel-hdr {
-    padding: 8px 12px; font-size: 0.78rem; font-weight: 600; color: #1e293b;
-    border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;
-  }
+  /* GridStack styles */
+  .gs-grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; margin-bottom: 12px; }
+  .gs-item { display: contents; }
+  .gs-item > * { grid-column: span 6; }
+  .gs-item .gs-panel-wrapper { display: flex; flex-direction: column; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    transition: box-shadow 0.2s, border-color 0.2s; overflow: hidden; }
+  .gs-item .gs-panel-wrapper.gs-item-resizing { box-shadow: 0 8px 24px rgba(59,130,246,0.15); border-color: #93c5fd; }
+  .gs-item .gs-panel-wrapper.gs-item-moving { box-shadow: 0 12px 30px rgba(99,102,241,0.2); border-color: #818cf8; }
+  .gs-drag-handle { cursor: grab; user-select: none; padding: 8px 12px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 6px; }
+  .gs-drag-handle:active { cursor: grabbing; }
+  .gs-drag-handle i { color: #94a3b8; font-size: 0.8rem; }
+
+  /* Executive panel in grid */
+  .exec-panel { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+  .exec-panel-hdr { padding: 0 12px; font-size: 0.78rem; font-weight: 600; color: #1e293b; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
   .exec-panel-hdr .badge { font-size: 0.58rem; }
-  .exec-panel-body { padding: 6px 10px 10px; }
-  .exec-panel .exec-chart-wrap { position: relative; height: 200px; }
+  .exec-panel-body { padding: 6px 10px 10px; flex: 1; overflow-y: auto; }
+  .exec-panel .exec-chart-wrap { position: relative; height: 100%; min-height: 80px; }
   .exec-panel .exec-insight {
     font-size: 0.68rem; color: #4c1d95; padding: 5px 10px;
     background: linear-gradient(90deg,#f5f3ff,#ede9fe); border-top: 1px solid #e2e8f0;
-    line-height: 1.4;
+    line-height: 1.4; flex-shrink: 0;
   }
   .exec-panel .exec-kpi-footer {
-    display: flex; border-top: 1px solid #e5e7eb;
+    display: flex; border-top: 1px solid #e5e7eb; flex-shrink: 0;
   }
   .exec-panel .exec-kpi-footer .kpi-item {
     flex: 1; text-align: center; padding: 5px 2px; border-right: 1px solid #f1f5f9;
@@ -71,7 +83,7 @@
 
   /* Print-friendly */
   @media print {
-    .exec-header .actions, .exec-filter { display: none !important; }
+    .exec-header .actions, .layout-control-bar { display: none !important; }
     .exec-panel { break-inside: avoid; }
   }
 </style>
@@ -106,6 +118,29 @@
     </div>
   </div>
 
+  <!-- Layout Control Bar (Drag & Drop Mode) -->
+  <div class="layout-control-bar">
+    <i class="bi bi-arrows-move"></i>
+    <span id="layoutStatus">Drag & drop to rearrange • Drag corners to resize</span>
+    <div class="spacer"></div>
+    <button type="button" id="layoutLockBtn" class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="aiLayoutLock()" style="font-size:0.7rem">
+      <i class="bi <%= isLocked ? 'bi-lock-fill' : 'bi-unlock-fill' %>"></i> <%= isLocked ? 'Unlock' : 'Lock' %> Layout
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-warning py-0 px-2" onclick="aiLayoutReset()" style="font-size:0.7rem">
+      <i class="bi bi-arrow-clockwise"></i> Reset
+    </button>
+    <button type="button" class="btn btn-sm btn-primary py-0 px-2" onclick="aiLayoutSave()" style="font-size:0.7rem">
+      <i class="bi bi-check-circle"></i> Save Layout
+    </button>
+  </div>
+        <i class="bi bi-bookmark"></i> Save
+      </button>
+      <a href="/" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-lg"></i> New
+      </a>
+    </div>
+  </div>
+
   <!-- KPI Strip -->
   <% var kpiPalRaw = (typeof palette !== 'undefined' && palette && palette.length >= 2) ? palette : null; %>
   <% var kpiColors = kpiPalRaw || ['#3b82f6','#6366f1','#22c55e','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']; %>
@@ -128,106 +163,108 @@
   </div>
   <% } %>
 
-  <!-- Executive Summary -->
-  <% if (typeof executiveSummary !== 'undefined' && executiveSummary && executiveSummary.length > 50) { %>
-  <div class="exec-summary">
-    <span class="label"><i class="bi bi-robot me-1"></i>AI Executive Summary:</span>
-    <%= executiveSummary %>
-  </div>
-  <% } %>
-
-  <!-- Chart Grid -->
-  <div class="exec-chart-grid<%= panels.length >= 6 ? ' g3' : '' %>" id="panelGrid">
+  <!-- Chart Grid with GridStack (Drag & Drop Layout) -->
+  <div class="gs-grid-layout" id="panelGrid">
     <% panels.forEach(function(panel, idx) { %>
     <% var isTableDefault = panel.chartType === 'table' || !panel.chartConfig; %>
     <% var isCardsDefault = panel.chartType === 'cards'; %>
-    <div class="exec-panel" id="panel-col-<%= idx %>">
+    <div class="gs-item" id="panel-<%= idx %>" data-gs-id="panel-<%= idx %>">
+      <div class="gs-panel-wrapper">
 
-      <!-- Panel header -->
-      <div class="exec-panel-hdr">
-        <span class="text-truncate" title="<%= panel.originalPrompt %>"><%= panel.title %></span>
-        <% if (panel.hasData) { %>
-        <div class="d-flex gap-1 flex-shrink-0" role="group">
-          <% [
-            {type:'bar',icon:'bi-bar-chart'},{type:'line',icon:'bi-graph-up'},
-            {type:'pie',icon:'bi-pie-chart'},{type:'doughnut',icon:'bi-pie-chart-fill'},
-            {type:'table',icon:'bi-table'},{type:'cards',icon:'bi-grid-1x2-fill'},
-          ].forEach(function(ct) {
-            var active = panel.chartType === ct.type || (isTableDefault && ct.type === 'table' && !panel.chartConfig);
-          %>
-          <button type="button"
-            class="btn chart-switch-btn <%= active ? 'btn-secondary' : 'btn-outline-secondary' %>"
-            data-panel="<%= idx %>" data-type="<%= ct.type %>"
-            onclick="switchChartType(<%= idx %>, '<%= ct.type %>')"
-            title="<%= ct.type %>" style="padding:2px 5px;font-size:0.62rem;line-height:1.4">
-            <i class="bi <%= ct.icon %>"></i>
-          </button>
-          <% }); %>
+        <!-- Drag Handle & Header -->
+        <div class="gs-drag-handle">
+          <i class="bi bi-grip-vertical"></i><span style="flex:1"><%= panel.title %></span>
         </div>
-        <% } %>
-      </div>
 
-      <div class="exec-panel-body">
-        <% if (!panel.hasData) { %>
-        <div class="text-center py-4 text-muted">
-          <i class="bi bi-bar-chart" style="font-size:1.8rem;opacity:0.2"></i>
-          <p class="mt-2 mb-0" style="font-size:0.75rem">No data</p>
-        </div>
-        <% } else { %>
+        <!-- Panel -->
+        <div class="exec-panel">
+          <!-- Panel header -->
+          <div class="exec-panel-hdr" style="padding-top:0">
+            <span class="text-truncate" style="flex:1" title="<%= panel.originalPrompt %>"><%= panel.title %></span>
+            <% if (panel.hasData) { %>
+            <div class="d-flex gap-1 flex-shrink-0" role="group">
+              <% [
+                {type:'bar',icon:'bi-bar-chart'},{type:'line',icon:'bi-graph-up'},
+                {type:'pie',icon:'bi-pie-chart'},{type:'doughnut',icon:'bi-pie-chart-fill'},
+                {type:'table',icon:'bi-table'},{type:'cards',icon:'bi-grid-1x2-fill'},
+              ].forEach(function(ct) {
+                var active = panel.chartType === ct.type || (isTableDefault && ct.type === 'table' && !panel.chartConfig);
+              %>
+              <button type="button"
+                class="btn chart-switch-btn <%= active ? 'btn-secondary' : 'btn-outline-secondary' %>"
+                data-panel="<%= idx %>" data-type="<%= ct.type %>"
+                onclick="switchChartType(<%= idx %>, '<%= ct.type %>')"
+                title="<%= ct.type %>" style="padding:2px 5px;font-size:0.62rem;line-height:1.4">
+                <i class="bi <%= ct.icon %>"></i>
+              </button>
+              <% }); %>
+            </div>
+            <% } %>
+          </div>
 
-        <!-- Chart -->
-        <div id="chart-wrapper-<%= idx %>" style="display:<%= (isTableDefault || isCardsDefault) ? 'none' : 'block' %>">
-          <% if (panel.chartConfig) { %>
-          <div class="exec-chart-wrap">
-            <canvas id="chart-<%= idx %>"></canvas>
+          <div class="exec-panel-body">
+            <% if (!panel.hasData) { %>
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-bar-chart" style="font-size:1.8rem;opacity:0.2"></i>
+              <p class="mt-2 mb-0" style="font-size:0.75rem">No data</p>
+            </div>
+            <% } else { %>
+
+            <!-- Chart -->
+            <div id="chart-wrapper-<%= idx %>" style="display:<%= (isTableDefault || isCardsDefault) ? 'none' : 'block' %>">
+              <% if (panel.chartConfig) { %>
+              <div class="exec-chart-wrap">
+                <canvas id="chart-<%= idx %>"></canvas>
+              </div>
+              <% } %>
+            </div>
+
+            <!-- Cards view -->
+            <div id="cards-wrapper-<%= idx %>" style="display:<%= isCardsDefault ? 'flex' : 'none' %>;flex-wrap:wrap;gap:6px;padding:2px 0"></div>
+
+            <!-- Table view -->
+            <div id="table-wrapper-<%= idx %>" style="display:<%= (isTableDefault && !isCardsDefault) ? 'block' : 'none' %>">
+              <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
+              <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+                <table class="table table-sm table-striped table-hover mb-0" style="font-size:0.72rem">
+                  <thead class="table-dark" style="position:sticky;top:0">
+                    <tr><% panel.tableData.columns.forEach(function(col) { %><th style="white-space:nowrap"><%= col %></th><% }); %></tr>
+                  </thead>
+                  <tbody>
+                    <% panel.tableData.rows.slice(0,20).forEach(function(row) { %>
+                    <tr><% panel.tableData.columns.forEach(function(col) { %><td><%= row[col] != null ? row[col] : '-' %></td><% }); %></tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+              <% } %>
+            </div>
+
+            <% } %>
+          </div>
+
+          <!-- KPI footer -->
+          <% if (panel.kpis && panel.kpis.length > 0) { %>
+          <div class="exec-kpi-footer">
+            <% panel.kpis.slice(0, 3).forEach(function(kpi) { %>
+            <div class="kpi-item">
+              <div class="val" style="<%= tmpl ? 'color:' + tmpl.accentColor + ';' : '' %>"><%= kpi.value %></div>
+              <div class="lbl"><%= kpi.label %></div>
+            </div>
+            <% }); %>
           </div>
           <% } %>
-        </div>
 
-        <!-- Cards view -->
-        <div id="cards-wrapper-<%= idx %>" style="display:<%= isCardsDefault ? 'flex' : 'none' %>;flex-wrap:wrap;gap:6px;padding:2px 0"></div>
-
-        <!-- Table view -->
-        <div id="table-wrapper-<%= idx %>" style="display:<%= (isTableDefault && !isCardsDefault) ? 'block' : 'none' %>">
-          <% if (panel.tableData && panel.tableData.rows && panel.tableData.rows.length > 0) { %>
-          <div class="table-responsive" style="max-height:200px;overflow-y:auto">
-            <table class="table table-sm table-striped table-hover mb-0" style="font-size:0.72rem">
-              <thead class="table-dark" style="position:sticky;top:0">
-                <tr><% panel.tableData.columns.forEach(function(col) { %><th style="white-space:nowrap"><%= col %></th><% }); %></tr>
-              </thead>
-              <tbody>
-                <% panel.tableData.rows.slice(0,20).forEach(function(row) { %>
-                <tr><% panel.tableData.columns.forEach(function(col) { %><td><%= row[col] != null ? row[col] : '-' %></td><% }); %></tr>
-                <% }); %>
-              </tbody>
-            </table>
+          <!-- AI Insight -->
+          <% if (panel.aiInsight) { %>
+          <div class="exec-insight">
+            <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:3px"></i>
+            <span style="font-weight:600">Insight:</span> <%= panel.aiInsight %>
           </div>
           <% } %>
+
         </div>
-
-        <% } %>
       </div>
-
-      <!-- KPI footer -->
-      <% if (panel.kpis && panel.kpis.length > 0) { %>
-      <div class="exec-kpi-footer">
-        <% panel.kpis.slice(0, 3).forEach(function(kpi) { %>
-        <div class="kpi-item">
-          <div class="val" style="<%= tmpl ? 'color:' + tmpl.accentColor + ';' : '' %>"><%= kpi.value %></div>
-          <div class="lbl"><%= kpi.label %></div>
-        </div>
-        <% }); %>
-      </div>
-      <% } %>
-
-      <!-- AI Insight -->
-      <% if (panel.aiInsight) { %>
-      <div class="exec-insight">
-        <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:3px"></i>
-        <span style="font-weight:600">Insight:</span> <%= panel.aiInsight %>
-      </div>
-      <% } %>
-
     </div>
     <% }); %>
   </div>
@@ -262,26 +299,6 @@
     </a>
   </div>
 </div>
-
-<!-- Executive Summary (AI) -->
-<% if (typeof executiveSummary !== 'undefined' && executiveSummary && executiveSummary.length > 50) { %>
-<div class="card mb-3" style="border-left:4px solid #7c3aed">
-  <div class="card-body py-3">
-    <div class="d-flex align-items-start gap-2">
-      <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
-           style="width:32px;height:32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:0.9rem">
-        <i class="bi bi-robot"></i>
-      </div>
-      <div>
-        <h6 class="mb-1" style="font-size:0.82rem;color:#4c1d95">
-          <i class="bi bi-file-earmark-text me-1"></i>AI Executive Summary
-        </h6>
-        <p class="mb-0" style="font-size:0.8rem;color:#374151;line-height:1.6"><%= executiveSummary %></p>
-      </div>
-    </div>
-  </div>
-</div>
-<% } %>
 
 <!-- KPI Strip (for non-executive dashboards) -->
 <% if (!isExecDash) { %>
@@ -341,9 +358,16 @@
         <div class="card-header bg-white d-flex justify-content-between align-items-center gap-3 py-2">
           <div class="d-flex align-items-center gap-2 min-w-0">
             <span class="badge bg-secondary flex-shrink-0" style="font-size:0.65rem;min-width:22px;text-align:center"><%= idx + 1 %></span>
-            <span class="fw-semibold text-truncate" style="font-size:0.85rem" title="<%= panel.originalPrompt %>">
-              <%= panel.title %>
-            </span>
+            <div class="min-w-0">
+              <div class="fw-semibold text-truncate" style="font-size:0.85rem" title="<%= panel.originalPrompt %>">
+                <%= panel.title %>
+              </div>
+              <% if (panel.calculationLabel) { %>
+              <div class="text-truncate" data-calc-label style="font-size:0.65rem;color:#6b7280;margin-top:1px" title="<%= panel.calculationLabel %>">
+                <%= panel.calculationLabel %>
+              </div>
+              <% } %>
+            </div>
           </div>
 
           <!-- Chart type toggle buttons + filter toggle -->
@@ -379,6 +403,16 @@
               style="padding:3px 7px;font-size:0.72rem;line-height:1.5">
               <i class="bi bi-funnel"></i>
             </button>
+            <% if (panel.structuredRequest) { %>
+            <div style="width:1px;background:#dee2e6;height:18px;margin:0 2px"></div>
+            <button type="button"
+              class="btn btn-outline-primary"
+              onclick="openCalcEditor(<%= idx %>)"
+              title="Edit Calculation"
+              style="padding:3px 7px;font-size:0.72rem;line-height:1.5">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <% } %>
           </div>
           <% } %>
         </div>
@@ -488,12 +522,10 @@
         <% } %>
 
         <!-- AI Insight -->
-        <% if (panel.aiInsight) { %>
-        <div style="padding:8px 12px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-top:1px solid #e2e8f0;font-size:0.75rem;color:#4c1d95;line-height:1.5">
+        <div id="ai-insight-<%= idx %>" style="padding:8px 12px;background:linear-gradient(90deg,#f5f3ff,#ede9fe);border-top:1px solid #e2e8f0;font-size:0.75rem;color:#4c1d95;line-height:1.5;<%= panel.aiInsight ? '' : 'display:none' %>">
           <i class="bi bi-lightbulb" style="color:#7c3aed;margin-right:4px"></i>
-          <span style="font-weight:600">AI Insight:</span> <%= panel.aiInsight %>
+          <span style="font-weight:600">AI Insight:</span> <span><%= panel.aiInsight || '' %></span>
         </div>
-        <% } %>
 
       </div>
     </div>
@@ -518,8 +550,134 @@
   <input type="hidden" name="title" id="saveTitle">
   <input type="hidden" name="promptText" id="savePrompt">
   <input type="hidden" name="dashboardConfigJson" id="saveConfig">
-  <input type="hidden" name="dataSourceId" value="<%= panels[0] ? (panels[0].dataSourceId || '') : '' %>">
+  <input type="hidden" name="dataSourceId" value="<%= (typeof sourceId !== 'undefined' && sourceId) ? sourceId : (panels[0] ? (panels[0].sourceId || panels[0].dataSourceId || '') : '') %>">
 </form>
+
+<!-- ═══════ Edit Calculation Modal ═══════ -->
+<div class="modal fade" id="calcEditorModal" tabindex="-1" aria-labelledby="calcEditorTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:520px">
+    <div class="modal-content">
+      <div class="modal-header py-2 px-3" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff">
+        <div>
+          <h6 class="modal-title mb-0 fw-bold" id="calcEditorTitle">
+            <i class="bi bi-pencil-square me-2"></i>Edit Calculation
+          </h6>
+          <div id="calcEditorPanelTitle" style="font-size:0.7rem;opacity:0.85;margin-top:2px"></div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3">
+
+        <!-- Original prompt -->
+        <div class="mb-3 p-2 rounded" style="background:#f8fafc;border:1px solid #e5e7eb;font-size:0.78rem">
+          <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:3px">Original Prompt</div>
+          <div id="calcEditorPromptText" style="color:#374151;font-style:italic"></div>
+        </div>
+
+        <!-- Current label -->
+        <div class="mb-3">
+          <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:3px">Current Calculation</div>
+          <div id="calcEditorCurrentLabel" class="badge" style="background:#ede9fe;color:#4c1d95;font-size:0.72rem;font-weight:500;padding:4px 8px;border-radius:6px"></div>
+        </div>
+
+        <hr class="my-2">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6366f1;margin-bottom:10px">
+          <i class="bi bi-sliders me-1"></i>Edit Parameters
+        </div>
+
+        <div class="row g-2">
+          <!-- Entity / Focus Area -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Entity / Focus</label>
+            <select class="form-select form-select-sm" id="calcEntity" style="font-size:0.78rem">
+              <option value="employee">Employees</option>
+              <option value="department">Departments</option>
+              <option value="project">Projects</option>
+              <option value="ticket">Tickets</option>
+              <option value="productivity">Productivity Records</option>
+            </select>
+          </div>
+          <!-- Metric -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Metric / Measure</label>
+            <select class="form-select form-select-sm" id="calcMetric" style="font-size:0.78rem">
+              <option value="count">COUNT (rows)</option>
+              <option value="budget">SUM Budget</option>
+              <option value="avg_productivity_score">AVG Productivity Score</option>
+              <option value="avg_hours_logged">AVG Hours Logged</option>
+              <option value="avg_tasks_completed">AVG Tasks Completed</option>
+              <option value="avg">AVG (generic)</option>
+              <option value="sum">SUM (generic)</option>
+              <option value="max">MAX value</option>
+              <option value="min">MIN value</option>
+            </select>
+          </div>
+          <!-- Dimension / Group By -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Group By</label>
+            <select class="form-select form-select-sm" id="calcDimension" style="font-size:0.78rem">
+              <option value="department">Department</option>
+              <option value="status">Status</option>
+              <option value="priority">Priority</option>
+              <option value="category">Category</option>
+              <option value="project">Project</option>
+              <option value="employee">Employee</option>
+              <option value="month">Month</option>
+              <option value="week">Week</option>
+            </select>
+          </div>
+          <!-- Sort -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Sort Order</label>
+            <select class="form-select form-select-sm" id="calcSort" style="font-size:0.78rem">
+              <option value="desc">High → Low ↓</option>
+              <option value="asc">Low → High ↑</option>
+              <option value="">No sort</option>
+            </select>
+          </div>
+          <!-- Limit -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Top N Results</label>
+            <input type="number" class="form-control form-control-sm" id="calcLimit" min="1" max="200" placeholder="e.g. 10" style="font-size:0.78rem">
+          </div>
+          <!-- Chart Type -->
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:0.72rem;font-weight:600;color:#374151">Chart Type</label>
+            <select class="form-select form-select-sm" id="calcChartType" style="font-size:0.78rem">
+              <option value="bar">Bar</option>
+              <option value="hbar">Horizontal Bar</option>
+              <option value="line">Line</option>
+              <option value="pie">Pie</option>
+              <option value="doughnut">Doughnut</option>
+              <option value="area">Area</option>
+              <option value="table">Table</option>
+              <option value="cards">Cards (KPI)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Calculation hint -->
+        <div id="calcPreviewLabel" class="mt-3 p-2 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:0.75rem;color:#166534;display:none">
+          <i class="bi bi-calculator me-1"></i>
+          <strong>New calculation:</strong> <span id="calcPreviewText"></span>
+        </div>
+
+        <!-- Error display -->
+        <div id="calcEditorError" class="alert alert-danger py-2 px-3 mt-2 mb-0" style="font-size:0.78rem;display:none"></div>
+
+      </div>
+      <div class="modal-footer py-2 px-3 gap-2">
+        <div style="flex:1;font-size:0.68rem;color:#9ca3af">
+          <i class="bi bi-info-circle me-1"></i>Changes update the panel in-place. Save the dashboard to persist.
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-sm btn-primary px-3" id="calcApplyBtn" onclick="applyCalcEdit()">
+          <i class="bi bi-play-fill me-1"></i>Apply Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div>
 
@@ -541,6 +699,22 @@ window.__panelData = <%- JSON.stringify(panels.map(function(p) {
     borderColors: ds ? (Array.isArray(ds.borderColor) ? ds.borderColor : [ds.borderColor]) : [],
     fontFamily: (p.template && p.template.fontFamily) ? p.template.fontFamily : 'Inter',
     tableData: { columns: td.columns || [], rows: td.rows || [] },
+    // Builder config — preserved so Manual Builder can load and edit the calculation
+    table:               p.table               || null,
+    joinTable:           p.joinTable           || null,
+    dimension:           p.dimension           || null,
+    measure:             p.measure             || null,
+    aggregation:         p.aggregation         || null,
+    limit:               p.limit               || null,
+    sourceId:            p.sourceId            || null,
+    position:            p.position            || null,
+    section:             p.section             || null,
+    // AI calculation — preserved so the calculation can be viewed and edited
+    calculationLabel:    p.calculationLabel    || null,
+    structuredRequest:   p.structuredRequest   || null,
+    aiInsight:           p.aiInsight           || null,
+    parsedByAI:          p.parsedByAI          || false,
+    chartEngine:         p.chartEngine         || null,
   };
 })) %>;
 
@@ -548,8 +722,10 @@ var __chartInstances = {};
 var __currentTypes = window.__panelData.map(function(p) { return p.chartType; });
 var __isExecDash = <%= isExecDash ? 'true' : 'false' %>;
 window.__kpiData = <%- JSON.stringify(typeof kpiData !== 'undefined' && kpiData ? kpiData : []) %>;
+window.__kpiPositions = <%- JSON.stringify(typeof kpiPositions !== 'undefined' && kpiPositions ? kpiPositions : []) %>;
 window.__execSummary = <%- JSON.stringify(typeof executiveSummary !== 'undefined' && executiveSummary ? executiveSummary : '') %>;
 window.__palette = <%- JSON.stringify(typeof palette !== 'undefined' && palette && palette.length ? palette : []) %>;
+window.__executiveMeta = <%- JSON.stringify(typeof executiveMeta !== 'undefined' && executiveMeta ? executiveMeta : null) %>;
 
 function _applyPalette(p) {
   var pal = window.__palette;
@@ -1014,10 +1190,19 @@ function saveDashboard() {
   var allPrompts = window.__panelData.map(function(p) { return p.originalPrompt; }).join('\n');
   document.getElementById('saveTitle').value = allTitles.substring(0, 120);
   document.getElementById('savePrompt').value = allPrompts;
+  var execMeta = window.__executiveMeta || {};
   document.getElementById('saveConfig').value = JSON.stringify({
     kpiData: window.__kpiData || [],
+    kpiPositions: window.__kpiPositions || [],
     executiveSummary: window.__execSummary || '',
     palette: window.__palette || [],
+    dashboardType: execMeta.dashboardType || null,
+    dashboardRole: execMeta.dashboardRole || null,
+    dashboardSubtitle: execMeta.dashboardSubtitle || null,
+    anomalyAlert: execMeta.anomalyAlert || null,
+    layoutHint: execMeta.layoutHint || null,
+    sections: execMeta.sections || [],
+    schemaVersion: execMeta.schemaVersion || null,
     panels: window.__panelData.map(function(p, i) {
       var currentType = __currentTypes[i];
       // Persist the chartConfig with the currently selected chart type
@@ -1039,6 +1224,22 @@ function saveDashboard() {
         bgColors: p.bgColors,
         borderColors: p.borderColors,
         tableData: p.tableData,
+        section: p.section || null,
+        // Builder config fields — required for Manual Builder editing
+        table:              p.table              || null,
+        joinTable:          p.joinTable          || null,
+        dimension:          p.dimension          || null,
+        measure:            p.measure            || null,
+        aggregation:        p.aggregation        || null,
+        limit:              p.limit              || null,
+        sourceId:           p.sourceId           || null,
+        position:           p.position           || null,
+        // AI calculation fields — required for re-run editing
+        calculationLabel:   p.calculationLabel   || null,
+        structuredRequest:  p.structuredRequest  || null,
+        aiInsight:          p.aiInsight          || null,
+        parsedByAI:         p.parsedByAI         || false,
+        chartEngine:        p.chartEngine        || null,
       };
     })
   });
@@ -1061,4 +1262,223 @@ document.addEventListener('DOMContentLoaded', function() {
     __chartInstances[idx] = new Chart(canvas.getContext('2d'), buildClientConfig(filtered, panel.chartType));
   });
 });
+
+// ═══════ Edit Calculation Modal Logic ═══════
+var __calcEditorPanelIdx = null;
+
+window.openCalcEditor = function(idx) {
+  var panel = window.__panelData[idx];
+  if (!panel || !panel.structuredRequest) return;
+  __calcEditorPanelIdx = idx;
+  var sr = panel.structuredRequest;
+
+  // Populate read-only fields
+  document.getElementById('calcEditorPanelTitle').textContent = panel.title || '';
+  document.getElementById('calcEditorPromptText').textContent = panel.originalPrompt || '(no prompt)';
+  document.getElementById('calcEditorCurrentLabel').textContent = panel.calculationLabel || '';
+  document.getElementById('calcEditorError').style.display = 'none';
+  document.getElementById('calcPreviewLabel').style.display = 'none';
+
+  // Populate editable fields
+  _setVal('calcEntity',    sr.focusArea || 'employee');
+  _setVal('calcMetric',    (sr.metrics && sr.metrics.length) ? sr.metrics[0] : 'count');
+  _setVal('calcDimension', (sr.dimensions && sr.dimensions.length) ? sr.dimensions[0] : 'department');
+  _setVal('calcSort',      (sr.sort && sr.sort.direction) ? sr.sort.direction : 'desc');
+  document.getElementById('calcLimit').value = sr.limit || '';
+  _setVal('calcChartType', sr.chartPreference || panel.chartType || 'bar');
+
+  // Live preview label on any change
+  ['calcEntity','calcMetric','calcDimension','calcSort','calcLimit','calcChartType'].forEach(function(id) {
+    document.getElementById(id).oninput = _updateCalcPreview;
+    document.getElementById(id).onchange = _updateCalcPreview;
+  });
+  _updateCalcPreview();
+
+  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('calcEditorModal'));
+  modal.show();
+};
+
+function _setVal(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  // Try to select the option; if not found, add a temporary one
+  var found = false;
+  for (var i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === val) { el.selectedIndex = i; found = true; break; }
+  }
+  if (!found) {
+    var opt = document.createElement('option');
+    opt.value = val; opt.textContent = val;
+    el.appendChild(opt);
+    el.value = val;
+  }
+}
+
+function _updateCalcPreview() {
+  var entity = document.getElementById('calcEntity').value;
+  var metric = document.getElementById('calcMetric').value;
+  var dim    = document.getElementById('calcDimension').value;
+  var sort   = document.getElementById('calcSort').value;
+  var limit  = document.getElementById('calcLimit').value;
+  var label  = 'AI: ' + metric.toUpperCase() + '(' + entity + ') by ' + dim;
+  if (sort)  label += ' (' + (sort === 'desc' ? '↓' : '↑') + ')';
+  if (limit) label += ', TOP ' + limit;
+  document.getElementById('calcPreviewText').textContent = label;
+  document.getElementById('calcPreviewLabel').style.display = '';
+}
+
+window.applyCalcEdit = function() {
+  if (__calcEditorPanelIdx === null) return;
+  var labels = [], values = [];
+  (window.__calcEditData || []).forEach(function(row) {
+    labels.push(row[__calcEditorCalc.dimension] || '');
+    values.push(parseFloat(row[__calcEditorCalc.metric]) || 0);
+  });
+  var calcChartCfg = JSON.parse(JSON.stringify(panels[__calcEditorPanelIdx].chartConfig || {}));
+  calcChartCfg.data = {labels: labels, datasets: [{label: __calcEditorCalc.metric, data: values, backgroundColor: '#3b82f6', borderColor: '#1e40af', borderWidth: 1, borderRadius: 4}]};
+  panels[__calcEditorPanelIdx].chartConfig = calcChartCfg;
+  switchChartType(__calcEditorPanelIdx, __calcEditorCalc.chartType || 'bar');
+  setTimeout(function(){ renderChart(__calcEditorPanelIdx); }, 100);
+  bootstrap.Modal.getInstance(document.getElementById('calcEditorModal')).hide();
+};
+
+// ════════════════════════════════════════
+// Initialize Layout Manager (GridStack)
+// ════════════════════════════════════════
+<% if (isExecDash) { %>
+window.__LAYOUT_DATA__ = <%- JSON.stringify(existingLayout) %>;
+window.__LAYOUT_LOCKED__ = <%= isLocked %>;
+
+// Initialize layout manager when page loads
+window.addEventListener('load', function() {
+  if (typeof LayoutManagerFrontend !== 'undefined' && document.getElementById('panelGrid')) {
+    LayoutManagerFrontend.init(
+      window.__LAYOUT_DATA__ || [],
+      [],  // Default layout (will be computed by frontend)
+      window.__LAYOUT_LOCKED__ || false
+    );
+  }
+});
+<% } %>
+
+  var panel = window.__panelData[__calcEditorPanelIdx];
+  if (!panel || !panel.structuredRequest) return;
+
+  var sr = JSON.parse(JSON.stringify(panel.structuredRequest)); // clone
+  sr.focusArea   = document.getElementById('calcEntity').value;
+  sr.metrics     = [document.getElementById('calcMetric').value];
+  sr.dimensions  = [document.getElementById('calcDimension').value];
+  var sortDir    = document.getElementById('calcSort').value;
+  sr.sort        = sortDir ? { field: sr.metrics[0], direction: sortDir } : null;
+  var lim        = parseInt(document.getElementById('calcLimit').value);
+  sr.limit       = (!isNaN(lim) && lim > 0) ? lim : null;
+  sr.chartPreference = document.getElementById('calcChartType').value;
+
+  var btn = document.getElementById('calcApplyBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" style="width:12px;height:12px"></span>Running…';
+  document.getElementById('calcEditorError').style.display = 'none';
+
+  fetch('/dashboard/recalculate-panel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ structuredRequest: sr, dataSourceId: panel.sourceId || panel.dataSourceId || null }),
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (result.error) throw new Error(result.error);
+
+    var idx = __calcEditorPanelIdx;
+    var p = window.__panelData[idx];
+
+    // Merge updated fields into panel data
+    p.title              = result.title;
+    p.calculationLabel   = result.calculationLabel;
+    p.structuredRequest  = result.structuredRequest;
+    p.chartType          = result.chartType;
+    p.hasData            = result.hasData;
+    p.chartConfig        = result.chartConfig;
+    p.labels             = result.labels;
+    p.values             = result.values;
+    p.bgColors           = result.bgColors;
+    p.borderColors       = result.borderColors;
+    p.tableData          = result.tableData;
+    p.aiInsight          = result.aiInsight;
+    __currentTypes[idx]  = result.chartType;
+
+    // Update panel title + calculation label in DOM
+    var hdr = document.querySelector('#panel-col-' + idx + ' .card-header');
+    if (hdr) {
+      var titleEl = hdr.querySelector('.fw-semibold');
+      if (titleEl) titleEl.textContent = result.title;
+      var calcEl = hdr.querySelector('[data-calc-label]');
+      if (calcEl) calcEl.textContent = result.calculationLabel || '';
+    }
+
+    // Re-render the chart
+    if (__chartInstances[idx]) { __chartInstances[idx].destroy(); delete __chartInstances[idx]; }
+    var canvas = document.getElementById('chart-' + idx);
+    var tableWrap = document.getElementById('table-wrapper-' + idx);
+    var cardsWrap = document.getElementById('cards-wrapper-' + idx);
+    var chartWrap = document.getElementById('chart-wrapper-' + idx);
+
+    if (result.chartType === 'table') {
+      if (chartWrap) chartWrap.style.display = 'none';
+      if (cardsWrap) cardsWrap.style.display = 'none';
+      if (tableWrap) {
+        tableWrap.style.display = 'block';
+        // Rebuild table content
+        var td = result.tableData;
+        if (td && td.rows && td.rows.length) {
+          tableWrap.innerHTML = '<div class="table-responsive" style="max-height:340px;overflow-y:auto">' +
+            '<table class="table table-sm table-striped table-hover mb-0" style="font-size:0.72rem">' +
+            '<thead class="table-dark" style="position:sticky;top:0"><tr>' +
+            td.columns.map(function(c) { return '<th style="white-space:nowrap">' + _escHtml(String(c)) + '</th>'; }).join('') +
+            '</tr></thead><tbody>' +
+            td.rows.slice(0,50).map(function(r) {
+              return '<tr>' + td.columns.map(function(c) { return '<td>' + _escHtml(String(r[c] != null ? r[c] : '-')) + '</td>'; }).join('') + '</tr>';
+            }).join('') + '</tbody></table></div>';
+        }
+      }
+    } else if (result.chartType === 'cards') {
+      if (chartWrap) chartWrap.style.display = 'none';
+      if (tableWrap) tableWrap.style.display = 'none';
+      if (cardsWrap) {
+        cardsWrap.style.display = 'flex';
+        _renderCardsWrapper(idx, { labels: result.labels, values: result.values });
+      }
+    } else if (result.chartConfig && canvas) {
+      if (tableWrap) tableWrap.style.display = 'none';
+      if (cardsWrap) cardsWrap.style.display = 'none';
+      if (chartWrap) chartWrap.style.display = 'block';
+      var cfg = JSON.parse(JSON.stringify(result.chartConfig));
+      cfg.options = cfg.options || {};
+      cfg.options.animation = false; cfg.options.responsive = true; cfg.options.maintainAspectRatio = false;
+      __chartInstances[idx] = new Chart(canvas.getContext('2d'), cfg);
+    }
+
+    // Update AI insight bar
+    var insightEl = document.getElementById('ai-insight-' + idx);
+    if (insightEl) {
+      var insightText = insightEl.querySelector('span:last-child');
+      if (insightText) insightText.textContent = result.aiInsight || '';
+      insightEl.style.display = result.aiInsight ? '' : 'none';
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('calcEditorModal')).hide();
+  })
+  .catch(function(err) {
+    var errEl = document.getElementById('calcEditorError');
+    errEl.textContent = 'Error: ' + err.message;
+    errEl.style.display = '';
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Apply Changes';
+  });
+};
+
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
