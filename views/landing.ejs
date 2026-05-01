@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%
+  // Default fallback if cms is not provided (defensive)
+  var c = (typeof cms !== 'undefined' && cms) ? cms : {};
+  var brand    = c.branding || { name: 'AutoDash', nameAccent: 'AI', tagline: 'by Liknaya', iconClass: 'bi-bar-chart-line-fill', primaryColor: '#2563EB' };
+  var seoHome  = (c.seo && c.seo.pages && c.seo.pages.home) || {};
+  var nav      = c.nav      || { items: [], showSignIn: true, showGetStarted: true, signInLabel: 'Sign In', getStartedLabel: 'Get Started Free' };
+  var hero     = c.hero     || {};
+  var features = (c.features && c.features.items) || [];
+  var stats    = (c.stats && c.stats.items) || [];
+  var faq      = c.faq      || { items: [] };
+  var pricing  = c.pricing  || { plans: [] };
+  var footer   = c.footer   || { socials: [], columns: [] };
+%>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= seoHome.title || 'AutoDash AI' %></title>
+  <meta name="description" content="<%= seoHome.description || '' %>">
+  <meta name="keywords" content="<%= seoHome.keywords || '' %>">
+  <meta name="author" content="Liknaya.com">
+  <meta name="robots" content="<%= seoHome.robots || 'index, follow' %>">
+  <meta name="theme-color" content="<%= brand.primaryColor || '#2563EB' %>">
+  <% if (seoHome.canonical) { %><link rel="canonical" href="<%= seoHome.canonical %>"><% } %>
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= brand.name %> <%= brand.nameAccent %> <%= brand.tagline %>">
+  <meta property="og:title" content="<%= seoHome.title || '' %>">
+  <meta property="og:description" content="<%= seoHome.description || '' %>">
+  <% if (seoHome.canonical) { %><meta property="og:url" content="<%= seoHome.canonical %>"><% } %>
+  <% if (seoHome.ogImage)  { %><meta property="og:image" content="<%= seoHome.ogImage %>"><% } %>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= seoHome.title || '' %>">
+  <meta name="twitter:description" content="<%= seoHome.description || '' %>">
+  <% if (seoHome.ogImage)  { %><meta name="twitter:image" content="<%= seoHome.ogImage %>"><% } %>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AutoDash AI",
+    "url": "https://autodash.liknaya.com",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "AI dashboard builder and analytics platform that automatically generates KPI dashboards, executive reports, and interactive visualizations from any data source.",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "creator": { "@type": "Organization", "name": "Liknaya", "url": "https://liknaya.com" }
+  }
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --blue: #2563EB;
+      --blue-dark: #1D4ED8;
+      --blue-soft: #EFF6FF;
+      --ink: #0F172A;
+      --ink-2: #1E293B;
+      --muted: #64748B;
+      --muted-2: #94A3B8;
+      --border: #E2E8F0;
+      --border-2: #EEF2F7;
+      --bg: #F8FAFC;
+      --bg-2: #F1F5F9;
+      --white: #FFFFFF;
+      --green: #10B981;
+      --purple: #8B5CF6;
+      --orange: #F59E0B;
+      --red: #EF4444;
+      --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+      --shadow:    0 6px 20px rgba(15,23,42,.06);
+      --shadow-lg: 0 24px 60px rgba(15,23,42,.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--ink);
+      background: var(--white);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    /* ───────────────── NAV ───────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: saturate(180%) blur(12px);
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .nav.scrolled { border-bottom-color: var(--border); box-shadow: var(--shadow-sm); }
+    .nav-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 14px 48px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .nav-brand-icon {
+      width: 38px; height: 38px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 8px 24px rgba(37,99,235,.25);
+    }
+    .nav-brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+    .nav-brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+    .nav-brand-name .ai { color: var(--blue); }
+    .nav-brand-tag { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+    .nav-links {
+      display: flex; gap: 32px;
+      list-style: none; margin: 0; padding: 0;
+      flex: 1; justify-content: center;
+    }
+    .nav-links a {
+      color: var(--ink-2);
+      font-weight: 500; font-size: 14.5px;
+      padding: 6px 2px;
+      transition: color .15s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { color: var(--blue); }
+
+    .nav-cta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 14.5px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn-lg { padding: 14px 26px; font-size: 15.5px; border-radius: 12px; }
+    .btn-primary {
+      background: var(--blue); color: #fff;
+      box-shadow: 0 8px 22px rgba(37,99,235,.28);
+    }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(37,99,235,.32); }
+    .btn-ghost { background: transparent; color: var(--ink-2); border-color: transparent; }
+    .btn-ghost:hover { color: var(--blue); }
+    .btn-outline {
+      background: #fff; color: var(--ink-2);
+      border-color: var(--border);
+    }
+    .btn-outline:hover { border-color: var(--blue); color: var(--blue); }
+
+    .nav-toggle {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border);
+      width: 40px; height: 40px; border-radius: 10px;
+      align-items: center; justify-content: center;
+      font-size: 20px; cursor: pointer; color: var(--ink-2);
+    }
+
+    .nav-mobile {
+      display: none;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+    .nav-mobile.open { display: block; }
+    .nav-mobile-inner { max-width: 1440px; margin: 0 auto; padding: 12px 48px 20px; }
+    .nav-mobile ul { list-style: none; margin: 0 0 16px; padding: 0; }
+    .nav-mobile li a { display: block; padding: 12px 0; border-bottom: 1px solid var(--border-2); font-weight: 500; }
+    .nav-mobile-cta { display: flex; gap: 10px; flex-direction: column; }
+
+    /* ───────────────── HERO ───────────────── */
+    .hero {
+      position: relative;
+      padding: 40px 0 56px;
+      background:
+        radial-gradient(900px 500px at 90% 10%, rgba(37,99,235,.05), transparent 60%),
+        radial-gradient(700px 400px at 0% 100%, rgba(139,92,246,.04), transparent 60%),
+        var(--white);
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+      gap: 40px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      font-size: 12px; font-weight: 600;
+      color: var(--blue);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      box-shadow: var(--shadow-sm);
+    }
+    .eyebrow i { color: var(--blue); }
+
+    h1.hero-title {
+      font-size: clamp(34px, 4.6vw, 54px);
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      font-weight: 800;
+      margin: 16px 0 14px;
+      color: var(--ink);
+    }
+    h1.hero-title .blue { color: var(--blue); }
+
+    .hero-lead {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 0 24px;
+      line-height: 1.6;
+    }
+
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+
+    .hero-trust {
+      display: flex; flex-wrap: wrap; gap: 18px;
+      color: var(--muted); font-size: 13.5px;
+    }
+    .hero-trust span { display: inline-flex; align-items: center; gap: 8px; }
+    .hero-trust i { color: var(--blue); font-size: 16px; }
+
+    /* ───────────────── HERO MOCKUP ───────────────── */
+    .mockup {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 168px 1fr;
+      min-height: 460px;
+    }
+    .mockup-side {
+      background: #fff;
+      border-right: 1px solid var(--border-2);
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mockup-side-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px 14px;
+      border-bottom: 1px solid var(--border-2);
+      margin-bottom: 10px;
+    }
+    .mockup-side-brand-icon {
+      width: 28px; height: 28px;
+      background: var(--blue); color: #fff;
+      border-radius: 7px;
+      display: grid; place-items: center;
+      font-size: 14px;
+    }
+    .mockup-side-brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+    .mockup-side-brand-name { font-weight: 800; font-size: 13.5px; }
+    .mockup-side-brand-name .ai { color: var(--blue); }
+    .mockup-side-brand-tag { font-size: 10px; color: var(--muted); }
+
+    .mockup-side-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .mockup-side-link i { font-size: 15px; width: 16px; text-align: center; }
+    .mockup-side-link.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 600;
+    }
+
+    .mockup-main { padding: 18px 20px 20px; background: #fff; }
+    .mockup-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .mockup-topbar-left { display: flex; align-items: center; gap: 12px; }
+    .mockup-title { font-size: 14px; font-weight: 700; color: var(--ink); margin: 0; }
+    .mockup-pill {
+      font-size: 11px; color: var(--muted);
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .mockup-topbar-right { display: flex; align-items: center; gap: 10px; }
+    .mockup-bell {
+      width: 26px; height: 26px;
+      border-radius: 7px; background: var(--bg);
+      display: grid; place-items: center;
+      color: var(--muted); font-size: 12px;
+    }
+    .mockup-user {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 10px 4px 4px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .mockup-avatar {
+      width: 22px; height: 22px; border-radius: 999px;
+      background: linear-gradient(135deg, #8B5CF6, #2563EB); color: #fff;
+      display: grid; place-items: center; font-size: 10px; font-weight: 700;
+    }
+    .mockup-user-text { display: flex; flex-direction: column; line-height: 1.05; }
+    .mockup-user-name { font-size: 11px; font-weight: 600; color: var(--ink); }
+    .mockup-user-role { font-size: 9px; color: var(--muted); }
+
+    .mockup-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .kpi {
+      padding: 10px 12px;
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .kpi-label { font-size: 10px; color: var(--muted); font-weight: 500; }
+    .kpi-row { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+    .kpi-value { font-size: 16px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; }
+    .kpi-delta { font-size: 10px; font-weight: 700; color: var(--green); }
+    .kpi-delta.neg { color: var(--red); }
+    .kpi-foot { font-size: 9px; color: var(--muted-2); margin-top: 2px; }
+
+    .mockup-row {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .mockup-card {
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      background: #fff;
+      padding: 12px 14px;
+      min-height: 120px;
+    }
+    .mockup-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .mockup-card-title { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .mockup-card-sub {
+      font-size: 10px; color: var(--muted);
+      padding: 4px 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    /* line chart */
+    .chart-line {
+      position: relative;
+      height: 110px;
+      margin-top: 4px;
+      padding-left: 28px;
+    }
+    .chart-yaxis {
+      position: absolute; left: 0; top: 0; bottom: 14px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-size: 8px; color: var(--muted-2);
+    }
+    .chart-xaxis {
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--muted-2);
+      margin-top: 6px; padding-left: 0;
+    }
+    .chart-line svg { width: 100%; height: 100%; }
+
+    /* product bars */
+    .bar-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+    .bar-label { width: 60px; font-size: 11px; color: var(--ink); font-weight: 600; }
+    .bar-track { flex: 1; height: 7px; background: var(--bg-2); border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--blue); border-radius: 999px; }
+    .bar-value { width: 50px; text-align: right; font-size: 11px; color: var(--muted); font-weight: 600; }
+
+    /* donut + create card row */
+    .mockup-row-2 {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+    }
+    .donut-wrap { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
+    .donut { width: 90px; height: 90px; flex-shrink: 0; }
+    .donut-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .donut-legend-row { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--ink); }
+    .donut-legend-row .dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+    .donut-legend-row .pct { margin-left: auto; color: var(--muted); font-weight: 600; }
+
+    .create-card {
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #fff, #F8FAFF);
+      display: flex; flex-direction: column;
+      min-height: 120px;
+    }
+    .create-card-title { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .create-card-text { font-size: 10.5px; color: var(--muted); margin: 6px 0 10px; line-height: 1.45; }
+    .create-card-icon {
+      align-self: flex-end;
+      width: 36px; height: 36px;
+      background: var(--blue-soft); color: var(--blue);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 16px;
+      margin-top: auto;
+    }
+
+    /* ───────────────── FEATURE STRIP ───────────────── */
+    .features-strip {
+      background: var(--bg);
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .feat {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .feat-icon {
+      width: 40px; height: 40px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .feat-text h4 { margin: 0 0 2px; font-size: 14.5px; font-weight: 700; color: var(--ink); }
+    .feat-text p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+    /* ───────────────── STATS ───────────────── */
+    .stats-section { padding: 28px 0; background: var(--white); }
+    .stats-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .stat { display: flex; align-items: center; gap: 12px; }
+    .stat-icon {
+      width: 40px; height: 40px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-radius: 999px;
+      display: grid; place-items: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .stat-num { font-size: 20px; font-weight: 800; color: var(--ink); line-height: 1.1; letter-spacing: -.01em; }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+
+    /* ───────────────── FOOTER ───────────────── */
+    .footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 40px 0 20px;
+      margin-top: 16px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr;
+      gap: 28px;
+      margin-bottom: 24px;
+    }
+    .footer-brand .nav-brand { margin-bottom: 12px; }
+    .footer-tag { color: var(--muted); font-size: 13px; max-width: 280px; line-height: 1.55; margin: 0 0 14px; }
+    .footer-socials { display: flex; gap: 8px; }
+    .footer-socials a {
+      width: 32px; height: 32px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--border);
+      display: grid; place-items: center;
+      color: var(--muted-2);
+      font-size: 13px;
+      transition: color .15s, border-color .15s;
+    }
+    .footer-socials a:hover { color: var(--blue); border-color: var(--blue); }
+
+    .footer-col h5 {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink);
+      margin: 0 0 14px;
+    }
+    .footer-col ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 9px; }
+    .footer-col a { color: var(--muted); font-size: 13.5px; }
+    .footer-col a:hover { color: var(--blue); }
+
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      display: flex; flex-wrap: wrap; gap: 12px;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .footer-bottom a { color: var(--muted); }
+    .footer-bottom a:hover { color: var(--blue); }
+
+    /* ───────────────── RESPONSIVE ───────────────── */
+    @media (max-width: 1024px) {
+      .container { padding: 0 24px; }
+      .nav-inner { padding: 14px 24px; gap: 16px; }
+      .nav-mobile-inner { padding: 12px 24px 20px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .features-grid, .stats-card, .footer-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid .footer-brand { grid-column: 1 / -1; }
+    }
+    @media (max-width: 720px) {
+      .container { padding: 0 16px; }
+      .nav-inner { padding: 12px 16px; }
+      .nav-mobile-inner { padding: 10px 16px 16px; }
+      .nav-links, .nav-cta-desktop { display: none; }
+      .nav-toggle { display: inline-flex; }
+      .hero { padding: 28px 0 40px; }
+      h1.hero-title { font-size: 32px; }
+      .mockup { grid-template-columns: 1fr; min-height: 0; }
+      .mockup-side { display: none; }
+      .mockup-kpis { grid-template-columns: repeat(2, 1fr); }
+      .mockup-row, .mockup-row-2 { grid-template-columns: 1fr; }
+      .features-strip { padding: 24px 0; }
+      .features-grid, .stats-card { grid-template-columns: 1fr; gap: 16px; }
+      .footer { padding: 32px 0 16px; }
+    /* ───────────────── SECTIONS HEAD ───────────────── */
+    .section-head { text-align: center; max-width: 720px; margin: 0 auto 36px; }
+    .section-head h2 {
+      font-size: clamp(28px, 3.4vw, 38px);
+      font-weight: 800; letter-spacing: -.02em;
+      color: var(--ink); margin: 0 0 10px;
+    }
+    .section-head p { font-size: 16px; color: var(--muted); margin: 0; line-height: 1.6; }
+
+    /* ───────────────── PRICING ───────────────── */
+    .pricing-section { padding: 72px 0 32px; background: var(--white); }
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+      max-width: 1080px; margin: 0 auto;
+    }
+    .plan {
+      position: relative;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex; flex-direction: column;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+    .plan:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .plan-recommended {
+      border-color: var(--blue);
+      box-shadow: 0 12px 36px rgba(37,99,235,.12);
+    }
+    .plan-badge {
+      position: absolute; top: -10px; right: 20px;
+      background: var(--blue); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .plan-name { font-size: 18px; font-weight: 800; color: var(--ink); margin: 0 0 6px; }
+    .plan-desc { font-size: 13px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+    .plan-price { display: flex; align-items: baseline; gap: 6px; margin-bottom: 20px; }
+    .plan-price-num { font-size: 36px; font-weight: 800; color: var(--ink); letter-spacing: -.02em; line-height: 1; }
+    .plan-price-per { font-size: 13px; color: var(--muted); }
+    .plan-features { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 10px; }
+    .plan-features li { font-size: 14px; color: var(--ink-2); display: flex; align-items: flex-start; gap: 8px; }
+    .plan-features i { color: var(--blue); font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+    .plan-cta { margin-top: auto; justify-content: center; }
+
+    /* ───────────────── FAQ ───────────────── */
+    .faq-section { padding: 64px 0 80px; background: var(--bg); border-top: 1px solid var(--border); }
+    .faq-list { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .faq-item {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .faq-item:hover { border-color: var(--blue); }
+    .faq-item summary {
+      list-style: none; cursor: pointer;
+      padding: 16px 20px;
+      font-size: 15px; font-weight: 600; color: var(--ink);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-toggle { color: var(--muted); font-size: 18px; transition: transform .2s, color .2s; }
+    .faq-item[open] .faq-toggle { transform: rotate(45deg); color: var(--blue); }
+    .faq-answer {
+      padding: 0 20px 18px;
+      color: var(--muted); font-size: 14.5px; line-height: 1.65;
+    }
+
+    @media (max-width: 1024px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 480px; }
+    }
+    @media (max-width: 720px) {
+      .pricing-section { padding: 48px 0 24px; }
+      .faq-section { padding: 48px 0 56px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════ NAV ═══════════════════ -->
+  <header class="nav" id="topNav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="<%= brand.name %> <%= brand.nameAccent %> <%= brand.tagline %> — Home">
+        <span class="nav-brand-icon"><i class="bi <%= brand.iconClass || 'bi-bar-chart-line-fill' %>"></i></span>
+        <span class="nav-brand-text">
+          <span class="nav-brand-name"><%= brand.name %> <span class="ai"><%= brand.nameAccent %></span></span>
+          <span class="nav-brand-tag"><%= brand.tagline %></span>
+        </span>
+      </a>
+
+      <nav aria-label="Primary">
+        <ul class="nav-links">
+          <% (nav.items || []).forEach(function(item){ %>
+            <li><a href="<%= item.href %>"><%= item.label %></a></li>
+          <% }); %>
+        </ul>
+      </nav>
+
+      <div class="nav-cta">
+        <div class="nav-cta-desktop" style="display:flex; gap:10px;">
+          <% if (nav.showSignIn !== false) { %>
+            <a href="/auth" class="btn btn-outline"><%= nav.signInLabel || 'Sign In' %></a>
+          <% } %>
+          <% if (nav.showGetStarted !== false) { %>
+            <a href="/auth?tab=signup" class="btn btn-primary"><%= nav.getStartedLabel || 'Get Started Free' %></a>
+          <% } %>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+          <i class="bi bi-list"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="nav-mobile" id="navMobile" role="menu">
+      <div class="nav-mobile-inner">
+        <ul>
+          <% (nav.items || []).forEach(function(item){ %>
+            <li><a href="<%= item.href %>"><%= item.label %></a></li>
+          <% }); %>
+        </ul>
+        <div class="nav-mobile-cta">
+          <% if (nav.showSignIn !== false) { %>
+            <a href="/auth" class="btn btn-outline btn-lg"><%= nav.signInLabel || 'Sign In' %></a>
+          <% } %>
+          <% if (nav.showGetStarted !== false) { %>
+            <a href="/auth?tab=signup" class="btn btn-primary btn-lg"><%= nav.getStartedLabel || 'Get Started Free' %></a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ HERO ═══════════════════ -->
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow"><i class="bi <%= hero.eyebrowIcon || 'bi-stars' %>"></i> <%= hero.eyebrowText || '' %></span>
+        <h1 class="hero-title">
+          <%= hero.titleStart || '' %><% if (hero.titleAccent) { %> <span class="blue"><%= hero.titleAccent %></span><% } %><% if (hero.titleEnd) { %> <%= hero.titleEnd %><% } %>
+        </h1>
+        <p class="hero-lead">
+          <%= hero.subtitle || '' %>
+        </p>
+
+        <div class="hero-ctas">
+          <% if (hero.primaryCta && hero.primaryCta.label) { %>
+            <a href="<%= hero.primaryCta.href || '#' %>" class="btn btn-primary btn-lg">
+              <i class="bi <%= hero.primaryCta.icon || 'bi-rocket-takeoff' %>"></i> <%= hero.primaryCta.label %>
+            </a>
+          <% } %>
+          <% if (hero.secondaryCta && hero.secondaryCta.label) { %>
+            <a href="<%= hero.secondaryCta.href || '#' %>" class="btn btn-outline btn-lg">
+              <i class="bi <%= hero.secondaryCta.icon || 'bi-play-circle' %>"></i> <%= hero.secondaryCta.label %>
+            </a>
+          <% } %>
+        </div>
+
+        <div class="hero-trust">
+          <% (hero.trust || []).forEach(function(t){ %>
+            <span><i class="bi <%= t.icon || 'bi-check-circle-fill' %>"></i> <%= t.text %></span>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- ── Dashboard mockup ── -->
+      <div class="mockup" aria-hidden="true">
+        <aside class="mockup-side">
+          <div class="mockup-side-brand">
+            <span class="mockup-side-brand-icon"><i class="bi <%= brand.iconClass || 'bi-bar-chart-line-fill' %>"></i></span>
+            <span class="mockup-side-brand-text">
+              <span class="mockup-side-brand-name"><%= brand.name %> <span class="ai"><%= brand.nameAccent %></span></span>
+              <span class="mockup-side-brand-tag"><%= brand.tagline %></span>
+            </span>
+          </div>
+          <div class="mockup-side-link active"><i class="bi bi-house"></i> Home</div>
+          <div class="mockup-side-link"><i class="bi bi-grid"></i> Dashboards</div>
+          <div class="mockup-side-link"><i class="bi bi-database"></i> Sources</div>
+          <div class="mockup-side-link"><i class="bi bi-palette2"></i> Templates</div>
+          <div class="mockup-side-link"><i class="bi bi-stars"></i> AI Builder</div>
+          <div class="mockup-side-link"><i class="bi bi-gear"></i> Settings</div>
+        </aside>
+
+        <div class="mockup-main">
+          <div class="mockup-topbar">
+            <div class="mockup-topbar-left">
+              <h4 class="mockup-title">Executive Dashboard</h4>
+            </div>
+            <div class="mockup-topbar-right">
+              <span class="mockup-pill">May 1 – May 31, 2024 <i class="bi bi-chevron-down"></i></span>
+              <span class="mockup-bell"><i class="bi bi-bell"></i></span>
+              <span class="mockup-user">
+                <span class="mockup-avatar">JD</span>
+                <span class="mockup-user-text">
+                  <span class="mockup-user-name">John Doe</span>
+                  <span class="mockup-user-role">Admin</span>
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="mockup-kpis">
+            <div class="kpi">
+              <div class="kpi-label">Total Revenue</div>
+              <div class="kpi-row"><span class="kpi-value">$1.24M</span><span class="kpi-delta">↑ 12.5%</span></div>
+              <div class="kpi-foot">vs last month</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Profit Margin</div>
+              <div class="kpi-row"><span class="kpi-value">23.5%</span><span class="kpi-delta">↑ 8.3%</span></div>
+              <div class="kpi-foot">vs last month</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">New Customers</div>
+              <div class="kpi-row"><span class="kpi-value">342</span><span class="kpi-delta">↑ 18.6%</span></div>
+              <div class="kpi-foot">vs last month</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Active Users</div>
+              <div class="kpi-row"><span class="kpi-value">2,856</span><span class="kpi-delta">↑ 14.2%</span></div>
+              <div class="kpi-foot">vs last month</div>
+            </div>
+          </div>
+
+          <!-- Line + Top Products -->
+          <div class="mockup-row">
+            <div class="mockup-card">
+              <div class="mockup-card-head">
+                <span class="mockup-card-title">Revenue Over Time</span>
+                <span class="mockup-card-sub">Daily ▾</span>
+              </div>
+              <div class="chart-line">
+                <div class="chart-yaxis">
+                  <span>$100K</span><span>$75K</span><span>$50K</span><span>$25K</span><span>$0</span>
+                </div>
+                <svg viewBox="0 0 280 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="lineFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#2563EB" stop-opacity=".18"/>
+                      <stop offset="100%" stop-color="#2563EB" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,80 L20,72 L40,76 L60,60 L80,64 L100,50 L120,52 L140,40 L160,44 L180,32 L200,30 L220,22 L240,28 L260,18 L280,12"
+                        fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M0,80 L20,72 L40,76 L60,60 L80,64 L100,50 L120,52 L140,40 L160,44 L180,32 L200,30 L220,22 L240,28 L260,18 L280,12 L280,100 L0,100 Z"
+                        fill="url(#lineFill)"/>
+                </svg>
+              </div>
+              <div class="chart-xaxis"><span>May 1</span><span>May 8</span><span>May 16</span><span>May 23</span><span>May 31</span></div>
+            </div>
+            <div class="mockup-card">
+              <div class="mockup-card-head">
+                <span class="mockup-card-title">Top Products</span>
+                <span class="mockup-card-sub">By Revenue ▾</span>
+              </div>
+              <div class="bar-row"><span class="bar-label">Product A</span><span class="bar-track"><span class="bar-fill" style="width:96%"></span></span><span class="bar-value">$435K</span></div>
+              <div class="bar-row"><span class="bar-label">Product B</span><span class="bar-track"><span class="bar-fill" style="width:72%"></span></span><span class="bar-value">$321K</span></div>
+              <div class="bar-row"><span class="bar-label">Product C</span><span class="bar-track"><span class="bar-fill" style="width:42%"></span></span><span class="bar-value">$187K</span></div>
+              <div class="bar-row"><span class="bar-label">Product D</span><span class="bar-track"><span class="bar-fill" style="width:22%"></span></span><span class="bar-value">$98K</span></div>
+            </div>
+          </div>
+
+          <!-- Donut + Create card -->
+          <div class="mockup-row-2">
+            <div class="mockup-card">
+              <div class="mockup-card-head">
+                <span class="mockup-card-title">Channel Distribution</span>
+              </div>
+              <div class="donut-wrap">
+                <svg class="donut" viewBox="0 0 42 42">
+                  <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#EEF2F7" stroke-width="6"/>
+                  <!-- Direct 40% -->
+                  <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#2563EB"  stroke-width="6" stroke-dasharray="40 60"  stroke-dashoffset="25" transform="rotate(-90 21 21)"/>
+                  <!-- Organic 30% -->
+                  <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#22C55E"  stroke-width="6" stroke-dasharray="30 70"  stroke-dashoffset="-15" transform="rotate(-90 21 21)"/>
+                  <!-- Referral 20% -->
+                  <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#8B5CF6"  stroke-width="6" stroke-dasharray="20 80"  stroke-dashoffset="-45" transform="rotate(-90 21 21)"/>
+                  <!-- Social 10% -->
+                  <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#F59E0B"  stroke-width="6" stroke-dasharray="10 90"  stroke-dashoffset="-65" transform="rotate(-90 21 21)"/>
+                </svg>
+                <div class="donut-legend">
+                  <div class="donut-legend-row"><span class="dot" style="background:#2563EB"></span> Direct          <span class="pct">40%</span></div>
+                  <div class="donut-legend-row"><span class="dot" style="background:#22C55E"></span> Organic Search <span class="pct">30%</span></div>
+                  <div class="donut-legend-row"><span class="dot" style="background:#8B5CF6"></span> Referral        <span class="pct">20%</span></div>
+                  <div class="donut-legend-row"><span class="dot" style="background:#F59E0B"></span> Social Media   <span class="pct">10%</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="create-card">
+              <div class="create-card-title"><%= hero.previewTitle || 'Create Dashboard via Wizard' %></div>
+              <div class="create-card-text"><%= hero.previewSubtitle || '' %></div>
+              <div class="create-card-icon"><i class="bi bi-magic"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FEATURE STRIP ═══════════════════ -->
+  <section class="features-strip">
+    <div class="container features-grid">
+      <% features.forEach(function(f){ %>
+        <div class="feat">
+          <div class="feat-icon"><i class="bi <%= f.icon || 'bi-stars' %>"></i></div>
+          <div class="feat-text"><h4><%= f.title %></h4><p><%= f.description %></p></div>
+        </div>
+      <% }); %>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ STATS ═══════════════════ -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-card">
+        <% stats.forEach(function(s){ %>
+          <div class="stat">
+            <div class="stat-icon"><i class="bi <%= s.icon || 'bi-star' %>"></i></div>
+            <div><div class="stat-num"><%= s.value %></div><div class="stat-label"><%= s.label %></div></div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ PRICING ═══════════════════ -->
+  <% if (pricing && pricing.plans && pricing.plans.length) { %>
+  <section class="pricing-section" id="pricing">
+    <div class="container">
+      <div class="section-head">
+        <h2><%= pricing.title || 'Pricing' %></h2>
+        <% if (pricing.subtitle) { %><p><%= pricing.subtitle %></p><% } %>
+      </div>
+      <div class="pricing-grid">
+        <% pricing.plans.forEach(function(p){ %>
+          <div class="plan <%= p.recommended ? 'plan-recommended' : '' %>">
+            <% if (p.recommended) { %><span class="plan-badge">Recommended</span><% } %>
+            <h3 class="plan-name"><%= p.name %></h3>
+            <% if (p.description) { %><p class="plan-desc"><%= p.description %></p><% } %>
+            <div class="plan-price"><span class="plan-price-num"><%= p.price %></span><% if (p.period) { %><span class="plan-price-per"><%= p.period %></span><% } %></div>
+            <ul class="plan-features">
+              <% (p.features || []).forEach(function(f){ %><li><i class="bi bi-check2"></i> <%= f %></li><% }); %>
+            </ul>
+            <a href="<%= (p.cta && p.cta.href) || '/auth?tab=signup' %>" class="btn <%= p.recommended ? 'btn-primary' : 'btn-outline' %> btn-lg plan-cta"><%= (p.cta && p.cta.label) || 'Get Started' %></a>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- ═══════════════════ FAQ ═══════════════════ -->
+  <% if (faq && faq.items && faq.items.length) { %>
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="section-head">
+        <h2><%= faq.title || 'Frequently Asked Questions' %></h2>
+        <% if (faq.subtitle) { %><p><%= faq.subtitle %></p><% } %>
+      </div>
+      <div class="faq-list">
+        <% faq.items.forEach(function(item, idx){ %>
+          <details class="faq-item" <%= idx === 0 ? 'open' : '' %>>
+            <summary><%= item.question %><i class="bi bi-plus-lg faq-toggle"></i></summary>
+            <div class="faq-answer"><%= item.answer %></div>
+          </details>
+        <% }); %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <!-- ═══════════════════ FOOTER ═══════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="nav-brand">
+            <span class="nav-brand-icon"><i class="bi <%= brand.iconClass || 'bi-bar-chart-line-fill' %>"></i></span>
+            <span class="nav-brand-text">
+              <span class="nav-brand-name"><%= brand.name %> <span class="ai"><%= brand.nameAccent %></span></span>
+              <span class="nav-brand-tag"><%= brand.tagline %></span>
+            </span>
+          </a>
+          <p class="footer-tag"><%= footer.tagline || '' %></p>
+          <div class="footer-socials">
+            <% (footer.socials || []).forEach(function(s){ %>
+              <a href="<%= s.href %>" target="_blank" rel="noopener" aria-label="<%= s.label %>"><i class="bi <%= s.icon %>"></i></a>
+            <% }); %>
+          </div>
+        </div>
+        <% (footer.columns || []).forEach(function(col){ %>
+          <div class="footer-col">
+            <h5><%= col.title %></h5>
+            <ul>
+              <% (col.links || []).forEach(function(l){ %>
+                <li><a href="<%= l.href %>"><%= l.label %></a></li>
+              <% }); %>
+            </ul>
+          </div>
+        <% }); %>
+      </div>
+      <div class="footer-bottom">
+        <span><%= footer.copyright || '' %></span>
+        <span><%= footer.poweredBy || 'Powered by' %> <a href="<%= footer.poweredByUrl || 'https://liknaya.com' %>" target="_blank" rel="noopener"><%= footer.poweredByLabel || 'Liknaya.com' %></a></span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Sticky-nav shadow on scroll
+    (function () {
+      var nav = document.getElementById('topNav');
+      function onScroll() { nav.classList.toggle('scrolled', window.scrollY > 8); }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    // Mobile menu
+    (function () {
+      var btn = document.getElementById('navToggle');
+      var menu = document.getElementById('navMobile');
+      if (!btn || !menu) return;
+      btn.addEventListener('click', function () {
+        var open = menu.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })();
+  </script>
+</body>
+</html>

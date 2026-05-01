@@ -1,0 +1,51 @@
+<div class="group-head">
+  <h3>Feature Cards</h3>
+  <button type="button" class="add-btn" data-add="featuresItems"><i class="bi bi-plus-lg"></i> Add feature</button>
+</div>
+<div data-list="featuresItems">
+  <% (data.items || []).forEach(function(item, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Feature">Feature #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div class="row-2">
+        <label class="field"><span class="field-label">Icon</span>
+          <input class="input" type="text" data-name="data[items][__I__][icon]" name="data[items][<%= i %>][icon]" value="<%= item.icon || '' %>">
+        </label>
+        <label class="field"><span class="field-label">Title</span>
+          <input class="input" type="text" data-name="data[items][__I__][title]" name="data[items][<%= i %>][title]" value="<%= item.title || '' %>">
+        </label>
+      </div>
+      <label class="field"><span class="field-label">Description</span>
+        <textarea class="textarea" rows="2" data-name="data[items][__I__][description]" name="data[items][<%= i %>][description]"><%= item.description || '' %></textarea>
+      </label>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="featuresItems">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Feature">New feature</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Icon</span><input class="input" type="text" data-name="data[items][__I__][icon]" value="bi-stars"></label>
+      <label class="field"><span class="field-label">Title</span><input class="input" type="text" data-name="data[items][__I__][title]" value="New feature"></label>
+    </div>
+    <label class="field"><span class="field-label">Description</span>
+      <textarea class="textarea" rows="2" data-name="data[items][__I__][description]">Describe this feature</textarea>
+    </label>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

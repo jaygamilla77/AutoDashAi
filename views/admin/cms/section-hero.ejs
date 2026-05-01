@@ -1,0 +1,131 @@
+<div class="card">
+  <div class="card-head"><h4>Hero Eyebrow Badge</h4></div>
+  <div class="row-2">
+    <label class="field">
+      <span class="field-label">Icon <span class="field-hint">Bootstrap Icons class</span></span>
+      <input class="input" type="text" name="data[eyebrowIcon]" value="<%= data.eyebrowIcon || '' %>" placeholder="bi-stars">
+    </label>
+    <label class="field">
+      <span class="field-label">Text</span>
+      <input class="input" type="text" name="data[eyebrowText]" value="<%= data.eyebrowText || '' %>">
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h4>Headline</h4></div>
+  <label class="field">
+    <span class="field-label">Title (start)</span>
+    <input class="input" type="text" name="data[titleStart]" value="<%= data.titleStart || '' %>">
+  </label>
+  <div class="row-2">
+    <label class="field">
+      <span class="field-label">Highlighted word <span class="field-hint">shown in blue</span></span>
+      <input class="input" type="text" name="data[titleAccent]" value="<%= data.titleAccent || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Title (end) <span class="field-hint">optional</span></span>
+      <input class="input" type="text" name="data[titleEnd]" value="<%= data.titleEnd || '' %>">
+    </label>
+  </div>
+  <label class="field">
+    <span class="field-label">Subtitle</span>
+    <textarea class="textarea" rows="3" name="data[subtitle]"><%= data.subtitle || '' %></textarea>
+  </label>
+</div>
+
+<div class="card">
+  <div class="card-head"><h4>Primary CTA</h4></div>
+  <div class="row-3">
+    <label class="field">
+      <span class="field-label">Label</span>
+      <input class="input" type="text" name="data[primaryCta][label]" value="<%= (data.primaryCta && data.primaryCta.label) || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Link</span>
+      <input class="input" type="text" name="data[primaryCta][href]" value="<%= (data.primaryCta && data.primaryCta.href) || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Icon</span>
+      <input class="input" type="text" name="data[primaryCta][icon]" value="<%= (data.primaryCta && data.primaryCta.icon) || '' %>">
+    </label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h4>Secondary CTA</h4></div>
+  <div class="row-3">
+    <label class="field">
+      <span class="field-label">Label</span>
+      <input class="input" type="text" name="data[secondaryCta][label]" value="<%= (data.secondaryCta && data.secondaryCta.label) || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Link</span>
+      <input class="input" type="text" name="data[secondaryCta][href]" value="<%= (data.secondaryCta && data.secondaryCta.href) || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Icon</span>
+      <input class="input" type="text" name="data[secondaryCta][icon]" value="<%= (data.secondaryCta && data.secondaryCta.icon) || '' %>">
+    </label>
+  </div>
+</div>
+
+<div class="group-head">
+  <h3>Trust Badges</h3>
+  <button type="button" class="add-btn" data-add="trust"><i class="bi bi-plus-lg"></i> Add badge</button>
+</div>
+<div data-list="trust">
+  <% (data.trust || []).forEach(function(t, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4>Badge #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up" title="Move up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down" title="Move down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove title="Remove"><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div class="row-2">
+        <label class="field">
+          <span class="field-label">Icon</span>
+          <input class="input" type="text" data-name="data[trust][__I__][icon]" name="data[trust][<%= i %>][icon]" value="<%= t.icon || '' %>">
+        </label>
+        <label class="field">
+          <span class="field-label">Text</span>
+          <input class="input" type="text" data-name="data[trust][__I__][text]" name="data[trust][<%= i %>][text]" value="<%= t.text || '' %>">
+        </label>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="trust">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4>New badge</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Icon</span><input class="input" type="text" data-name="data[trust][__I__][icon]" value="bi-check-circle-fill"></label>
+      <label class="field"><span class="field-label">Text</span><input class="input" type="text" data-name="data[trust][__I__][text]" value="New benefit"></label>
+    </div>
+  </div>
+</template>
+
+<div class="card">
+  <div class="card-head"><h4>Mockup Sidebar Card</h4></div>
+  <label class="field">
+    <span class="field-label">Card Title</span>
+    <input class="input" type="text" name="data[previewTitle]" value="<%= data.previewTitle || '' %>">
+  </label>
+  <label class="field">
+    <span class="field-label">Card Subtitle</span>
+    <textarea class="textarea" rows="2" name="data[previewSubtitle]"><%= data.previewSubtitle || '' %></textarea>
+  </label>
+</div>
+
+<%- include('row-manager-script') %>

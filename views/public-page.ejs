@@ -1,0 +1,63 @@
+<article class="public-page">
+  <header class="lead-hero">
+    <% if (page.heroEyebrow) { %><span class="lead-eyebrow"><%= page.heroEyebrow %></span><% } %>
+    <h1><%= page.heroTitle || page.label %></h1>
+    <% if (page.heroSubtitle) { %><p><%= page.heroSubtitle %></p><% } %>
+  </header>
+
+  <div class="public-page-body">
+    <%- page.bodyHtml %>
+  </div>
+</article>
+
+<style>
+  .public-page { max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; }
+  .lead-hero { text-align: center; margin-bottom: 40px; }
+  .lead-eyebrow {
+    display: inline-block;
+    font-size: 12px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #2563EB;
+    background: #EFF6FF;
+    padding: 6px 14px; border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .lead-hero h1 {
+    font-size: clamp(32px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    color: #0F172A;
+    margin: 0 0 14px;
+  }
+  .lead-hero p {
+    font-size: 16px;
+    color: #64748B;
+    line-height: 1.6;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .public-page-body { color: #1E293B; line-height: 1.7; font-size: 16px; }
+  .public-page-body h2 {
+    font-size: 22px; font-weight: 700; margin: 36px 0 12px; color: #0F172A;
+  }
+  .public-page-body h3 {
+    font-size: 18px; font-weight: 700; margin: 24px 0 8px; color: #0F172A;
+  }
+  .public-page-body p { margin: 0 0 14px; color: #475569; }
+  .public-page-body ul, .public-page-body ol { padding-left: 22px; color: #475569; }
+  .public-page-body li { margin-bottom: 6px; }
+  .public-page-body a { color: #2563EB; text-decoration: underline; }
+  .public-page-body a:hover { color: #1D4ED8; }
+  .public-page-body table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  .public-page-body th, .public-page-body td { border: 1px solid #E2E8F0; padding: 10px 12px; text-align: left; }
+  .public-page-body th { background: #F8FAFC; font-weight: 700; }
+  .public-page-body img { max-width: 100%; border-radius: 8px; margin: 12px 0; }
+  .public-page-body blockquote {
+    border-left: 3px solid #2563EB; padding: 4px 16px; margin: 16px 0;
+    color: #475569; background: #F8FAFC;
+  }
+  .public-page-body code {
+    background: #F1F5F9; padding: 2px 6px; border-radius: 4px;
+    font-size: 14px; color: #0F172A;
+  }
+</style>

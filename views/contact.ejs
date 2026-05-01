@@ -1,0 +1,129 @@
+<article class="public-page">
+  <header class="lead-hero">
+    <h1>Get in touch</h1>
+    <p>
+      Have questions about AutoDash AI, need a demo, or want to talk to our sales team about an
+      enterprise plan? We&rsquo;d love to hear from you.
+    </p>
+  </header>
+
+  <div class="contact-grid">
+    <form class="contact-form" onsubmit="event.preventDefault(); document.getElementById('contactSent').style.display='block'; this.reset();">
+      <div class="form-row">
+        <label>Full name
+          <input type="text" name="name" required placeholder="Jane Doe">
+        </label>
+        <label>Work email
+          <input type="email" name="email" required placeholder="jane@company.com">
+        </label>
+      </div>
+      <label>Company
+        <input type="text" name="company" placeholder="Acme Inc.">
+      </label>
+      <label>How can we help?
+        <select name="topic">
+          <option>General question</option>
+          <option>Request a demo</option>
+          <option>Sales / Enterprise plan</option>
+          <option>Technical support</option>
+          <option>Partnership</option>
+        </select>
+      </label>
+      <label>Message
+        <textarea name="message" rows="5" required placeholder="Tell us a bit about what you&rsquo;re trying to build..."></textarea>
+      </label>
+      <button type="submit" class="contact-submit">
+        <i class="bi bi-send"></i> Send message
+      </button>
+      <p id="contactSent" class="contact-sent" style="display:none;">
+        <i class="bi bi-check-circle"></i> Thanks! We&rsquo;ll get back to you within one business day.
+      </p>
+    </form>
+
+    <aside class="contact-aside">
+      <div class="contact-card">
+        <i class="bi bi-envelope"></i>
+        <h3>Email us</h3>
+        <a href="mailto:hello@liknaya.com">hello@liknaya.com</a>
+      </div>
+      <div class="contact-card">
+        <i class="bi bi-life-preserver"></i>
+        <h3>Customer support</h3>
+        <a href="mailto:support@liknaya.com">support@liknaya.com</a>
+      </div>
+      <div class="contact-card">
+        <i class="bi bi-briefcase"></i>
+        <h3>Sales &amp; partnerships</h3>
+        <a href="mailto:sales@liknaya.com">sales@liknaya.com</a>
+      </div>
+      <div class="contact-card">
+        <i class="bi bi-globe"></i>
+        <h3>Powered by</h3>
+        <a href="https://liknaya.com" target="_blank" rel="noopener">Liknaya.com</a>
+      </div>
+    </aside>
+  </div>
+</article>
+
+<style>
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 36px;
+    align-items: start;
+    margin-top: 12px;
+  }
+  .contact-form {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 28px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .contact-form label {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 0.86rem; font-weight: 600; color: #334155;
+  }
+  .contact-form input, .contact-form select, .contact-form textarea {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-family: inherit; font-size: 0.95rem;
+    color: #0F172A; background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .contact-form input:focus, .contact-form select:focus, .contact-form textarea:focus {
+    outline: none;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+  }
+  .contact-submit {
+    align-self: flex-start;
+    background: #2563EB; color: #fff; border: 0;
+    padding: 12px 22px; border-radius: 10px;
+    font-weight: 600; font-size: 0.95rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: background 0.15s ease;
+  }
+  .contact-submit:hover { background: #1D4ED8; }
+  .contact-sent {
+    color: #059669; background: #ECFDF5;
+    border: 1px solid #A7F3D0; border-radius: 10px;
+    padding: 10px 14px; font-size: 0.9rem; margin: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .contact-aside { display: flex; flex-direction: column; gap: 12px; }
+  .contact-card {
+    background: #F8FAFC; border: 1px solid #E2E8F0;
+    border-radius: 14px; padding: 18px 20px;
+  }
+  .contact-card i { color: #2563EB; font-size: 1.3rem; margin-bottom: 6px; display: inline-block; }
+  .contact-card h3 { font-size: 0.95rem; font-weight: 700; margin: 0 0 4px; color: #0F172A; }
+  .contact-card a { color: #2563EB; font-size: 0.92rem; text-decoration: none; }
+  .contact-card a:hover { text-decoration: underline; }
+  @media (max-width: 860px) {
+    .contact-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>

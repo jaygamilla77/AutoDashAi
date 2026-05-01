@@ -1,0 +1,144 @@
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <a href="/admin/pages" class="back-link"><i class="bi bi-arrow-left"></i> All pages</a>
+      <h1>Edit <%= page.label %></h1>
+      <p class="admin-sub">Public URL: <a href="/<%= page.slug %>" target="_blank" rel="noopener">/<%= page.slug %> <i class="bi bi-box-arrow-up-right"></i></a></p>
+    </div>
+    <div class="header-actions">
+      <a href="/<%= page.slug %>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-eye"></i> Preview
+      </a>
+    </div>
+  </div>
+
+  <% if (typeof messages !== 'undefined' && messages && messages.success) { %>
+    <div class="admin-alert admin-alert-success"><i class="bi bi-check-circle-fill"></i> <%= messages.success %></div>
+  <% } %>
+  <% if (typeof messages !== 'undefined' && messages && messages.error) { %>
+    <div class="admin-alert admin-alert-error"><i class="bi bi-exclamation-circle-fill"></i> <%= messages.error %></div>
+  <% } %>
+
+  <form method="POST" action="/admin/pages/<%= page.slug %>" class="admin-form">
+    <div class="admin-card">
+      <div class="card-section">
+        <h3>Visibility</h3>
+        <label class="switch-row">
+          <input type="checkbox" name="isPublished" value="on" <%= page.isPublished ? 'checked' : '' %>>
+          <span class="switch-label">Published</span>
+          <span class="switch-hint">When unchecked, the public URL falls back to the static template.</span>
+        </label>
+      </div>
+
+      <div class="card-section">
+        <h3>SEO</h3>
+        <label>Page Title <span class="hint">(used in &lt;title&gt; and OG)</span>
+          <input type="text" name="title" value="<%= page.title || '' %>" maxlength="255" required>
+        </label>
+        <label>Meta Description
+          <textarea name="metaDescription" rows="2" maxlength="600"><%= page.metaDescription || '' %></textarea>
+        </label>
+        <label>Meta Keywords
+          <input type="text" name="metaKeywords" value="<%= page.metaKeywords || '' %>" maxlength="500">
+        </label>
+      </div>
+
+      <div class="card-section">
+        <h3>Hero</h3>
+        <label>Eyebrow <span class="hint">(small label above the title)</span>
+          <input type="text" name="heroEyebrow" value="<%= page.heroEyebrow || '' %>" maxlength="120">
+        </label>
+        <label>Hero Title
+          <input type="text" name="heroTitle" value="<%= page.heroTitle || '' %>" maxlength="255">
+        </label>
+        <label>Hero Subtitle
+          <textarea name="heroSubtitle" rows="2" maxlength="600"><%= page.heroSubtitle || '' %></textarea>
+        </label>
+      </div>
+
+      <div class="card-section">
+        <h3>Page Body <span class="hint">(HTML allowed)</span></h3>
+        <p class="admin-sub" style="margin-top:-6px">
+          Use standard HTML: <code>&lt;h2&gt;</code>, <code>&lt;p&gt;</code>, <code>&lt;ul&gt;</code>,
+          <code>&lt;a&gt;</code>, <code>&lt;table&gt;</code>, <code>&lt;blockquote&gt;</code>, etc.
+          Leave empty to use the static fallback template.
+        </p>
+        <textarea name="bodyHtml" rows="20" class="code-area" spellcheck="false"><%= page.bodyHtml || '' %></textarea>
+      </div>
+
+      <div class="card-actions">
+        <a href="/admin/pages" class="btn btn-outline-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save"></i> Save changes
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+  .admin-shell { max-width: 920px; margin: 32px auto; padding: 0 24px; }
+  .admin-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; gap: 16px; }
+  .admin-header h1 { font-size: 24px; font-weight: 800; color: #0F172A; margin: 6px 0 4px; letter-spacing: -.01em; }
+  .admin-sub { color: #64748B; font-size: 14px; margin: 0; }
+  .admin-sub a, .back-link { color: #2563EB; text-decoration: none; }
+  .admin-sub a:hover, .back-link:hover { text-decoration: underline; }
+  .back-link { font-size: 13px; font-weight: 500; }
+
+  .admin-alert {
+    padding: 12px 16px; border-radius: 10px; font-size: 14px;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .admin-alert-success { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .admin-alert-error   { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+
+  .admin-card {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .card-section { padding: 24px; border-bottom: 1px solid #EEF2F7; }
+  .card-section:last-of-type { border-bottom: none; }
+  .card-section h3 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: #475569; margin: 0 0 14px;
+  }
+  .card-section h3 .hint { font-size: 11px; color: #94A3B8; font-weight: 500; text-transform: none; letter-spacing: 0; margin-left: 6px; }
+
+  .admin-form label {
+    display: block; font-size: 13px; font-weight: 600; color: #0F172A;
+    margin-bottom: 14px;
+  }
+  .admin-form .hint { font-size: 11px; font-weight: 500; color: #94A3B8; margin-left: 4px; }
+  .admin-form input[type="text"],
+  .admin-form textarea {
+    display: block; width: 100%;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border: 1px solid #E2E8F0; border-radius: 8px;
+    font: inherit; color: #0F172A;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .admin-form input[type="text"]:focus,
+  .admin-form textarea:focus {
+    outline: none; border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+  }
+  .admin-form .code-area {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.55;
+    background: #F8FAFC; min-height: 320px;
+  }
+
+  .switch-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+  .switch-row input[type="checkbox"] { width: 18px; height: 18px; }
+  .switch-row .switch-label { color: #0F172A; font-weight: 600; }
+  .switch-row .switch-hint { color: #64748B; font-size: 12px; font-weight: 500; }
+
+  .card-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 18px 24px; background: #F8FAFC;
+  }
+</style>

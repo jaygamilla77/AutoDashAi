@@ -1,0 +1,81 @@
+<div class="admin-shell">
+  <div class="admin-header">
+    <div>
+      <h1>Manage Pages</h1>
+      <p class="admin-sub">Edit the content, SEO metadata, and hero of public marketing pages.</p>
+    </div>
+    <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> Back to App
+    </a>
+  </div>
+
+  <div class="admin-card">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Page</th>
+          <th>URL</th>
+          <th>Status</th>
+          <th>Last updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% pages.forEach(function(p){ %>
+          <tr>
+            <td>
+              <strong><%= p.label %></strong>
+              <div class="muted small"><%= p.title %></div>
+            </td>
+            <td><a href="/<%= p.slug %>" target="_blank" rel="noopener">/<%= p.slug %> <i class="bi bi-box-arrow-up-right"></i></a></td>
+            <td>
+              <% if (p.isPublished && (p.bodyHtml || '').trim()) { %>
+                <span class="badge bg-success-soft">Published</span>
+              <% } else if (p.isPublished) { %>
+                <span class="badge bg-warning-soft">Empty (using fallback)</span>
+              <% } else { %>
+                <span class="badge bg-muted-soft">Hidden</span>
+              <% } %>
+            </td>
+            <td class="muted small"><%= p.updatedAt ? new Date(p.updatedAt).toLocaleString() : '—' %></td>
+            <td><a href="/admin/pages/<%= p.slug %>/edit" class="btn btn-primary btn-sm">Edit</a></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .admin-shell { max-width: 1080px; margin: 32px auto; padding: 0 24px; }
+  .admin-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; gap: 16px; }
+  .admin-header h1 { font-size: 24px; font-weight: 800; color: #0F172A; margin: 0 0 4px; letter-spacing: -.01em; }
+  .admin-sub { color: #64748B; font-size: 14px; margin: 0; }
+
+  .admin-card {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+  }
+  .admin-table { width: 100%; border-collapse: collapse; }
+  .admin-table thead th {
+    background: #F8FAFC; color: #64748B;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    padding: 12px 16px; text-align: left; border-bottom: 1px solid #E2E8F0;
+  }
+  .admin-table tbody td {
+    padding: 14px 16px; border-bottom: 1px solid #EEF2F7; vertical-align: middle;
+  }
+  .admin-table tbody tr:last-child td { border-bottom: none; }
+  .admin-table .muted { color: #64748B; }
+  .admin-table .small { font-size: 12px; }
+  .admin-table a { color: #2563EB; text-decoration: none; }
+  .admin-table a:hover { text-decoration: underline; }
+
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .bg-success-soft { background: #DCFCE7; color: #166534; }
+  .bg-warning-soft { background: #FEF3C7; color: #92400E; }
+  .bg-muted-soft   { background: #F1F5F9; color: #475569; }
+</style>

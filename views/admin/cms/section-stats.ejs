@@ -1,0 +1,49 @@
+<div class="group-head">
+  <h3>Stat Counters</h3>
+  <button type="button" class="add-btn" data-add="statsItems"><i class="bi bi-plus-lg"></i> Add stat</button>
+</div>
+<div data-list="statsItems">
+  <% (data.items || []).forEach(function(item, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Stat">Stat #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div class="row-3">
+        <label class="field"><span class="field-label">Icon</span>
+          <input class="input" type="text" data-name="data[items][__I__][icon]" name="data[items][<%= i %>][icon]" value="<%= item.icon || '' %>">
+        </label>
+        <label class="field"><span class="field-label">Value</span>
+          <input class="input" type="text" data-name="data[items][__I__][value]" name="data[items][<%= i %>][value]" value="<%= item.value || '' %>">
+        </label>
+        <label class="field"><span class="field-label">Label</span>
+          <input class="input" type="text" data-name="data[items][__I__][label]" name="data[items][<%= i %>][label]" value="<%= item.label || '' %>">
+        </label>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="statsItems">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Stat">New stat</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-3">
+      <label class="field"><span class="field-label">Icon</span><input class="input" type="text" data-name="data[items][__I__][icon]" value="bi-star"></label>
+      <label class="field"><span class="field-label">Value</span><input class="input" type="text" data-name="data[items][__I__][value]" value="100+"></label>
+      <label class="field"><span class="field-label">Label</span><input class="input" type="text" data-name="data[items][__I__][label]" value="Customers"></label>
+    </div>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

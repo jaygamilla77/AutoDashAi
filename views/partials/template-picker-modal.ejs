@@ -1,0 +1,1336 @@
+<!-- Premium Template Picker Modal -->
+<div id="templatePickerModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(6px); z-index: 10000; pointer-events: none; visibility: hidden; opacity: 0; transition: opacity 0.18s ease">
+  <div class="modal-dialog tpl-modal-dialog" role="document" style="margin: 60px auto; max-width: 1080px; width: 95%">
+    <div class="modal-content" style="border: none; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35); border-radius: 20px; overflow: hidden; background: #FFFFFF">
+      <!-- Modal Header -->
+      <div style="position: relative; background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #DB2777 100%); color: white; padding: 28px 32px; display: flex; align-items: flex-start; justify-content: space-between">
+        <div style="position: absolute; inset: 0; background: radial-gradient(800px 200px at 20% 0%, rgba(255,255,255,0.18), transparent 60%); pointer-events: none"></div>
+        <div style="position: relative; z-index: 1">
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.14); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.18)">
+            <i class="bi bi-grid-1x2-fill"></i> Templates
+          </div>
+          <h3 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em">Choose a starting point</h3>
+          <p style="margin: 6px 0 0 0; opacity: 0.92; font-size: 14px; max-width: 560px">Pick a pre-built template or let AI design a custom dashboard from your data.</p>
+        </div>
+        <button type="button" onclick="closeTemplatePickerModal()" aria-label="Close" style="position: relative; z-index: 1; background: rgba(255,255,255,0.16); color: white; border: 1px solid rgba(255,255,255,0.22); padding: 0; width: 36px; height: 36px; border-radius: 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.16)'">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body tpl-modal-body" style="padding: 28px 32px 32px; max-height: 70vh; overflow-y: auto; background: #F8FAFC">
+        <div class="tpl-grid" id="templatePickerGrid">
+          <!-- Templates will load here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ---- Premium Template Picker ---- */
+  .tpl-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 900px) { .tpl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .tpl-grid { grid-template-columns: 1fr; } }
+
+  .template-card {
+    position: relative;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 22px 20px 20px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 180px;
+    overflow: hidden;
+  }
+  .template-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--tpl-tint, rgba(99,102,241,0.08)), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  .template-card:hover {
+    border-color: var(--tpl-accent, #6366F1);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.05);
+    transform: translateY(-3px);
+  }
+  .template-card:hover::before { opacity: 1; }
+  .template-card:focus-visible {
+    outline: none;
+    border-color: var(--tpl-accent, #6366F1);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18);
+  }
+  .template-card.is-selected {
+    border-color: var(--tpl-accent, #6366F1);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.18), 0 12px 28px rgba(15, 23, 42, 0.10);
+  }
+
+  .tpl-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+  }
+  .tpl-icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tpl-icon-bg, linear-gradient(135deg, #EEF2FF, #E0E7FF));
+    color: var(--tpl-accent, #4F46E5);
+    font-size: 24px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
+  }
+  .tpl-category-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--tpl-badge-bg, #F1F5F9);
+    color: var(--tpl-badge-fg, #475569);
+    border: 1px solid var(--tpl-badge-border, #E2E8F0);
+  }
+
+  .template-card-name {
+    font-weight: 700;
+    color: #0F172A;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+  .template-card-desc {
+    font-size: 12.5px;
+    color: #64748B;
+    line-height: 1.5;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+  .tpl-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #94A3B8;
+    position: relative;
+    z-index: 1;
+  }
+  .tpl-card-foot .tpl-cta {
+    color: var(--tpl-accent, #4F46E5);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 0.18s ease;
+  }
+  .template-card:hover .tpl-cta { gap: 8px; }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #E2E8F0;
+    border-top-color: #6366F1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .tpl-skeleton {
+    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+    background-size: 200% 100%;
+    animation: tpl-shimmer 1.4s linear infinite;
+    border-radius: 14px;
+    height: 180px;
+  }
+  @keyframes tpl-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+</style>
+
+<script>
+// Open template picker modal
+function openTemplatePickerModal() {
+  const modal = document.getElementById('templatePickerModal');
+  const modalDialog = modal.querySelector('.modal-dialog');
+  modal.style.display = 'block';
+  modal.style.visibility = 'visible';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+  modalDialog.style.pointerEvents = 'auto';
+  modal.removeAttribute('aria-hidden');
+  modal.removeAttribute('inert');
+  modal.setAttribute('aria-modal', 'true');
+  
+  loadTemplatesForPicker();
+  document.body.style.overflow = 'hidden';
+}
+
+// Close template picker modal
+function closeTemplatePickerModal() {
+  const modal = document.getElementById('templatePickerModal');
+  const modalDialog = modal.querySelector('.modal-dialog');
+  // Move focus OUT of the modal before applying aria-hidden, otherwise
+  // browsers warn that aria-hidden ancestors must not contain focused elements.
+  if (modal.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+  modal.style.display = 'none';
+  modal.style.visibility = 'hidden';
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
+  modalDialog.style.pointerEvents = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+  modal.removeAttribute('aria-modal');
+  // `inert` is the modern way to make a hidden subtree non-interactive AND
+  // non-focusable for assistive tech, complementing aria-hidden cleanly.
+  modal.setAttribute('inert', '');
+  document.body.style.overflow = 'auto';
+}
+
+// Load templates for the picker
+async function loadTemplatesForPicker() {
+  const grid = document.getElementById('templatePickerGrid');
+  if (grid) {
+    // Skeleton loaders for premium feel
+    grid.innerHTML = Array.from({ length: 6 }).map(() => '<div class="tpl-skeleton"></div>').join('');
+  }
+  try {
+    const response = await fetch('/wizard-guided/templates');
+    const data = await response.json();
+
+    if (data.success) {
+      renderTemplatePickerGrid(data.templates);
+    }
+  } catch (error) {
+    console.error('Error loading templates:', error);
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#94A3B8;padding:40px">Could not load templates. Please try again.</div>';
+  }
+}
+
+// Map template name → premium category styling (icon + accent + badge)
+function tplCategoryStyle(template) {
+  const name = (template.name || '').toLowerCase();
+  // Default fallback
+  let cfg = {
+    icon: 'bi-grid-1x2-fill',
+    accent: '#4F46E5',
+    iconBg: 'linear-gradient(135deg, #EEF2FF, #E0E7FF)',
+    tint: 'rgba(79,70,229,0.10)',
+    badge: 'Template',
+    badgeBg: '#EEF2FF', badgeFg: '#4338CA', badgeBorder: '#E0E7FF'
+  };
+  if (name.includes('executive')) cfg = {
+    icon: 'bi-bar-chart-line-fill', accent: '#0EA5E9',
+    iconBg: 'linear-gradient(135deg, #E0F2FE, #BAE6FD)', tint: 'rgba(14,165,233,0.10)',
+    badge: 'Premium', badgeBg: '#FEF3C7', badgeFg: '#92400E', badgeBorder: '#FDE68A'
+  };
+  else if (name.includes('hr') || name.includes('recruit')) cfg = {
+    icon: name.includes('recruit') ? 'bi-person-plus-fill' : 'bi-people-fill', accent: '#10B981',
+    iconBg: 'linear-gradient(135deg, #D1FAE5, #A7F3D0)', tint: 'rgba(16,185,129,0.10)',
+    badge: 'People', badgeBg: '#D1FAE5', badgeFg: '#065F46', badgeBorder: '#A7F3D0'
+  };
+  else if (name.includes('sales')) cfg = {
+    icon: 'bi-graph-up-arrow', accent: '#F59E0B',
+    iconBg: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', tint: 'rgba(245,158,11,0.12)',
+    badge: 'Revenue', badgeBg: '#FEF3C7', badgeFg: '#92400E', badgeBorder: '#FDE68A'
+  };
+  else if (name.includes('finance')) cfg = {
+    icon: 'bi-cash-coin', accent: '#059669',
+    iconBg: 'linear-gradient(135deg, #ECFDF5, #D1FAE5)', tint: 'rgba(5,150,105,0.10)',
+    badge: 'Business', badgeBg: '#ECFDF5', badgeFg: '#065F46', badgeBorder: '#A7F3D0'
+  };
+  else if (name.includes('operation')) cfg = {
+    icon: 'bi-diagram-3-fill', accent: '#0891B2',
+    iconBg: 'linear-gradient(135deg, #CFFAFE, #A5F3FC)', tint: 'rgba(8,145,178,0.10)',
+    badge: 'Efficiency', badgeBg: '#CFFAFE', badgeFg: '#155E75', badgeBorder: '#A5F3FC'
+  };
+  else if (name.includes('customer') || name.includes('service')) cfg = {
+    icon: 'bi-headset', accent: '#EC4899',
+    iconBg: 'linear-gradient(135deg, #FCE7F3, #FBCFE8)', tint: 'rgba(236,72,153,0.10)',
+    badge: 'Support', badgeBg: '#FCE7F3', badgeFg: '#9D174D', badgeBorder: '#FBCFE8'
+  };
+  else if (name.includes('it ') || name.includes('itsm') || name.includes('information')) cfg = {
+    icon: 'bi-cpu-fill', accent: '#6366F1',
+    iconBg: 'linear-gradient(135deg, #EEF2FF, #C7D2FE)', tint: 'rgba(99,102,241,0.10)',
+    badge: 'Technology', badgeBg: '#EEF2FF', badgeFg: '#3730A3', badgeBorder: '#C7D2FE'
+  };
+  else if (name.includes('project')) cfg = {
+    icon: 'bi-kanban-fill', accent: '#7C3AED',
+    iconBg: 'linear-gradient(135deg, #F5F3FF, #DDD6FE)', tint: 'rgba(124,58,237,0.10)',
+    badge: 'Delivery', badgeBg: '#F5F3FF', badgeFg: '#5B21B6', badgeBorder: '#DDD6FE'
+  };
+  else if (name.includes('inventory')) cfg = {
+    icon: 'bi-box-seam-fill', accent: '#D97706',
+    iconBg: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', tint: 'rgba(217,119,6,0.10)',
+    badge: 'Stock', badgeBg: '#FEF3C7', badgeFg: '#92400E', badgeBorder: '#FDE68A'
+  };
+  else if (name.includes('custom') || name.includes('ai')) cfg = {
+    icon: 'bi-stars', accent: '#8B5CF6',
+    iconBg: 'linear-gradient(135deg, #F3E8FF, #E9D5FF)', tint: 'rgba(139,92,246,0.12)',
+    badge: 'AI', badgeBg: '#F3E8FF', badgeFg: '#6B21A8', badgeBorder: '#E9D5FF'
+  };
+  return cfg;
+}
+
+// Render template cards in the picker (uses shared TemplatePreviewCard component)
+function renderTemplatePickerGrid(templates) {
+  const grid = document.getElementById('templatePickerGrid');
+  grid.innerHTML = '';
+
+  // Switch container styling to use the shared rich card grid
+  grid.classList.add('tpc-grid');
+  grid.classList.remove('tpl-grid');
+
+  templates.forEach(template => {
+    if (!window.TemplatePreviewCard) return;
+    const type = window.resolveTemplatePreviewType(template.id || template.name);
+    const meta = window.getTemplateMeta(type);
+    const kpis = Array.isArray(template.recommendedKpis) ? template.recommendedKpis
+      : (Array.isArray(template.kpis) ? template.kpis
+        : (typeof template.kpis === 'string' ? (function(){ try { return JSON.parse(template.kpis); } catch(e){ return []; } })() : []));
+
+    const card = window.TemplatePreviewCard({
+      templateId: template.id,
+      title: template.name,
+      description: template.description,
+      category: template.category || meta.category,
+      accentColor: meta.accent,
+      recommendedKpis: kpis,
+      previewLayoutType: type,
+      onUseTemplate: (id, name) => selectTemplateAndGenerate(id, name)
+    });
+    grid.appendChild(card);
+  });
+}
+
+// Select template and start generation
+function selectTemplateAndGenerate(templateId, templateName) {
+  closeTemplatePickerModal();
+  
+  // Show full-screen loading indicator
+  showGeneratingOverlay(`Generating ${templateName}...`, 'Analyzing data sources and creating dashboard panels...');
+  
+  // Generate full dashboard
+  generateFullDashboard(templateId, templateName);
+}
+
+// Generate full dashboard with all panels
+async function generateFullDashboard(templateId, templateName) {
+  try {
+    // Resolve the currently-selected data source from the AI Builder sidebar.
+    // Empty string ⇒ Internal Database (sourceId=null on the server).
+    const srcSel = document.getElementById('aiSourceSel');
+    const rawVal = srcSel ? (srcSel.value || '') : '';
+    const selectedSourceId   = rawVal === '' ? null : (parseInt(rawVal, 10) || null);
+    const selectedSourceName = srcSel
+      ? (srcSel.options[srcSel.selectedIndex] ? srcSel.options[srcSel.selectedIndex].text : null)
+      : null;
+
+    console.log('[CreateDashboard] selected source:', { selectedSourceId, selectedSourceName, templateId });
+
+    // Call the full dashboard generation endpoint
+    const response = await fetch('/wizard-guided/generate-full', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        templateId: templateId,
+        colorTheme: 'corporate',
+        sourceId: selectedSourceId,
+        sourceName: selectedSourceName,
+        prompt: `Generate a complete ${templateName.toLowerCase()} dashboard using ONLY the fields available in the selected data source (${selectedSourceName || 'Internal Database'}). Skip charts whose required fields do not exist.`
+      })
+    });
+    
+    const result = await response.json();
+    hideGeneratingOverlay();
+    
+    if (result.success) {
+      // Display full dashboard immediately
+      displayFullDashboard(result.dashboard);
+    } else {
+      alert('Error generating dashboard: ' + (result.message || 'Unknown error'));
+    }
+  } catch (error) {
+    hideGeneratingOverlay();
+    console.error('Error:', error);
+    alert('Error generating dashboard');
+  }
+}
+
+// Display full dashboard — render every generated panel as an editable card
+// on the AI Builder canvas (drag, resize, properties, save all work for free).
+function displayFullDashboard(dashboard) {
+  // Store dashboard for reference / debugging
+  window.generatedFullDashboard = dashboard;
+
+  const canvasEl = document.getElementById('aiCanvas');
+  if (!canvasEl) return;
+
+  // Hide empty-state placeholder, ensure the panel grid is visible
+  const emptyState = document.getElementById('aiEmptyState');
+  if (emptyState) emptyState.style.display = 'none';
+  const panelGrid = document.getElementById('aiPanelGrid');
+  if (panelGrid) panelGrid.style.display = '';
+
+  // Remove any prior static-grid container we may have rendered
+  const existingDash = document.getElementById('aiFullDashboardContainer');
+  if (existingDash) existingDash.remove();
+
+  // Clear the canvas (queue + cards) so consecutive generations replace, not stack.
+  resetAiCanvas();
+
+  // Inject a header row showing dashboard title + description (visual only)
+  injectGeneratedHeader(dashboard);
+
+  // Show a notice for any template visuals the generator skipped because the
+  // selected source did not contain the required fields.
+  injectSkippedPanelsNotice(dashboard.skippedPanels || []);
+
+  const colors = dashboard.colors || {};
+  const accent = colors.accent || '#4F46E5';
+
+  // Layout grid: split canvas into a 12-column logical grid that maps to pixels.
+  // Each row gets a y position; we increment as we place panels.
+  const GRID = computeCanvasGrid(canvasEl);
+  let cursorY = GRID.startY;
+
+  // Filter out sections that have no buildable panels (defence in depth — the
+  // server already filters, but stale data may still arrive).
+  const renderableSections = (dashboard.sections || []).filter(function(s) {
+    return s && Array.isArray(s.panels) && s.panels.some(function(p) {
+      // Insights panels are valid even without query data
+      if (p && (p.type === 'insights' || p.type === 'kpi')) return true;
+      return p && p.data && p.data.hasData;
+    });
+  });
+
+  // Track a section label to attach onto each panel for save/restore
+  renderableSections.forEach(function(section) {
+    const panels = (section.panels || []);
+    if (!panels.length) return;
+
+    // Optional section divider (sticky text inside the canvas)
+    injectSectionDivider(section.name, cursorY, GRID);
+    cursorY += GRID.sectionGap;
+
+    // Decide row layout based on panel kind
+    const kpis = panels.filter(p => p.type === 'kpi');
+    const insights = panels.filter(p => p.type === 'insights');
+    const charts = panels.filter(p => p.type !== 'kpi' && p.type !== 'insights');
+
+    // KPI row — one card per KPI, spread across width
+    if (kpis.length) {
+      const kpiW = Math.floor((GRID.width - GRID.gap * (kpis.length - 1)) / kpis.length);
+      const kpiH = 150;
+      kpis.forEach(function(p, i) {
+        renderGeneratedPanelOnCanvas(p, section.name, accent, {
+          left: GRID.startX + i * (kpiW + GRID.gap),
+          top: cursorY,
+          width: kpiW,
+          height: kpiH,
+        });
+      });
+      cursorY += kpiH + GRID.rowGap;
+    }
+
+    // Chart row(s) — 2 columns
+    if (charts.length) {
+      const cols = 2;
+      const cw = Math.floor((GRID.width - GRID.gap * (cols - 1)) / cols);
+      const ch = 340;
+      charts.forEach(function(p, i) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        renderGeneratedPanelOnCanvas(p, section.name, accent, {
+          left: GRID.startX + col * (cw + GRID.gap),
+          top: cursorY + row * (ch + GRID.rowGap),
+          width: cw,
+          height: ch,
+        });
+      });
+      const rows = Math.ceil(charts.length / cols);
+      cursorY += rows * ch + (rows - 1) * GRID.rowGap + GRID.rowGap;
+    }
+
+    // Insights — full width text panel
+    if (insights.length) {
+      insights.forEach(function(p) {
+        renderGeneratedPanelOnCanvas(p, section.name, accent, {
+          left: GRID.startX,
+          top: cursorY,
+          width: GRID.width,
+          height: 180,
+        });
+        cursorY += 180 + GRID.rowGap;
+      });
+    }
+  });
+
+  // Mark this canvas as "generated full dashboard" so Save uses the executive
+  // AJAX flow (persists positions / sizes / chartConfigs / fields).
+  window.__aiExecutiveMeta = {
+    dashboardType:     'executive',
+    dashboardRole:     dashboard.title || 'Generated Dashboard',
+    dashboardSubtitle: dashboard.description || '',
+    schemaVersion:     'executive-dashboard-v1',
+    generatedAt:       dashboard.generatedAt || new Date().toISOString(),
+    sections:          (dashboard.sections || []).map(function(s) { return { name: s.name, type: s.type }; }),
+    layoutHint:        'free-form',
+    templateId:        dashboard.templateId || null,
+    sourceId:          dashboard.sourceId   || null,
+    sourceName:        dashboard.sourceName || null,
+  };
+
+  // Lock the SOURCE selector so the user can't change the database after
+  // a dashboard was generated against it. They can still edit chart-type/prompt.
+  lockSourceSelector(dashboard.sourceName);
+
+  // Update empty-state flag
+  if (typeof aiUpdateEmptyState === 'function') aiUpdateEmptyState();
+
+  // Make sure Properties drawer is reset
+  const propContent = document.getElementById('aiPropertiesContent');
+  if (propContent) {
+    propContent.innerHTML = '<div style="text-align:center;padding:20px 0;color:#9ca3af">' +
+      '<i class="bi bi-click" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3"></i>' +
+      'Click any chart, KPI, or table to edit its calculations, fields, filters, and styling.' +
+    '</div>';
+  }
+
+  canvasEl.scrollTop = 0;
+}
+
+// Compute the available grid metrics for the canvas based on its width.
+function computeCanvasGrid(canvasEl) {
+  const w = Math.max(canvasEl.clientWidth - 40, 720);
+  return {
+    startX: 16,
+    startY: 16,
+    width:  w,
+    gap:    16,
+    rowGap: 18,
+    sectionGap: 36,
+  };
+}
+
+// Render a single generated panel as an editable canvas card.
+function renderGeneratedPanelOnCanvas(panel, sectionName, accent, rect) {
+  const q = panel.query || {};
+  const data = panel.data || {};
+  const isKpi = panel.type === 'kpi';
+  const isInsight = panel.type === 'insights';
+
+  // Build the shape that aiRenderPanelOnCanvas expects
+  const adapted = {
+    title: panel.title || 'Untitled Panel',
+    chartType: isKpi ? 'cards' : (isInsight ? 'table' : (panel.chartType || 'bar')),
+    chartEngine: 'chartjs',
+    labels: isKpi
+      ? [panel.title || '']
+      : (data.labels || []),
+    values: isKpi
+      ? [typeof data.kpiValue === 'number' ? data.kpiValue : 0]
+      : (data.values || []),
+    chartConfig: isKpi || isInsight ? null : (data.chartConfig || null),
+    hasData: isKpi
+      ? (typeof data.kpiValue === 'number')
+      : !!data.hasData,
+    bgColors: [],
+    borderColors: [],
+    table:       q.table       || null,
+    dimension:   q.dimension   || null,
+    measure:     q.measure     || null,
+    aggregation: q.aggregation || null,
+    limit:       q.limit       || null,
+    sourceId:    panel._sourceId || null,
+    section:     sectionName || null,
+    _section:    sectionName || null,
+    structuredRequest: {
+      focusArea:   q.table || '',
+      dimensions:  q.dimension ? [q.dimension] : [],
+      metrics:     q.measure ? [q.measure] : [],
+      aggregation: (q.aggregation || (isKpi ? 'count' : 'sum')).toLowerCase(),
+      limit:       q.limit || null,
+      filters:     [],
+      sort:        null,
+      chartPreference: isKpi ? 'cards' : (panel.chartType || null),
+    },
+    aiInsight: panel.insight || null,
+    parsedByAI: true,
+  };
+
+  // Always store a per-panel dataConfig snapshot for the Properties → Data tab.
+  // This is the single source of truth for what the element is bound to.
+  (function attachDataConfig() {
+    const dim = q.dimension || null;
+    const met = q.measure || null;
+    const table = q.table || '';
+    const agg = (q.aggregation || (isKpi ? 'count' : 'sum')).toLowerCase();
+    const aggLabel = agg.charAt(0).toUpperCase() + agg.slice(1);
+    const qualMetric = met ? (table ? table + '.' + met : met) : '*';
+    const qualDim = dim ? (table ? table + '.' + dim : dim) : '';
+    let calc = aggLabel + '(' + qualMetric + ')';
+    if (qualDim) calc += ' grouped by ' + qualDim;
+    const labels = adapted.labels || [];
+    const values = adapted.values || [];
+    const preview = [];
+    for (let i = 0; i < Math.min(labels.length, values.length, 10); i++) {
+      const row = {};
+      if (dim) row[dim] = labels[i];
+      if (met) row[met] = values[i];
+      preview.push(row);
+    }
+    adapted.dataConfig = {
+      sourceId:   adapted.sourceId || null,
+      sourceName: adapted.sourceId ? ('Source #' + adapted.sourceId) : 'Internal Database',
+      table,
+      groupByField: dim,
+      valueField: met,
+      metricField: met,
+      aggregation: agg,
+      filters: [],
+      sortBy: null,
+      sortDirection: 'desc',
+      topN: q.limit || null,
+      calculationLabel: calc,
+      resultPreview: preview,
+      currentValue: isKpi ? (data.kpiValue != null ? data.kpiValue : (values.length === 1 ? values[0] : null))
+                          : (values.length === 1 ? values[0] : null),
+    };
+  })();
+
+  if (isInsight) {
+    // For insights we keep it as a small text-only card by reusing 'table'
+    adapted.tableData = { columns: ['Insight'], rows: [{ Insight: panel.title || 'AI Insight' }] };
+  }
+
+  // Render via the existing AI Builder pipeline
+  aiRenderPanelOnCanvas(adapted, false);
+
+  // Now reposition + resize the freshly-created card to honor our layout.
+  const uid = adapted._uid;
+  const card = document.getElementById('aiCard-' + uid);
+  if (card && rect) {
+    card.style.left   = rect.left + 'px';
+    card.style.top    = rect.top + 'px';
+    card.style.width  = rect.width + 'px';
+    card.style.height = rect.height + 'px';
+    // Cache position so submitAiDashboard persists it
+    adapted.position = { left: rect.left, top: rect.top };
+    adapted.size     = { width: rect.width, height: rect.height };
+  }
+  // Tag the card with its section so aiCleanupEmptySections() can find it
+  // when the user deletes panels.
+  if (card && sectionName) {
+    card.setAttribute('data-section-name', sectionName);
+  }
+
+  // Add to the queue so Save Dashboard includes it
+  __aiQueue.push(adapted);
+
+  // Status dot overlay for KPI cards (🟢 / 🟡 / 🔴)
+  if (isKpi && panel.statusLevel && card) {
+    applyKpiStatusDot(card, panel.statusLevel);
+  }
+
+  // Force chart re-fit after the resize
+  setTimeout(function() {
+    try { __aiCharts[uid] && __aiCharts[uid].resize(); } catch (e) {}
+  }, 80);
+}
+
+// Add a colored status dot to the upper-right of a KPI card
+function applyKpiStatusDot(card, level) {
+  if (!card) return;
+  const colors = { success:'#10b981', warning:'#f59e0b', danger:'#ef4444', info:'#3b82f6' };
+  const c = colors[level] || colors.info;
+  let dot = card.querySelector('.aiKpiStatusDot');
+  if (!dot) {
+    dot = document.createElement('span');
+    dot.className = 'aiKpiStatusDot';
+    dot.style.cssText = 'position:absolute;top:10px;right:12px;width:10px;height:10px;border-radius:50%;' +
+      'box-shadow:0 0 0 3px rgba(255,255,255,0.9);z-index:5;pointer-events:none';
+    card.style.position = card.style.position || 'absolute';
+    card.appendChild(dot);
+  }
+  dot.style.background = c;
+  dot.title = 'Status: ' + level;
+}
+
+// Add a dashboard title/subtitle banner at the top of the canvas
+function injectGeneratedHeader(dashboard) {
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid) return;
+  const old = document.getElementById('aiGenHeader');
+  if (old) old.remove();
+  const hdr = document.createElement('div');
+  hdr.id = 'aiGenHeader';
+  hdr.style.cssText = 'position:relative;z-index:1;padding:18px 22px 16px;margin:0 0 4px 0;border-bottom:1px solid #e5e7eb;' +
+    'background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%);';
+
+  // Render the executive summary as a management-briefing block — multi-paragraph
+  // prose, italic-quoted, with prominent label.
+  const summaryHtml = dashboard.executiveSummary
+    ? '<div style="margin-top:12px;padding:14px 16px;background:#ffffff;border:1px solid #e0e7ff;border-radius:10px;' +
+      'box-shadow:0 1px 2px rgba(15,23,42,0.04)">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+          '<i class="bi bi-clipboard-data-fill" style="color:#4338ca;font-size:1rem"></i>' +
+          '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:800;color:#4338ca">Executive Summary</span>' +
+        '</div>' +
+        '<div style="font-size:0.84rem;color:#1e293b;line-height:1.55;font-style:italic">' +
+          '“' + escapeHtmlSafe(dashboard.executiveSummary) + '”' +
+        '</div>' +
+      '</div>'
+    : '';
+
+  hdr.innerHTML =
+    '<div style="font-size:0.66rem;text-transform:uppercase;letter-spacing:0.6px;color:#6366f1;font-weight:700">' +
+      '<i class="bi bi-stars me-1"></i>Auto-generated dashboard' +
+    '</div>' +
+    '<div style="font-size:1.18rem;font-weight:700;color:#0f172a;margin-top:2px">' + (dashboard.title || 'Dashboard') + '</div>' +
+    '<div style="font-size:0.78rem;color:#64748b;margin-top:2px">' + (dashboard.description || '') + '</div>' +
+    summaryHtml;
+  grid.parentNode.insertBefore(hdr, grid);
+  grid.style.paddingTop = '6px';
+
+  // Inject the AI Insights strip below the header.
+  injectInsightsStrip(dashboard.insights || []);
+}
+
+// Render structured executive insight cards with Observation / Business Impact /
+// Risk Level / Recommendation / Confidence sections.
+function injectInsightsStrip(insights) {
+  const old = document.getElementById('aiInsightsStrip');
+  if (old) old.remove();
+  if (!insights || !insights.length) return;
+
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid) return;
+
+  const palette = {
+    success: { bg:'#ecfdf5', border:'#a7f3d0', text:'#065f46', accent:'#10b981', riskBg:'#d1fae5', riskText:'#065f46', label:'Positive Trend' },
+    warning: { bg:'#fffbeb', border:'#fcd34d', text:'#92400e', accent:'#f59e0b', riskBg:'#fef3c7', riskText:'#92400e', label:'Needs Attention' },
+    danger:  { bg:'#fef2f2', border:'#fecaca', text:'#991b1b', accent:'#ef4444', riskBg:'#fee2e2', riskText:'#991b1b', label:'Critical Risk' },
+    info:    { bg:'#eff6ff', border:'#bfdbfe', text:'#1e40af', accent:'#3b82f6', riskBg:'#dbeafe', riskText:'#1e40af', label:'Recommendation' },
+  };
+
+  const riskBadgeColor = (risk) => {
+    if (risk === 'CRITICAL') return { bg:'#fee2e2', fg:'#991b1b' };
+    if (risk === 'HIGH')     return { bg:'#fef3c7', fg:'#92400e' };
+    if (risk === 'MEDIUM')   return { bg:'#fef9c3', fg:'#854d0e' };
+    return { bg:'#dcfce7', fg:'#166534' }; // LOW
+  };
+
+  const cards = insights.slice(0, 6).map(function(ins) {
+    const p = palette[ins.level] || palette.info;
+    const risk = ins.riskLevel || 'LOW';
+    const rb = riskBadgeColor(risk);
+    const conf = Number.isFinite(Number(ins.confidence)) ? Math.round(Number(ins.confidence)) : null;
+
+    // Backwards-compat: fall back to legacy `text` if observation missing.
+    const observation = ins.observation || ins.text || '';
+    const impact      = ins.businessImpact || '';
+    const rec         = ins.recommendation || '';
+
+    return '' +
+      '<div style="flex:1 1 320px;min-width:300px;max-width:520px;background:' + p.bg + ';border:1px solid ' + p.border + ';' +
+        'border-left:4px solid ' + p.accent + ';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:7px">' +
+
+        // Header row: icon + title + risk badge
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<span style="font-size:1.05rem;line-height:1">' + (ins.icon || '💡') + '</span>' +
+          '<span style="font-size:0.86rem;font-weight:800;color:' + p.text + ';flex:1">' + escapeHtmlSafe(ins.title || p.label) + '</span>' +
+          '<span style="background:' + rb.bg + ';color:' + rb.fg + ';font-size:0.62rem;font-weight:800;letter-spacing:0.5px;' +
+            'padding:2px 8px;border-radius:999px;text-transform:uppercase">' + escapeHtmlSafe(risk) + '</span>' +
+        '</div>' +
+
+        // Observation
+        (observation ? (
+          '<div>' +
+            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#475569;margin-bottom:1px">Observation</div>' +
+            '<div style="font-size:0.78rem;color:#1e293b;line-height:1.4">' + escapeHtmlSafe(observation) + '</div>' +
+          '</div>'
+        ) : '') +
+
+        // Business impact
+        (impact ? (
+          '<div>' +
+            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#475569;margin-bottom:1px">Business Impact</div>' +
+            '<div style="font-size:0.74rem;color:#475569;line-height:1.4">' + escapeHtmlSafe(impact) + '</div>' +
+          '</div>'
+        ) : '') +
+
+        // Recommendation
+        (rec ? (
+          '<div style="background:rgba(255,255,255,0.6);border:1px dashed ' + p.border + ';border-radius:6px;padding:6px 8px">' +
+            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:' + p.text + ';margin-bottom:1px">' +
+              '💡 Recommended Action' +
+            '</div>' +
+            '<div style="font-size:0.74rem;color:#1e293b;line-height:1.4">' + escapeHtmlSafe(rec) + '</div>' +
+          '</div>'
+        ) : '') +
+
+        // Confidence bar
+        (conf != null ? (
+          '<div style="display:flex;align-items:center;gap:8px;margin-top:2px">' +
+            '<span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#64748b">Confidence</span>' +
+            '<div style="flex:1;height:6px;background:#e5e7eb;border-radius:999px;overflow:hidden">' +
+              '<div style="width:' + conf + '%;height:100%;background:' + p.accent + '"></div>' +
+            '</div>' +
+            '<span style="font-size:0.72rem;font-weight:700;color:' + p.text + '">' + conf + '%</span>' +
+          '</div>'
+        ) : '') +
+
+      '</div>';
+  }).join('');
+
+  const strip = document.createElement('div');
+  strip.id = 'aiInsightsStrip';
+  strip.style.cssText = 'position:relative;z-index:1;padding:14px 18px 8px;display:flex;flex-wrap:wrap;gap:12px;background:#ffffff;border-bottom:1px solid #f1f5f9';
+  strip.innerHTML =
+    '<div style="flex:0 0 100%;display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+      '<i class="bi bi-lightning-charge-fill" style="color:#6366f1;font-size:1rem"></i>' +
+      '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:800;color:#475569">' +
+        'AI Insights & Recommendations' +
+      '</span>' +
+      '<span style="font-size:0.66rem;color:#94a3b8;margin-left:4px">' + insights.length + ' insight' + (insights.length === 1 ? '' : 's') + ' detected</span>' +
+    '</div>' + cards;
+  grid.parentNode.insertBefore(strip, grid);
+}
+
+function escapeHtmlSafe(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Inject a section divider label inside the canvas at a given y position.
+function injectSectionDivider(name, y, GRID) {
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid || !name) return;
+  const div = document.createElement('div');
+  div.className = 'aiSectionDivider';
+  div.setAttribute('data-section-name', name);
+  div.style.cssText = 'position:absolute;left:' + GRID.startX + 'px;top:' + y + 'px;width:' + GRID.width + 'px;' +
+    'font-size:0.78rem;font-weight:700;color:#0f172a;letter-spacing:0.2px;' +
+    'border-bottom:1px solid #e5e7eb;padding-bottom:6px;pointer-events:none;z-index:0';
+  div.textContent = name;
+  grid.appendChild(div);
+}
+
+// Auto-hide section dividers whose panels have all been deleted from the canvas.
+// Called after any panel removal (queue or canvas card) so the dashboard never
+// shows a section heading with no content underneath.
+window.aiCleanupEmptySections = function aiCleanupEmptySections() {
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid) return;
+  const dividers = grid.querySelectorAll('.aiSectionDivider[data-section-name]');
+  dividers.forEach(function(div) {
+    const name = div.getAttribute('data-section-name') || '';
+    // Count surviving cards bound to this section
+    const cards = grid.querySelectorAll('[id^="aiCard-"][data-section-name="' + CSS.escape(name) + '"]');
+    if (cards.length === 0) {
+      div.remove();
+    }
+  });
+};
+
+// Render a small banner listing template visuals that could not be generated.
+function injectSkippedPanelsNotice(skipped) {
+  const old = document.getElementById('aiSkippedPanelsNotice');
+  if (old) old.remove();
+  if (!skipped || !skipped.length) return;
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid) return;
+
+  const items = skipped.map(function(s) {
+    const title  = escapeHtmlSafe(s.title || s.id || 'Panel');
+    const reason = escapeHtmlSafe(s.reason || 'Required fields are not available in this data source.');
+    const sugg   = s.suggestion ? '<div style="font-size:0.7rem;color:#475569;margin-top:2px"><i class="bi bi-lightbulb" style="color:#f59e0b"></i> ' + escapeHtmlSafe(s.suggestion) + '</div>' : '';
+    return '<li style="margin-bottom:6px"><span style="font-weight:600;color:#0f172a">' + title + '</span>' +
+           '<div style="font-size:0.72rem;color:#64748b">' + reason + '</div>' + sugg + '</li>';
+  }).join('');
+
+  const banner = document.createElement('div');
+  banner.id = 'aiSkippedPanelsNotice';
+  banner.style.cssText = 'margin:10px 16px 0;padding:10px 14px;background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:8px';
+  banner.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<i class="bi bi-info-circle-fill" style="color:#b45309"></i>' +
+      '<span style="font-size:0.78rem;font-weight:700;color:#92400e">' +
+        'Some template visuals were skipped because the selected source does not contain the required fields' +
+      '</span>' +
+    '</div>' +
+    '<ul style="margin:4px 0 0 18px;padding:0;color:#1e293b;font-size:0.78rem">' + items + '</ul>';
+  grid.parentNode.insertBefore(banner, grid);
+}
+
+// Wipe the canvas before laying out a freshly generated dashboard.
+function resetAiCanvas() {
+  // Destroy all Chart.js / ECharts instances
+  if (window.__aiCharts) Object.keys(window.__aiCharts).forEach(function(uid) {
+    try { window.__aiCharts[uid] && window.__aiCharts[uid].destroy(); } catch (e) {}
+    delete window.__aiCharts[uid];
+  });
+  if (window.__aiECharts) Object.keys(window.__aiECharts).forEach(function(uid) {
+    try { window.__aiECharts[uid] && window.__aiECharts[uid].dispose(); } catch (e) {}
+    delete window.__aiECharts[uid];
+  });
+  // Clear panel data + queue
+  if (window.__aiPanelData) Object.keys(window.__aiPanelData).forEach(function(k) { delete window.__aiPanelData[k]; });
+  if (Array.isArray(window.__aiQueue)) window.__aiQueue.length = 0;
+
+  // Empty the panel grid (but keep the container so layout stays the same)
+  const grid = document.getElementById('aiPanelGrid');
+  if (grid) grid.innerHTML = '';
+
+  // Reset auto-position counters
+  if (typeof window !== 'undefined') {
+    if ('__aiNextX' in window) window.__aiNextX = 10;
+    if ('__aiNextY' in window) window.__aiNextY = 10;
+  }
+}
+
+// Lock the data source selector once a dashboard has been generated against it.
+function lockSourceSelector(sourceName) {
+  const sel = document.getElementById('aiSourceSel');
+  if (!sel) return;
+  sel.disabled = true;
+  sel.style.opacity = '0.7';
+  sel.title = 'Source is locked because a dashboard has already been generated against it. Click "Reset" to start over.';
+
+  // Add a small "Locked" badge next to it (idempotent)
+  const wrap = sel.parentElement;
+  if (wrap && !wrap.querySelector('.aiSourceLockedBadge')) {
+    const badge = document.createElement('div');
+    badge.className = 'aiSourceLockedBadge';
+    badge.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;font-size:0.66rem;color:#64748b';
+    badge.innerHTML = '<i class="bi bi-lock-fill" style="color:#6366f1"></i><span>Locked &middot; ' +
+      (sourceName ? sourceName : 'data source bound to this dashboard') + '</span>' +
+      '<button type="button" onclick="unlockSourceSelector()" style="margin-left:auto;background:none;border:none;color:#6366f1;font-weight:600;cursor:pointer;font-size:0.7rem;padding:0">Reset</button>';
+    wrap.appendChild(badge);
+  }
+}
+
+window.unlockSourceSelector = function() {
+  const sel = document.getElementById('aiSourceSel');
+  if (sel) { sel.disabled = false; sel.style.opacity = ''; sel.title = ''; }
+  const wrap = sel && sel.parentElement;
+  const badge = wrap && wrap.querySelector('.aiSourceLockedBadge');
+  if (badge) badge.remove();
+  // Also clear the canvas so they can start fresh
+  resetAiCanvas();
+  const emptyState = document.getElementById('aiEmptyState');
+  if (emptyState) emptyState.style.display = '';
+  const hdr = document.getElementById('aiGenHeader');
+  if (hdr) hdr.remove();
+  window.__aiExecutiveMeta = null;
+  // Re-render the Properties panel (if one is open) so its Source Database
+  // dropdown picks up the now-unlocked state.
+  if (window.__bxSelectedUid && typeof window.showPanelProperties === 'function') {
+    try { window.showPanelProperties(window.__bxSelectedUid); } catch (e) {}
+  }
+};
+
+// Save Dashboard button on the generated dashboard footer (if still present)
+window.saveDashboardFinal = function() {
+  if (typeof submitAiDashboard === 'function') {
+    submitAiDashboard();
+  } else {
+    alert('Save handler not available on this page.');
+  }
+};
+
+// Render professional dashboard layout
+function renderDashboardLayout(dashboard) {
+  const colors = dashboard.colors || {};
+  
+  let html = `
+    <div style="background: #f8fafc; min-height: 100vh; padding: 24px">
+      <!-- Header -->
+      <div style="margin-bottom: 32px">
+        <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; color: #0F172A">
+          ${dashboard.title}
+        </h1>
+        <p style="margin: 0; color: #64748B; font-size: 14px">
+          ${dashboard.description}
+        </p>
+      </div>
+  `;
+  
+  // Render sections
+  if (dashboard.sections && Array.isArray(dashboard.sections)) {
+    dashboard.sections.forEach((section, idx) => {
+      html += renderSectionLayout(section, colors);
+    });
+  }
+  
+  // Footer
+  html += `
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; color: #94A3B8; font-size: 12px">
+      <p>Dashboard generated on ${new Date(dashboard.generatedAt).toLocaleString()}</p>
+      <button onclick="saveDashboardFinal()" style="
+        background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+      ">Save Dashboard</button>
+    </div>
+    </div>
+  `;
+  
+  return html;
+}
+
+// Render section layout
+function renderSectionLayout(section, colors) {
+  let html = `
+    <div style="margin-bottom: 32px">
+      <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #0F172A; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0">
+        ${section.name}
+      </h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
+  `;
+  
+  // Render panels in section
+  if (section.panels && Array.isArray(section.panels)) {
+    section.panels.forEach((panel, idx) => {
+      html += renderPanelPreview(panel, colors);
+    });
+  }
+  
+  html += `</div></div>`;
+  
+  return html;
+}
+
+// Render individual panel preview
+function renderPanelPreview(panel, colors) {
+  const bgColor = colors.background || '#FFFFFF';
+  const accentColor = colors.accent || '#6366F1';
+  const uid = 'tplPanel_' + Math.random().toString(36).slice(2, 10);
+  panel.__uid = uid;
+
+  // Register the panel with the AI Builder properties system so that clicking
+  // on a chart or KPI shows its details in the right-side Properties panel.
+  registerPanelForProperties(panel);
+
+  // KPI cards: render the aggregated number directly
+  if (panel.type === 'kpi') {
+    const v = panel.data && typeof panel.data.kpiValue === 'number' ? panel.data.kpiValue : null;
+    const display = v === null ? '—' : (Math.abs(v) >= 1000 ? v.toLocaleString() : v);
+    return `
+      <div data-panel-uid="${uid}" onclick="if(typeof showPanelProperties==='function')showPanelProperties('${uid}')" style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.05);cursor:pointer;transition:all .15s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+        <div style="font-size:12px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">${panel.title}</div>
+        <div style="margin-top:10px;font-size:28px;font-weight:800;color:${accentColor}">${display}</div>
+        <div style="margin-top:6px;font-size:11px;color:#94A3B8">${panel.query ? panel.query.table : ''}</div>
+      </div>
+    `;
+  }
+
+  // Insights / non-chart panel
+  if (panel.type === 'insights') {
+    return `
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);grid-column:1 / -1">
+        <div style="font-weight:600;color:#0F172A;margin-bottom:8px;font-size:14px">${panel.title}</div>
+        <div style="font-size:12px;color:#64748B">AI insights are listed below this section.</div>
+      </div>
+    `;
+  }
+
+  // Chart panel — emit a canvas, render after insertion
+  const noData = !panel.data || !panel.data.hasData;
+  return `
+    <div data-panel-uid="${uid}" onclick="if(typeof showPanelProperties==='function')showPanelProperties('${uid}')" style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);cursor:pointer;transition:all .15s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.05)'">
+      <div style="font-weight:600;color:#0F172A;margin-bottom:12px;font-size:14px">${panel.title}</div>
+      <div style="position:relative;height:220px">
+        ${noData
+          ? `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#94A3B8;font-size:12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px">No data available</div>`
+          : `<canvas id="${uid}" data-panel-uid="${uid}"></canvas>`}
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#94A3B8">${panel.chartType}${panel.query ? ` • ${panel.query.table}` : ''}</div>
+    </div>
+  `;
+}
+
+// Register panel data into the global AI Builder registry so the right-side
+// Properties panel can display Overview/Data/Filters/Chart/Advanced for it.
+function registerPanelForProperties(panel) {
+  if (!panel || !panel.__uid) return;
+  if (!window.__aiPanelData) window.__aiPanelData = {};
+  const q = panel.query || {};
+  // Map our panel shape into what showPanelProperties expects
+  const adapted = {
+    _uid: panel.__uid,
+    title: panel.title || 'Untitled Panel',
+    chartType: panel.type === 'kpi' ? 'kpi' : (panel.chartType || 'bar'),
+    chartEngine: 'chartjs',
+    labels: (panel.data && panel.data.labels) || [],
+    values: (panel.data && panel.data.values) || [],
+    chartConfig: (panel.data && panel.data.chartConfig) || null,
+    hasData: !!(panel.data && panel.data.hasData),
+    kpiValue: panel.data ? panel.data.kpiValue : null,
+    kpiLabel: panel.title || '',
+    structuredRequest: {
+      focusArea:   q.table || '',
+      dimensions:  q.dimension ? [q.dimension] : [],
+      metrics:     q.measure ? [q.measure] : [],
+      aggregation: (q.aggregation || (panel.type === 'kpi' ? 'count' : 'sum')).toLowerCase(),
+      limit:       q.limit || null,
+      filters:     [],
+      sort:        null,
+      chartPreference: panel.type === 'kpi' ? 'cards' : (panel.chartType || null),
+    },
+    // Original references for save/edit later
+    _templatePanel: panel,
+  };
+
+  // Attach dataConfig so Properties → Data shows the saved binding.
+  try {
+    const isKpi = panel.type === 'kpi';
+    const dim = q.dimension || null;
+    const met = q.measure || null;
+    const table = q.table || '';
+    const agg = (q.aggregation || (isKpi ? 'count' : 'sum')).toLowerCase();
+    const aggLabel = agg.charAt(0).toUpperCase() + agg.slice(1);
+    const qualMetric = met ? (table ? table + '.' + met : met) : '*';
+    const qualDim = dim ? (table ? table + '.' + dim : dim) : '';
+    let calc = aggLabel + '(' + qualMetric + ')';
+    if (qualDim) calc += ' grouped by ' + qualDim;
+
+    const labels = adapted.labels || [];
+    const values = adapted.values || [];
+    const preview = [];
+    for (let i = 0; i < Math.min(labels.length, values.length, 10); i++) {
+      const row = {};
+      if (dim) row[dim] = labels[i];
+      if (met) row[met] = values[i];
+      preview.push(row);
+    }
+
+    adapted.dataConfig = {
+      sourceId: adapted.dataSourceId || null,
+      sourceName: adapted.dataSourceId ? ('Source #' + adapted.dataSourceId) : 'Internal Database',
+      table,
+      groupByField: dim,
+      valueField: met,
+      metricField: met,
+      aggregation: agg,
+      filters: [],
+      sortBy: null,
+      sortDirection: 'desc',
+      topN: q.limit || null,
+      calculationLabel: calc,
+      resultPreview: preview,
+      currentValue: (panel.data && panel.data.kpiValue != null) ? panel.data.kpiValue
+                  : (values.length === 1 ? values[0] : null),
+    };
+  } catch (e) {}
+  window.__aiPanelData[panel.__uid] = adapted;
+}
+
+// After dashboard HTML is in DOM, draw each chart with Chart.js
+function renderAllPanelCharts(dashboard) {
+  if (typeof Chart === 'undefined' || !dashboard || !dashboard.sections) return;
+  dashboard.sections.forEach(section => {
+    (section.panels || []).forEach(panel => {
+      if (panel.type === 'kpi' || panel.type === 'insights') return;
+      const uid = panel.__uid;
+      if (!uid || !panel.data || !panel.data.chartConfig) return;
+      const cv = document.getElementById(uid);
+      if (!cv) return;
+      try {
+        // Defensive clone so Chart.js doesn't mutate our state
+        const cfg = JSON.parse(JSON.stringify(panel.data.chartConfig));
+        if (cfg.options) {
+          cfg.options.responsive = true;
+          cfg.options.maintainAspectRatio = false;
+        } else {
+          cfg.options = { responsive: true, maintainAspectRatio: false };
+        }
+        new Chart(cv.getContext('2d'), cfg);
+      } catch (err) {
+        console.warn('[TemplatePicker] Chart render failed for panel', panel.title, err);
+      }
+    });
+  });
+}
+
+// Enhanced loading overlay
+function showGeneratingOverlay(title = 'Generating...', message = '') {
+  let overlay = document.getElementById('generatingOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'generatingOverlay';
+    document.body.appendChild(overlay);
+  }
+  
+  overlay.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(2px);
+    ">
+      <div style="
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+        max-width: 400px;
+      ">
+        <div style="width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:#6366F1;border-radius:50%;margin:0 auto 16px;animation:tplSpin 0.8s linear infinite"></div>
+        <style>@keyframes tplSpin { to { transform: rotate(360deg); } }</style>
+        <h3 style="margin: 0 0 8px 0; color: #0F172A; font-size: 18px; font-weight: 700">
+          ${title}
+        </h3>
+        ${message ? `<p style="margin: 0; color: #64748B; font-size: 14px">${message}</p>` : ''}
+        <div style="margin-top: 16px; font-size: 12px; color: #94A3B8">
+          This may take a few moments...
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.style.display = 'flex';
+}
+
+function hideGeneratingOverlay() {
+  const overlay = document.getElementById('generatingOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+function saveDashboardFinal() {
+  const dashboard = window.generatedFullDashboard;
+  if (!dashboard) {
+    alert('No dashboard to save');
+    return;
+  }
+  
+  // Trigger the save
+  const title = dashboard.title || 'Generated Dashboard';
+  alert(`Save functionality coming soon. Dashboard: ${title}`);
+}
+
+// Display the generated dashboard on canvas
+function displayGeneratedDashboard(dashboard) {
+  // Store the dashboard in a global variable
+  window.generatedDashboard = dashboard;
+  
+  // Wait a bit for the AI builder functions to be ready
+  setTimeout(() => {
+    // Add each panel from the generated dashboard to the canvas
+    if (dashboard && dashboard.panels && Array.isArray(dashboard.panels)) {
+      dashboard.panels.forEach((panel) => {
+        // Try to render using the existing ai-builder function
+        if (window.aiRenderPanelOnCanvas) {
+          window.aiRenderPanelOnCanvas(panel, false);
+        } else {
+          console.warn('aiRenderPanelOnCanvas not available, attempting direct render');
+          // Fallback: render panel directly to grid
+          renderPanelDirectly(panel);
+        }
+      });
+    }
+    
+    console.log('Dashboard displayed on canvas:', dashboard);
+  }, 100);
+}
+
+// Fallback function to render panels directly
+function renderPanelDirectly(panel) {
+  const grid = document.getElementById('aiPanelGrid');
+  if (!grid) return;
+  
+  const card = document.createElement('div');
+  card.style.cssText = `
+    position: absolute;
+    width: 420px;
+    height: 300px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    left: ${Math.random() * 100}px;
+    top: ${Math.random() * 100}px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  `;
+  
+  card.innerHTML = `
+    <div style="font-weight: 700; margin-bottom: 12px; color: #0F172A; font-size: 14px">
+      ${panel.title || 'Panel'}
+    </div>
+    <div style="color: #64748B; font-size: 12px">
+      ${panel.description || 'Auto-generated from template'}
+    </div>
+  `;
+  
+  grid.appendChild(card);
+}
+
+
+// Loading overlay helper
+function showLoadingOverlay(message = 'Loading...') {
+  let overlay = document.getElementById('loadingOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px)';
+    document.body.appendChild(overlay);
+  }
+  
+  overlay.innerHTML = `
+    <div style="text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2)">
+      <div class="loading-spinner"></div>
+      <p style="margin-top: 16px; color: #0F172A; font-weight: 600">${message}</p>
+      <small style="color: #64748B">Please wait...</small>
+    </div>
+  `;
+  overlay.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+</script>

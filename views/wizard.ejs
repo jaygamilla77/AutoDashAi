@@ -1,4 +1,4 @@
-<%
+﻿<%
   // Wizard data passed from controller
   var allThemes = themes || [];
   var allLayouts = layouts || [];
@@ -16,566 +16,488 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+
+    :root {
+      --blue: #2563EB;
+      --blue-dark: #1D4ED8;
+      --blue-soft: #EFF6FF;
+      --ink: #0F172A;
+      --muted: #64748B;
+      --border: #E2E8F0;
+      --bg: #F8FAFC;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* â”€â”€ App shell (sidebar + main) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .app-shell { display: flex; min-height: 100vh; }
+    .app-sidebar {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid var(--border);
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .app-brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 20px;
+      gap: 12px;
+      padding: 16px 20px;
+      text-decoration: none;
+      flex-shrink: 0;
     }
+    .app-brand-icon {
+      width: 38px; height: 38px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 8px 24px rgba(37,99,235,.25);
+      flex-shrink: 0;
+    }
+    .app-brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+    .app-brand-name { font-weight: 800; font-size: 17px; color: var(--ink); letter-spacing: -.01em; }
+    .app-brand-name .ai { color: var(--blue); }
+    .app-brand-tag { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
 
+    .app-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .app-nav a {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      color: #475569; font-size: 0.92rem; font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .app-nav a:hover { background: var(--bg); color: var(--ink); }
+    .app-nav a.active { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+    .app-nav a i { font-size: 1rem; }
+
+    .app-foot { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .app-foot a, .app-foot button {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 8px;
+      color: #475569; font-size: 0.92rem; font-weight: 500;
+      text-decoration: none; background: none; border: 0; cursor: pointer; text-align: left;
+      font-family: inherit;
+    }
+    .app-foot a:hover, .app-foot button:hover { background: var(--bg); color: var(--ink); }
+
+    .app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+    /* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .topbar {
+      height: 64px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+    }
+    .topbar-left a {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--blue); font-weight: 500; font-size: 0.92rem;
+      text-decoration: none;
+    }
+    .topbar-left a:hover { color: var(--blue-dark); }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .topbar-icon-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid var(--border); background: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .topbar-icon-btn:hover { border-color: var(--blue); color: var(--blue); }
+    .topbar-user { display: flex; align-items: center; gap: 10px; }
+    .topbar-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.92rem;
+    }
+    .topbar-user-info { line-height: 1.2; }
+    .topbar-user-name { font-weight: 600; font-size: 0.9rem; color: var(--ink); }
+    .topbar-user-role { font-size: 0.76rem; color: var(--muted); }
+
+    /* â”€â”€ Wizard card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .wizard-page { padding: 28px; max-width: 1100px; width: 100%; margin: 0 auto; }
     .wizard-container {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      max-width: 900px;
-      width: 100%;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(15,23,42,0.04);
       overflow: hidden;
-      animation: slideUp 0.4s ease;
-    }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     .wizard-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 30px;
-      color: white;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px;
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid var(--border);
     }
-
     .wizard-title {
-      font-size: 24px;
+      font-size: 1.2rem;
       font-weight: 700;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      color: var(--ink);
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 4px;
     }
+    .wizard-title i { color: var(--blue); font-size: 1.2rem; }
+    .wizard-subtitle { font-size: 0.88rem; color: var(--muted); }
 
-    .wizard-subtitle {
-      font-size: 14px;
-      opacity: 0.9;
+    .btn-exit {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 8px;
+      background: #fff; color: var(--ink);
+      border: 1px solid var(--border);
+      font-size: 0.86rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      font-family: inherit;
     }
+    .btn-exit:hover { border-color: var(--blue); color: var(--blue); }
 
-    /* Progress Stepper */
+    /* â”€â”€ Stepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .wizard-stepper {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      padding: 20px 30px;
-      background: #f9fafb;
-      border-bottom: 1px solid #e5e7eb;
+      gap: 4px;
+      padding: 22px 28px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
       overflow-x: auto;
     }
-
     .stepper-step {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 10px;
+      flex: 1; min-width: 0;
       position: relative;
     }
-
     .stepper-step:not(:last-child)::after {
       content: '';
-      position: absolute;
-      top: 20px;
-      left: calc(100% + 8px);
-      width: 40px;
+      flex: 1;
       height: 2px;
-      background: #e5e7eb;
-      transition: background 0.3s;
+      background: var(--border);
+      margin: 0 8px;
     }
-
-    .stepper-step.active:not(:last-child)::after {
-      background: #667eea;
-    }
-
+    .stepper-step.completed:not(:last-child)::after { background: var(--blue); }
     .stepper-circle {
-      width: 40px;
-      height: 40px;
+      width: 32px; height: 32px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 14px;
-      background: #e5e7eb;
-      color: #6b7280;
-      transition: all 0.3s;
+      background: #F1F5F9;
+      color: var(--muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 700;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
     }
-
     .stepper-step.active .stepper-circle {
-      background: #667eea;
-      color: white;
+      background: var(--blue); color: #fff;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
     }
-
-    .stepper-step.completed .stepper-circle {
-      background: #10b981;
-      color: white;
-    }
-
+    .stepper-step.completed .stepper-circle { background: var(--blue); color: #fff; }
     .stepper-label {
-      font-size: 12px;
-      color: #6b7280;
+      font-size: 0.86rem;
+      color: var(--muted);
+      font-weight: 500;
       white-space: nowrap;
     }
+    .stepper-step.active .stepper-label { color: var(--blue); font-weight: 600; }
+    .stepper-step.completed .stepper-label { color: var(--ink); }
 
-    .stepper-step.active .stepper-label {
-      color: #667eea;
-      font-weight: 600;
-    }
-
-    /* Wizard Body */
-    .wizard-body {
-      padding: 40px;
-      min-height: 500px;
-    }
-
-    .wizard-step {
-      display: none;
-      animation: fadeIn 0.3s ease;
-    }
-
-    .wizard-step.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
+    /* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .wizard-body { padding: 28px; min-height: 360px; }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
 
     .step-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1f2937;
-      margin-bottom: 8px;
+      font-size: 1.15rem; font-weight: 700; color: var(--ink);
+      margin-bottom: 6px;
+      display: flex; align-items: center; gap: 8px;
     }
-
+    .step-title i { color: var(--blue); }
     .step-description {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 24px;
+      font-size: 0.92rem; color: var(--muted);
+      margin-bottom: 22px;
     }
 
-    /* Step 1: Data Source Selection */
+    /* â”€â”€ Step 1: Source cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .source-options {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 22px;
     }
-
     .source-option {
-      padding: 16px;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      padding: 30px 20px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
       text-align: center;
+      background: #fff;
     }
-
     .source-option:hover {
-      border-color: #667eea;
-      background: #f0f3ff;
+      border-color: var(--blue);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+      transform: translateY(-2px);
     }
-
     .source-option.selected {
-      border-color: #667eea;
-      background: #f0f3ff;
+      border-color: var(--blue);
+      background: var(--blue-soft);
     }
-
     .source-icon {
-      font-size: 28px;
-      margin-bottom: 8px;
-      color: #667eea;
+      font-size: 2rem;
+      margin-bottom: 12px;
+      color: var(--blue);
     }
-
     .source-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #1f2937;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .source-option .source-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
     }
 
-    /* File Upload Area */
+    /* â”€â”€ Upload area / DB / API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .upload-area {
-      border: 2px dashed #d1d5db;
+      border: 2px dashed #CBD5E1;
       border-radius: 12px;
       padding: 40px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
-      background: #fafbfc;
+      background: var(--bg);
+      margin-top: 8px;
     }
-
-    .upload-area:hover {
-      border-color: #667eea;
-      background: #f0f3ff;
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--blue);
+      background: var(--blue-soft);
     }
+    .upload-icon { font-size: 2.4rem; color: var(--blue); margin-bottom: 12px; }
+    .upload-text { font-size: 0.95rem; color: var(--ink); margin-bottom: 6px; }
+    .upload-subtext { font-size: 0.82rem; color: var(--muted); }
+    #dataFileInput { display: none; }
 
-    .upload-area.dragover {
-      border-color: #667eea;
-      background: #f0f3ff;
-      transform: scale(1.02);
-    }
-
-    .upload-icon {
-      font-size: 40px;
-      color: #667eea;
-      margin-bottom: 12px;
-    }
-
-    .upload-text {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 8px;
-    }
-
-    .upload-subtext {
-      font-size: 12px;
-      color: #9ca3af;
-    }
-
-    #dataFileInput {
-      display: none;
-    }
-
-    /* Database Form */
-    .db-form {
-      display: grid;
-      gap: 16px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-    }
-
+    .db-form { display: grid; gap: 14px; margin-top: 8px; }
+    .form-group { display: flex; flex-direction: column; }
     .form-group label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 6px;
+      font-size: 0.8rem; font-weight: 600;
+      color: #334155; margin-bottom: 6px;
     }
-
     .form-group input,
-    .form-group select {
+    .form-group select,
+    .form-control {
       padding: 10px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      font-size: 14px;
-      transition: all 0.2s;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    /* Step 2: Analysis Progress */
-    .analysis-progress {
-      text-align: center;
-      padding: 40px 20px;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 50px;
-      height: 50px;
-      border: 4px solid #e5e7eb;
-      border-top-color: #667eea;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .progress-text {
-      font-size: 16px;
-      color: #1f2937;
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    .progress-subtext {
-      font-size: 14px;
-      color: #6b7280;
-    }
-
-    /* Analysis Results */
-    .analysis-card {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 12px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      background: #fff;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-control:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
+    /* â”€â”€ Step 2: Analysis progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .analysis-progress { text-align: center; padding: 50px 20px; }
+    .analysis-progress .spinner {
+      display: inline-block;
+      width: 48px; height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+      margin-bottom: 18px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .progress-text { font-size: 1rem; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .progress-subtext { font-size: 0.86rem; color: var(--muted); }
+
+    .analysis-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
     .analysis-stat {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 0;
-      font-size: 13px;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.88rem;
     }
+    .stat-label { color: var(--muted); }
+    .stat-value { font-weight: 700; color: var(--ink); font-size: 1rem; }
 
-    .stat-label {
-      color: #6b7280;
-    }
-
-    .stat-value {
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    /* Step 3: Recommendations */
+    /* â”€â”€ Step 3: Recommendations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .recommendations-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-top: 20px;
+      gap: 14px;
+      margin-top: 14px;
     }
-
     .recommendation-card {
-      background: #f9fafb;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 16px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: border-color 0.15s ease, background 0.15s ease;
     }
+    .recommendation-card:hover { border-color: var(--blue); background: var(--blue-soft); }
+    .recommendation-card.selected { border-color: var(--blue); background: var(--blue-soft); }
+    .recommendation-icon { font-size: 1.5rem; margin-bottom: 8px; color: var(--blue); }
+    .recommendation-title { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+    .recommendation-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
 
-    .recommendation-card:hover {
-      border-color: #667eea;
-      background: #f0f3ff;
-    }
-
-    .recommendation-card.selected {
-      border-color: #667eea;
-      background: #f0f3ff;
-    }
-
-    .recommendation-icon {
-      font-size: 24px;
-      margin-bottom: 8px;
-    }
-
-    .recommendation-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 4px;
-    }
-
-    .recommendation-desc {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.4;
-    }
-
-    /* Step 4: Style Selection */
+    /* â”€â”€ Step 4: Style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .style-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-top: 20px;
+      gap: 14px;
+      margin-top: 14px;
     }
-
     .style-option {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 16px;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
     }
+    .style-option:hover { border-color: var(--blue); box-shadow: 0 6px 16px rgba(15,23,42,0.06); }
+    .style-option.selected { border-color: var(--blue); background: var(--blue-soft); }
+    .style-name { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+    .style-desc { font-size: 0.82rem; color: var(--muted); }
+    .color-preview { display: flex; gap: 6px; margin-top: 10px; }
+    .color-swatch { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); }
 
-    .style-option:hover {
-      border-color: #667eea;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .style-option.selected {
-      border-color: #667eea;
-      background: #f0f3ff;
-    }
-
-    .style-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 4px;
-    }
-
-    .style-desc {
-      font-size: 12px;
-      color: #6b7280;
-    }
-
-    .color-preview {
-      display: flex;
-      gap: 6px;
-      margin-top: 10px;
-    }
-
-    .color-swatch {
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      border: 1px solid #d1d5db;
-    }
-
-    /* Footer */
+    /* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .wizard-footer {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 20px 40px;
-      border-top: 1px solid #e5e7eb;
-      background: #f9fafb;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      background: #fff;
     }
-
-    .footer-nav {
-      display: flex;
-      gap: 12px;
-    }
+    .footer-nav { display: flex; gap: 10px; }
+    .step-info { font-size: 0.86rem; color: var(--muted); }
 
     .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
+      padding: 10px 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-size: 0.92rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: inherit;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      text-decoration: none;
     }
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-outline { background: #fff; color: var(--blue); border-color: var(--blue); }
+    .btn-outline:hover { background: var(--blue-soft); }
+    .btn-secondary { background: #F1F5F9; color: #475569; border-color: var(--border); }
+    .btn-secondary:hover { background: #E2E8F0; color: var(--ink); }
 
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .hidden { display: none; }
 
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-outline {
-      background: white;
-      color: #667eea;
-      border: 1px solid #667eea;
-    }
-
-    .btn-outline:hover {
-      background: #f0f3ff;
-    }
-
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #374151;
-    }
-
-    .btn-secondary:hover {
-      background: #d1d5db;
-    }
-
-    .step-info {
-      font-size: 12px;
-      color: #6b7280;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .wizard-container {
-        max-width: 100%;
-        border-radius: 8px;
-      }
-
-      .wizard-body {
-        padding: 24px;
-        min-height: auto;
-      }
-
-      .source-options {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .recommendations-grid,
-      .style-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .wizard-stepper {
-        overflow-x: auto;
-        padding: 16px;
-      }
-
-      .stepper-label {
-        display: none;
-      }
-    }
-
-    /* Loading & Status Messages */
+    /* â”€â”€ Alerts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .alert {
       padding: 12px 16px;
-      border-radius: 6px;
+      border-radius: 10px;
       margin-bottom: 16px;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      font-size: 0.88rem;
+      display: flex; align-items: center; gap: 10px;
     }
+    .alert-success { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .alert-error { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+    .alert-info { background: var(--blue-soft); color: #1E3A8A; border: 1px solid #BFDBFE; }
 
-    .alert-success {
-      background: #d1fae5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-    }
-
-    .alert-error {
-      background: #fee2e2;
-      color: #7f1d1d;
-      border: 1px solid #fecaca;
-    }
-
-    .alert-info {
-      background: #dbeafe;
-      color: #1e3a8a;
-      border: 1px solid #bfdbfe;
-    }
-
-    .hidden {
-      display: none;
+    /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    @media (max-width: 900px) {
+      .app-sidebar { width: 70px; padding: 18px 8px; }
+      .app-brand-text, .app-nav a span, .app-foot a span, .app-foot button span,
+      .app-brand-name, .app-brand-tag { display: none; }
+      .app-nav a, .app-foot a, .app-foot button { justify-content: center; }
+      .source-options { grid-template-columns: 1fr; }
+      .recommendations-grid, .style-grid { grid-template-columns: 1fr; }
+      .stepper-label { display: none; }
+      .topbar-user-info { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="wizard-container">
+  <div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+      <a href="/dashboard" class="app-brand" aria-label="AutoDash AI by Liknaya home">
+        <span class="app-brand-icon"><i class="bi bi-bar-chart-line-fill"></i></span>
+        <div class="app-brand-text">
+          <div class="app-brand-name">AutoDash <span class="ai">AI</span></div>
+          <div class="app-brand-tag">by Liknaya</div>
+        </div>
+      </a>
+      <nav class="app-nav" aria-label="Primary">
+        <a href="/dashboard"><i class="bi bi-house-fill"></i><span>Home</span></a>
+        <a href="/dashboard/history"><i class="bi bi-grid-3x3-gap-fill"></i><span>Dashboards</span></a>
+        <a href="/sources"><i class="bi bi-database-fill"></i><span>Sources</span></a>
+        <a href="/templates"><i class="bi bi-palette-fill"></i><span>Templates</span></a>
+        <a href="/ai-builder" class="active"><i class="bi bi-stars"></i><span>AI</span></a>
+      </nav>
+      <div class="app-foot">
+        <a href="/ai/settings"><i class="bi bi-gear-fill"></i><span>Settings</span></a>
+        <button type="button" onclick="autoDashLogout && autoDashLogout()" id="sidebarLogout"><i class="bi bi-box-arrow-right"></i><span>Sign out</span></button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="app-main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <a href="/dashboard"><i class="bi bi-arrow-left"></i> Back to Home</a>
+        </div>
+        <div class="topbar-right">
+          <button type="button" class="topbar-icon-btn" aria-label="Help" title="Help"><i class="bi bi-question-circle"></i></button>
+          <div class="topbar-user">
+            <span class="topbar-avatar" id="topbarAvatar">J</span>
+            <div class="topbar-user-info">
+              <div class="topbar-user-name" id="topbarUserName">John Doe</div>
+              <div class="topbar-user-role">Admin</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="wizard-page">
+        <div class="wizard-container">
     <!-- Header -->
     <div class="wizard-header">
-      <div class="wizard-title">
-        <i class="bi bi-magic"></i> Create Dashboard via Wizard
+      <div>
+        <div class="wizard-title">
+          <i class="bi bi-magic"></i> Create Dashboard via Wizard
+        </div>
+        <div class="wizard-subtitle">Guided, AI-assisted dashboard creation in 6 simple steps</div>
       </div>
-      <div class="wizard-subtitle">Guided, AI-assisted dashboard creation in 6 simple steps</div>
+      <a href="/dashboard" class="btn-exit"><i class="bi bi-x-lg"></i> Exit Wizard</a>
     </div>
 
     <!-- Stepper -->
@@ -623,33 +545,36 @@
             <div class="source-option" data-source="file">
               <div class="source-icon"><i class="bi bi-file-earmark-arrow-up"></i></div>
               <div class="source-label">File Upload</div>
+              <div class="source-hint">Upload Excel, CSV, or other files</div>
             </div>
             <div class="source-option" data-source="database">
               <div class="source-icon"><i class="bi bi-database"></i></div>
               <div class="source-label">Database</div>
+              <div class="source-hint">Connect to your database</div>
             </div>
             <div class="source-option" data-source="api">
               <div class="source-icon"><i class="bi bi-plug"></i></div>
               <div class="source-label">API</div>
+              <div class="source-hint">Connect to your API</div>
             </div>
           </div>
         </div>
 
         <!-- File Upload Section -->
         <div id="fileUploadSection" class="hidden">
-          <div class="upload-area" onclick="document.getElementById('dataFileInput').click()">
+          <div class="upload-area">
             <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
             <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
             <div class="upload-subtext">CSV, Excel (.xlsx), or JSON files supported</div>
           </div>
-          <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls,.json">
+          <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/json">
           <div id="fileUploadStatus" style="margin-top: 16px; font-size: 13px; color: #6b7280;"></div>
         </div>
 
         <!-- Database Section -->
         <div id="databaseSection" class="hidden">
           <select id="dbSourceSelect" class="form-control" style="margin-bottom: 16px;">
-            <option value="">Select existing connection or create new…</option>
+            <option value="">Select existing connection or create newâ€¦</option>
             <% allDataSources.forEach(function(s) { %>
               <% if (s.sourceType === 'database') { %>
                 <option value="<%= s.id %>"><%= s.name %></option>
@@ -685,7 +610,7 @@
             </div>
             <div class="form-group">
               <label>Password</label>
-              <input type="password" id="dbPassword" placeholder="••••••••">
+              <input type="password" id="dbPassword" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
             </div>
             <button class="btn btn-primary" onclick="testDatabaseConnection()" style="width: 100%;">
               <i class="bi bi-plug-fill"></i> Test Connection
@@ -714,17 +639,18 @@
       <!-- Step 2: Analysis -->
       <div class="wizard-step" data-step="2">
         <div class="step-title"><i class="bi bi-graph-up"></i> Step 2: Data Analysis</div>
-        <div class="step-description">AI is analyzing your data…</div>
+        <div class="step-description">AI is analyzing your dataâ€¦</div>
 
         <div id="analysisContent">
           <div class="analysis-progress">
             <div class="spinner"></div>
-            <div class="progress-text">Analyzing your data…</div>
+            <div class="progress-text">Analyzing your dataâ€¦</div>
             <div class="progress-subtext">This may take 10-30 seconds</div>
           </div>
         </div>
 
         <div id="analysisResults" class="hidden">
+          <div id="sheetsInfo" class="hidden" style="margin-bottom: 16px; padding: 12px 16px; background: #eef2ff; border-left: 4px solid #667eea; border-radius: 6px; font-size: 13px; color: #1f2937;"></div>
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
             <div class="analysis-card">
               <div class="analysis-stat">
@@ -767,7 +693,7 @@
         <div id="recommendationsContent">
           <div class="analysis-progress">
             <div class="spinner"></div>
-            <div class="progress-text">Getting AI recommendations…</div>
+            <div class="progress-text">Getting AI recommendationsâ€¦</div>
           </div>
         </div>
 
@@ -825,7 +751,7 @@
 
         <div style="background: linear-gradient(135deg, #f0f3ff 0%, #f9f5ff 100%); border: 1px solid #667eea; border-radius: 8px; padding: 24px; margin-top: 24px;">
           <div style="display: flex; gap: 16px; align-items: flex-start;">
-            <div style="font-size: 32px; color: #667eea;">✨</div>
+            <div style="font-size: 32px; color: #667eea;">âœ¨</div>
             <div>
               <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Your dashboard will include:</div>
               <ul style="font-size: 13px; color: #6b7280; margin-left: 20px; line-height: 1.8;">
@@ -844,7 +770,7 @@
 
         <div id="generationProgress" class="analysis-progress hidden" style="margin-top: 32px;">
           <div class="spinner"></div>
-          <div class="progress-text">Generating your dashboard…</div>
+          <div class="progress-text">Generating your dashboardâ€¦</div>
           <div class="progress-subtext">This may take 30-60 seconds</div>
         </div>
 
@@ -863,22 +789,22 @@
 
         <div class="recommendations-grid" style="margin-top: 24px;">
           <div class="recommendation-card" onclick="saveDashboard()" style="cursor: pointer;">
-            <div class="recommendation-icon">💾</div>
+            <div class="recommendation-icon"><i class="bi bi-save"></i></div>
             <div class="recommendation-title">Save Dashboard</div>
             <div class="recommendation-desc">Save to your dashboards library</div>
           </div>
           <div class="recommendation-card" onclick="editInCanvas()" style="cursor: pointer;">
-            <div class="recommendation-icon">✏️</div>
+            <div class="recommendation-icon"><i class="bi bi-pencil-square"></i></div>
             <div class="recommendation-title">Edit in Canvas</div>
             <div class="recommendation-desc">Customize and refine your dashboard</div>
           </div>
           <div class="recommendation-card" onclick="exportDashboard('png')" style="cursor: pointer;">
-            <div class="recommendation-icon">📸</div>
+            <div class="recommendation-icon"><i class="bi bi-image"></i></div>
             <div class="recommendation-title">Export PNG</div>
             <div class="recommendation-desc">Download as image</div>
           </div>
           <div class="recommendation-card" onclick="exportDashboard('pdf')" style="cursor: pointer;">
-            <div class="recommendation-icon">📄</div>
+            <div class="recommendation-icon"><i class="bi bi-file-earmark-pdf"></i></div>
             <div class="recommendation-title">Export PDF</div>
             <div class="recommendation-desc">Download as PDF report</div>
           </div>
@@ -901,7 +827,33 @@
       </div>
     </div>
   </div>
+      </div><!-- /.wizard-page -->
+    </main>
+  </div><!-- /.app-shell -->
 
+  <script>
+    // Mock-auth user info from cookie
+    (function () {
+      try {
+        var raw = document.cookie.split(';').map(function(c){return c.trim();}).find(function(c){return c.indexOf('autodash_user=')===0;});
+        if (raw) {
+          var u = JSON.parse(decodeURIComponent(raw.split('=')[1]));
+          if (u && u.name) {
+            document.getElementById('topbarUserName').textContent = u.name;
+            document.getElementById('topbarAvatar').textContent = (u.name[0] || 'U').toUpperCase();
+          }
+        }
+      } catch (e) {}
+    })();
+    function autoDashLogout(){
+      fetch('/auth/logout',{method:'POST'}).finally(function(){
+        document.cookie='autodash_auth=; Path=/; Max-Age=0';
+        document.cookie='autodash_user=; Path=/; Max-Age=0';
+        try{localStorage.removeItem('autodash_auth');}catch(e){}
+        window.location.href='/auth';
+      });
+    }
+  </script>
   <script src="/js/wizard.js"></script>
 </body>
 </html>

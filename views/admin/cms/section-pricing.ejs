@@ -1,0 +1,100 @@
+<div class="card">
+  <div class="card-head"><h4>Section Header</h4></div>
+  <label class="field"><span class="field-label">Section Title</span>
+    <input class="input" type="text" name="data[title]" value="<%= data.title || '' %>">
+  </label>
+  <label class="field"><span class="field-label">Section Subtitle</span>
+    <textarea class="textarea" rows="2" name="data[subtitle]"><%= data.subtitle || '' %></textarea>
+  </label>
+</div>
+
+<div class="group-head">
+  <h3>Plans</h3>
+  <button type="button" class="add-btn" data-add="pricingPlans"><i class="bi bi-plus-lg"></i> Add plan</button>
+</div>
+<div data-list="pricingPlans">
+  <% (data.plans || []).forEach(function(p, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Plan">Plan #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <label class="field"><span class="field-label">Plan Name</span>
+          <input class="input" type="text" data-name="data[plans][__I__][name]" name="data[plans][<%= i %>][name]" value="<%= p.name || '' %>">
+        </label>
+        <label class="check-row">
+          <input type="hidden" data-name="data[plans][__I__][recommended]" name="data[plans][<%= i %>][recommended]" value="false">
+          <input type="checkbox" data-name="data[plans][__I__][recommended]" name="data[plans][<%= i %>][recommended]" value="true" <%= p.recommended ? 'checked' : '' %>>
+          <span>Highlight as recommended</span>
+        </label>
+      </div>
+
+      <label class="field"><span class="field-label">Description</span>
+        <input class="input" type="text" data-name="data[plans][__I__][description]" name="data[plans][<%= i %>][description]" value="<%= p.description || '' %>">
+      </label>
+
+      <div class="row-2">
+        <label class="field"><span class="field-label">Price</span>
+          <input class="input" type="text" data-name="data[plans][__I__][price]" name="data[plans][<%= i %>][price]" value="<%= p.price || '' %>">
+        </label>
+        <label class="field"><span class="field-label">Period</span>
+          <input class="input" type="text" data-name="data[plans][__I__][period]" name="data[plans][<%= i %>][period]" value="<%= p.period || '' %>" placeholder="/month">
+        </label>
+      </div>
+
+      <div class="row-2">
+        <label class="field"><span class="field-label">CTA Label</span>
+          <input class="input" type="text" data-name="data[plans][__I__][cta][label]" name="data[plans][<%= i %>][cta][label]" value="<%= (p.cta && p.cta.label) || '' %>">
+        </label>
+        <label class="field"><span class="field-label">CTA Link</span>
+          <input class="input" type="text" data-name="data[plans][__I__][cta][href]" name="data[plans][<%= i %>][cta][href]" value="<%= (p.cta && p.cta.href) || '' %>">
+        </label>
+      </div>
+
+      <label class="field"><span class="field-label">Features <span class="field-hint">one per line</span></span>
+        <textarea class="textarea" rows="5" data-name="data[plans][__I__][features_text]" name="data[plans][<%= i %>][features_text]"><%= (p.features || []).join('\n') %></textarea>
+      </label>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="pricingPlans">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Plan">New plan</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Plan Name</span><input class="input" type="text" data-name="data[plans][__I__][name]" value="New Plan"></label>
+      <label class="check-row">
+        <input type="hidden" data-name="data[plans][__I__][recommended]" value="false">
+        <input type="checkbox" data-name="data[plans][__I__][recommended]" value="true">
+        <span>Highlight as recommended</span>
+      </label>
+    </div>
+    <label class="field"><span class="field-label">Description</span><input class="input" type="text" data-name="data[plans][__I__][description]" value=""></label>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Price</span><input class="input" type="text" data-name="data[plans][__I__][price]" value="$0"></label>
+      <label class="field"><span class="field-label">Period</span><input class="input" type="text" data-name="data[plans][__I__][period]" value="/month"></label>
+    </div>
+    <div class="row-2">
+      <label class="field"><span class="field-label">CTA Label</span><input class="input" type="text" data-name="data[plans][__I__][cta][label]" value="Get Started"></label>
+      <label class="field"><span class="field-label">CTA Link</span><input class="input" type="text" data-name="data[plans][__I__][cta][href]" value="/auth?tab=signup"></label>
+    </div>
+    <label class="field"><span class="field-label">Features (one per line)</span><textarea class="textarea" rows="5" data-name="data[plans][__I__][features_text]">Feature one
+Feature two
+Feature three</textarea></label>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in to AutoDash AI – AI Dashboard Builder</title>
+  <meta name="description" content="Sign in or create an AutoDash AI account to build AI-powered dashboards, KPI reports, and analytics in minutes. Powered by Liknaya.com.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://autodash.liknaya.com/auth">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --auth-blue: #2563EB;
+      --auth-blue-hover: #1D4ED8;
+      --auth-blue-soft: #EFF6FF;
+      --auth-text: #0F172A;
+      --auth-muted: #64748B;
+      --auth-border: #E2E8F0;
+      --auth-bg-left: linear-gradient(180deg, #F8FAFF 0%, #EEF2FF 100%);
+      --auth-error: #DC2626;
+      --auth-success: #059669;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+      color: var(--auth-text);
+      background: #F8FAFC;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--auth-blue); text-decoration: none; }
+    a:hover { color: var(--auth-blue-hover); }
+
+    .auth-page {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ─── Left panel ─────────────────────────────────────────────── */
+    .auth-left {
+      background: var(--auth-bg-left);
+      padding: 56px 64px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-left::before {
+      content: "";
+      position: absolute;
+      inset: auto -120px -180px auto;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(99,102,241,0.10) 0%, rgba(99,102,241,0) 70%);
+      pointer-events: none;
+    }
+    .auth-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .auth-brand-icon {
+      width: 38px; height: 38px;
+      background: var(--auth-blue);
+      color: #fff;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+      box-shadow: 0 8px 24px rgba(37,99,235,.25);
+      flex-shrink: 0;
+    }
+    .auth-brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+    .auth-brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; color: var(--auth-text); }
+    .auth-brand-name .brand-ai { color: var(--auth-blue); }
+    .auth-brand-tag { font-size: 11px; color: var(--auth-muted, #64748B); font-weight: 500; margin-top: 2px; }
+
+    .auth-headline {
+      margin-top: 56px;
+    }
+    .auth-headline h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      line-height: 1.15;
+      color: var(--auth-text);
+    }
+    .auth-headline h1 span { color: var(--auth-blue); }
+    .auth-headline p {
+      margin-top: 18px;
+      color: var(--auth-muted);
+      font-size: 1.02rem;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    .auth-benefits {
+      margin-top: 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      max-width: 460px;
+    }
+    .auth-benefit {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .auth-benefit-icon {
+      flex-shrink: 0;
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      color: var(--auth-blue);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem;
+    }
+    .auth-benefit-text h3 {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--auth-text);
+      margin-bottom: 4px;
+    }
+    .auth-benefit-text p {
+      font-size: 0.88rem;
+      color: var(--auth-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .auth-illustration {
+      position: absolute;
+      right: 56px;
+      bottom: 140px;
+      width: 280px;
+      height: 200px;
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -12px rgba(15,23,42,0.10);
+      padding: 18px;
+      display: none;
+    }
+    .auth-illustration::before {
+      content: "";
+      display: block;
+      height: 12px; width: 60%;
+      background: linear-gradient(90deg, #DBEAFE, #EFF6FF);
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .auth-illustration-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: calc(100% - 32px);
+    }
+    .auth-illustration-grid > div {
+      background: linear-gradient(135deg, #EFF6FF, #E0E7FF);
+      border-radius: 8px;
+    }
+
+    .auth-security {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px 18px;
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-radius: 12px;
+      max-width: 460px;
+      box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    }
+    .auth-security i {
+      color: var(--auth-blue);
+      font-size: 1.2rem;
+      margin-top: 2px;
+    }
+    .auth-security strong {
+      display: block;
+      font-size: 0.92rem;
+      color: var(--auth-text);
+      margin-bottom: 2px;
+    }
+    .auth-security span {
+      font-size: 0.84rem;
+      color: var(--auth-muted);
+    }
+
+    .auth-footer {
+      font-size: 0.82rem;
+      color: var(--auth-muted);
+    }
+    .auth-footer a { font-weight: 500; }
+
+    /* ─── Right panel ────────────────────────────────────────────── */
+    .auth-right {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .auth-card {
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-radius: 20px;
+      box-shadow: 0 24px 48px -16px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04);
+      width: 100%;
+      max-width: 460px;
+      padding: 36px 40px;
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--auth-border);
+      margin-bottom: 28px;
+    }
+    .auth-tab {
+      background: none;
+      border: 0;
+      padding: 14px 0;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--auth-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s ease;
+    }
+    .auth-tab.active {
+      color: var(--auth-blue);
+    }
+    .auth-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: -1px;
+      height: 2px;
+      background: var(--auth-blue);
+      border-radius: 2px 2px 0 0;
+    }
+
+    .auth-card h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .auth-subtitle {
+      color: var(--auth-muted);
+      font-size: 0.92rem;
+      margin-bottom: 24px;
+    }
+
+    .auth-field { margin-bottom: 18px; }
+    .auth-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.86rem;
+      font-weight: 500;
+      color: var(--auth-text);
+      margin-bottom: 8px;
+    }
+    .auth-label a { font-size: 0.84rem; }
+    .auth-input-wrap { position: relative; }
+    .auth-input-wrap > i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--auth-muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      border: 1px solid var(--auth-border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--auth-text);
+      background: #fff;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--auth-blue);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .auth-input.has-toggle { padding-right: 42px; }
+    .auth-input.is-invalid { border-color: var(--auth-error); }
+    .auth-input.is-invalid:focus { box-shadow: 0 0 0 3px rgba(220,38,38,0.10); }
+    .toggle-pwd {
+      position: absolute;
+      right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: 0;
+      color: var(--auth-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+    }
+    .toggle-pwd:hover { color: var(--auth-text); }
+    .field-error {
+      display: none;
+      font-size: 0.8rem;
+      color: var(--auth-error);
+      margin-top: 6px;
+    }
+    .auth-field.invalid .field-error { display: block; }
+
+    .auth-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: var(--auth-muted);
+      margin-bottom: 20px;
+      user-select: none;
+      cursor: pointer;
+    }
+    .auth-checkbox input { accent-color: var(--auth-blue); width: 16px; height: 16px; }
+    .auth-checkbox a { color: var(--auth-blue); }
+
+    .auth-submit {
+      width: 100%;
+      background: var(--auth-blue);
+      color: #fff;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .auth-submit:hover:not(:disabled) { background: var(--auth-blue-hover); }
+    .auth-submit:active:not(:disabled) { transform: translateY(1px); }
+    .auth-submit:disabled { opacity: 0.7; cursor: not-allowed; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .auth-submit.loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+      color: var(--auth-muted);
+      font-size: 0.85rem;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--auth-border);
+    }
+
+    .social-btn {
+      width: 100%;
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      font-family: inherit;
+      color: var(--auth-text);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      margin-bottom: 10px;
+    }
+    .social-btn:hover { border-color: #94A3B8; background: #F8FAFC; }
+    .social-btn img { width: 18px; height: 18px; }
+
+    .auth-switch-link {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--auth-muted);
+      margin-top: 18px;
+    }
+    .auth-switch-link a {
+      font-weight: 600;
+    }
+
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+
+    /* ─── Toast ──────────────────────────────────────────────────── */
+    .toast-host {
+      position: fixed;
+      top: 24px; right: 24px;
+      z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      min-width: 280px;
+      max-width: 360px;
+      padding: 14px 16px;
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-left: 4px solid var(--auth-blue);
+      border-radius: 10px;
+      box-shadow: 0 12px 24px rgba(15,23,42,0.12);
+      font-size: 0.92rem;
+      color: var(--auth-text);
+      display: flex; align-items: flex-start; gap: 10px;
+      animation: toastIn 0.25s ease-out;
+    }
+    .toast.success { border-left-color: var(--auth-success); }
+    .toast.error { border-left-color: var(--auth-error); }
+    .toast i { font-size: 1.1rem; margin-top: 1px; }
+    .toast.success i { color: var(--auth-success); }
+    .toast.error i { color: var(--auth-error); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .auth-left { padding: 40px 40px; }
+      .auth-headline h1 { font-size: 2rem; }
+      .auth-illustration { display: none; }
+    }
+    @media (max-width: 860px) {
+      .auth-page { grid-template-columns: 1fr; }
+      .auth-left {
+        padding: 36px 28px 28px;
+        min-height: auto;
+      }
+      .auth-headline { margin-top: 28px; }
+      .auth-headline h1 { font-size: 1.7rem; }
+      .auth-benefits { display: none; }
+      .auth-security { display: none; }
+      .auth-footer { display: none; }
+      .auth-right { padding: 24px 16px 40px; }
+      .auth-card { padding: 28px 24px; box-shadow: none; border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast-host" id="toastHost" aria-live="polite" aria-atomic="true"></div>
+
+<div class="auth-page">
+  <!-- ─── Left panel ─────────────────────────────────────────────── -->
+  <section class="auth-left">
+    <div>
+      <a href="/" class="auth-brand" aria-label="AutoDash AI by Liknaya home">
+        <span class="auth-brand-icon"><i class="bi bi-bar-chart-line-fill"></i></span>
+        <span class="auth-brand-text">
+          <span class="auth-brand-name">AutoDash <span class="brand-ai">AI</span></span>
+          <span class="auth-brand-tag">by Liknaya</span>
+        </span>
+      </a>
+
+      <div class="auth-headline">
+        <h1>Intelligent Dashboards,<br>Powered by <span>AI</span></h1>
+        <p>Transform your data into meaningful insights.<br>Create, customize, and share dashboards in minutes.</p>
+      </div>
+
+      <div class="auth-benefits" aria-label="Product highlights">
+        <div class="auth-benefit">
+          <div class="auth-benefit-icon"><i class="bi bi-stars"></i></div>
+          <div class="auth-benefit-text">
+            <h3>AI-Powered Insights</h3>
+            <p>Let AI analyze your data and recommend the best KPIs and visualizations.</p>
+          </div>
+        </div>
+        <div class="auth-benefit">
+          <div class="auth-benefit-icon"><i class="bi bi-pie-chart-fill"></i></div>
+          <div class="auth-benefit-text">
+            <h3>Smart Dashboard Builder</h3>
+            <p>Generate professional dashboards instantly using natural language.</p>
+          </div>
+        </div>
+        <div class="auth-benefit">
+          <div class="auth-benefit-icon"><i class="bi bi-database-fill"></i></div>
+          <div class="auth-benefit-text">
+            <h3>Connect Any Data Source</h3>
+            <p>Integrate with databases, Excel, CSV, APIs and more.</p>
+          </div>
+        </div>
+        <div class="auth-benefit">
+          <div class="auth-benefit-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="auth-benefit-text">
+            <h3>Share &amp; Collaborate</h3>
+            <p>Easily share dashboards and collaborate with your team.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="auth-security" role="note">
+        <i class="bi bi-shield-check"></i>
+        <div>
+          <strong>Secure. Reliable. Built for Teams.</strong>
+          <span>Your data is safe with enterprise-grade security.</span>
+        </div>
+      </div>
+      <div class="auth-footer" style="margin-top:24px">
+        &copy; <%= new Date().getFullYear() %> AutoDash AI. All rights reserved.
+        Powered by <a href="https://liknaya.com" target="_blank" rel="noopener">Liknaya.com</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Right panel ────────────────────────────────────────────── -->
+  <section class="auth-right">
+    <div class="auth-card" role="region" aria-label="Authentication">
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab active" id="tab-signin" role="tab" aria-selected="true" aria-controls="form-signin">Sign In</button>
+        <button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false" aria-controls="form-signup">Sign Up</button>
+      </div>
+
+      <!-- ─── Sign In form ──────────────────────────────────────── -->
+      <form class="auth-form active" id="form-signin" novalidate role="tabpanel" aria-labelledby="tab-signin">
+        <h2>Welcome back!</h2>
+        <p class="auth-subtitle">Sign in to your account to continue</p>
+
+        <div class="auth-field" data-field="email">
+          <label class="auth-label" for="signin-email">Email address</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input type="email" id="signin-email" name="email" class="auth-input" placeholder="Enter your email" autocomplete="email" required>
+          </div>
+          <div class="field-error" data-error="email">Please enter a valid email address.</div>
+        </div>
+
+        <div class="auth-field" data-field="password">
+          <label class="auth-label" for="signin-password">
+            Password
+            <a href="#" onclick="event.preventDefault(); showToast('Password reset link sent (mock).', 'success');">Forgot password?</a>
+          </label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" id="signin-password" name="password" class="auth-input has-toggle" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="toggle-pwd" data-target="signin-password" aria-label="Show password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="field-error" data-error="password">Please enter your password.</div>
+        </div>
+
+        <label class="auth-checkbox">
+          <input type="checkbox" name="remember" id="signin-remember">
+          <span>Remember me</span>
+        </label>
+
+        <button type="submit" class="auth-submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Sign In</span>
+        </button>
+
+        <div class="auth-divider">or continue with</div>
+
+        <button type="button" class="social-btn" data-social="google">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+          Continue with Google
+        </button>
+        <button type="button" class="social-btn" data-social="microsoft">
+          <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
+          Continue with Microsoft
+        </button>
+
+        <div class="auth-switch-link">
+          Don't have an account? <a href="#" data-switch="signup">Sign up</a>
+        </div>
+      </form>
+
+      <!-- ─── Sign Up form ──────────────────────────────────────── -->
+      <form class="auth-form" id="form-signup" novalidate role="tabpanel" aria-labelledby="tab-signup">
+        <h2>Create your account</h2>
+        <p class="auth-subtitle">Start building AI-powered dashboards in minutes</p>
+
+        <div class="auth-field" data-field="name">
+          <label class="auth-label" for="signup-name">Full name</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-person"></i>
+            <input type="text" id="signup-name" name="name" class="auth-input" placeholder="Jane Doe" autocomplete="name" required>
+          </div>
+          <div class="field-error" data-error="name">Please enter your full name.</div>
+        </div>
+
+        <div class="auth-field" data-field="email">
+          <label class="auth-label" for="signup-email">Email address</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input type="email" id="signup-email" name="email" class="auth-input" placeholder="you@company.com" autocomplete="email" required>
+          </div>
+          <div class="field-error" data-error="email">Please enter a valid email address.</div>
+        </div>
+
+        <div class="auth-field" data-field="password">
+          <label class="auth-label" for="signup-password">Password</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" id="signup-password" name="password" class="auth-input has-toggle" placeholder="At least 8 characters" autocomplete="new-password" required minlength="8">
+            <button type="button" class="toggle-pwd" data-target="signup-password" aria-label="Show password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="field-error" data-error="password">Password must be at least 8 characters.</div>
+        </div>
+
+        <div class="auth-field" data-field="confirm">
+          <label class="auth-label" for="signup-confirm">Confirm password</label>
+          <div class="auth-input-wrap">
+            <i class="bi bi-lock"></i>
+            <input type="password" id="signup-confirm" name="confirm" class="auth-input has-toggle" placeholder="Re-enter your password" autocomplete="new-password" required>
+            <button type="button" class="toggle-pwd" data-target="signup-confirm" aria-label="Show password">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+          <div class="field-error" data-error="confirm">Passwords do not match.</div>
+        </div>
+
+        <label class="auth-checkbox" data-field="terms">
+          <input type="checkbox" name="terms" id="signup-terms" required>
+          <span>I agree to the <a href="#" onclick="event.preventDefault();">Terms of Service</a> and <a href="#" onclick="event.preventDefault();">Privacy Policy</a>.</span>
+        </label>
+
+        <button type="submit" class="auth-submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Sign Up</span>
+        </button>
+
+        <div class="auth-divider">or continue with</div>
+
+        <button type="button" class="social-btn" data-social="google">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+          Continue with Google
+        </button>
+        <button type="button" class="social-btn" data-social="microsoft">
+          <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
+          Continue with Microsoft
+        </button>
+
+        <div class="auth-switch-link">
+          Already have an account? <a href="#" data-switch="signin">Sign in</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // ─── Tabs ──────────────────────────────────────────────────────
+  var tabSignIn = document.getElementById('tab-signin');
+  var tabSignUp = document.getElementById('tab-signup');
+  var formSignIn = document.getElementById('form-signin');
+  var formSignUp = document.getElementById('form-signup');
+
+  function switchTo(which) {
+    var signin = which === 'signin';
+    tabSignIn.classList.toggle('active', signin);
+    tabSignUp.classList.toggle('active', !signin);
+    tabSignIn.setAttribute('aria-selected', signin ? 'true' : 'false');
+    tabSignUp.setAttribute('aria-selected', signin ? 'false' : 'true');
+    formSignIn.classList.toggle('active', signin);
+    formSignUp.classList.toggle('active', !signin);
+  }
+  tabSignIn.addEventListener('click', function () { switchTo('signin'); });
+  tabSignUp.addEventListener('click', function () { switchTo('signup'); });
+  document.querySelectorAll('[data-switch]').forEach(function (el) {
+    el.addEventListener('click', function (e) { e.preventDefault(); switchTo(el.dataset.switch); });
+  });
+
+  // Allow ?tab=signup deep link
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('tab') === 'signup') switchTo('signup');
+
+  // ─── Show / hide password ─────────────────────────────────────
+  document.querySelectorAll('.toggle-pwd').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+      var icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    });
+  });
+
+  // ─── Validation helpers ───────────────────────────────────────
+  var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  function setFieldError(form, fieldName, message) {
+    var field = form.querySelector('[data-field="' + fieldName + '"]');
+    if (!field) return;
+    var input = field.querySelector('.auth-input');
+    if (input) input.classList.add('is-invalid');
+    field.classList.add('invalid');
+    if (message) {
+      var err = field.querySelector('[data-error]');
+      if (err) err.textContent = message;
+    }
+  }
+  function clearFieldErrors(form) {
+    form.querySelectorAll('.auth-field').forEach(function (f) { f.classList.remove('invalid'); });
+    form.querySelectorAll('.auth-input').forEach(function (i) { i.classList.remove('is-invalid'); });
+  }
+
+  // ─── Toasts ───────────────────────────────────────────────────
+  window.showToast = function (message, type) {
+    type = type || 'info';
+    var host = document.getElementById('toastHost');
+    var t = document.createElement('div');
+    t.className = 'toast ' + type;
+    var icon = type === 'success' ? 'bi-check-circle-fill'
+             : type === 'error'   ? 'bi-exclamation-circle-fill'
+             :                      'bi-info-circle-fill';
+    t.innerHTML = '<i class="bi ' + icon + '"></i><div>' + message + '</div>';
+    host.appendChild(t);
+    setTimeout(function () {
+      t.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(20px)';
+      setTimeout(function () { t.remove(); }, 250);
+    }, 3000);
+  };
+
+  // ─── Mock auth (writes cookie + localStorage) ─────────────────
+  function setSession(user) {
+    var session = {
+      token: 'mock-' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+      user: user,
+      issuedAt: Date.now(),
+    };
+    try { localStorage.setItem('autodash_auth', JSON.stringify(session)); } catch (_) {}
+    // Cookie for server-side middleware
+    var maxAge = 60 * 60 * 24 * 7; // 7 days
+    document.cookie = 'autodash_auth=' + encodeURIComponent(session.token) + '; Max-Age=' + maxAge + '; Path=/; SameSite=Lax';
+    document.cookie = 'autodash_user=' + encodeURIComponent(JSON.stringify(user)) + '; Max-Age=' + maxAge + '; Path=/; SameSite=Lax';
+  }
+
+  function setLoading(form, loading) {
+    var btn = form.querySelector('.auth-submit');
+    if (!btn) return;
+    btn.disabled = loading;
+    btn.classList.toggle('loading', loading);
+    var label = btn.querySelector('.label');
+    if (label) {
+      if (loading) {
+        label.dataset.original = label.textContent;
+        label.textContent = form.id === 'form-signup' ? 'Creating account…' : 'Signing in…';
+      } else if (label.dataset.original) {
+        label.textContent = label.dataset.original;
+      }
+    }
+  }
+
+  function redirectAfterAuth() {
+    var params = new URLSearchParams(window.location.search);
+    var next = params.get('next') || '/dashboard';
+    if (!/^\//.test(next)) next = '/dashboard'; // only allow same-origin paths
+    setTimeout(function () { window.location.href = next; }, 600);
+  }
+
+  // ─── Sign In submit ───────────────────────────────────────────
+  formSignIn.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearFieldErrors(formSignIn);
+    var email = formSignIn.querySelector('#signin-email').value.trim();
+    var pwd   = formSignIn.querySelector('#signin-password').value;
+    var ok = true;
+    if (!email) { setFieldError(formSignIn, 'email', 'Email is required.'); ok = false; }
+    else if (!emailRe.test(email)) { setFieldError(formSignIn, 'email', 'Please enter a valid email address.'); ok = false; }
+    if (!pwd) { setFieldError(formSignIn, 'password', 'Password is required.'); ok = false; }
+    if (!ok) return;
+
+    setLoading(formSignIn, true);
+    setTimeout(function () {
+      setSession({ name: email.split('@')[0], email: email });
+      setLoading(formSignIn, false);
+      showToast('Welcome back! Redirecting to your dashboard…', 'success');
+      redirectAfterAuth();
+    }, 700);
+  });
+
+  // ─── Sign Up submit ───────────────────────────────────────────
+  formSignUp.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearFieldErrors(formSignUp);
+    var name    = formSignUp.querySelector('#signup-name').value.trim();
+    var email   = formSignUp.querySelector('#signup-email').value.trim();
+    var pwd     = formSignUp.querySelector('#signup-password').value;
+    var confirm = formSignUp.querySelector('#signup-confirm').value;
+    var terms   = formSignUp.querySelector('#signup-terms').checked;
+    var ok = true;
+    if (!name) { setFieldError(formSignUp, 'name', 'Full name is required.'); ok = false; }
+    if (!email) { setFieldError(formSignUp, 'email', 'Email is required.'); ok = false; }
+    else if (!emailRe.test(email)) { setFieldError(formSignUp, 'email', 'Please enter a valid email address.'); ok = false; }
+    if (!pwd || pwd.length < 8) { setFieldError(formSignUp, 'password', 'Password must be at least 8 characters.'); ok = false; }
+    if (confirm !== pwd) { setFieldError(formSignUp, 'confirm', 'Passwords do not match.'); ok = false; }
+    if (!terms) {
+      var f = formSignUp.querySelector('[data-field="terms"]');
+      if (f) f.style.color = 'var(--auth-error)';
+      showToast('You must accept the Terms of Service to continue.', 'error');
+      ok = false;
+    } else {
+      var f = formSignUp.querySelector('[data-field="terms"]');
+      if (f) f.style.color = '';
+    }
+    if (!ok) return;
+
+    setLoading(formSignUp, true);
+    setTimeout(function () {
+      setSession({ name: name, email: email });
+      setLoading(formSignUp, false);
+      showToast('Account created! Taking you to AutoDash AI…', 'success');
+      redirectAfterAuth();
+    }, 800);
+  });
+
+  // ─── Mock social auth ─────────────────────────────────────────
+  document.querySelectorAll('[data-social]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var provider = btn.dataset.social;
+      btn.disabled = true;
+      var label = btn.textContent.trim();
+      btn.innerHTML = '<span class="spinner" style="display:inline-block;border-color:rgba(15,23,42,0.15);border-top-color:#2563EB"></span> Connecting to ' + provider + '…';
+      setTimeout(function () {
+        setSession({ name: provider === 'google' ? 'Google User' : 'Microsoft User', email: 'demo@' + provider + '.com', provider: provider });
+        showToast('Signed in with ' + (provider === 'google' ? 'Google' : 'Microsoft') + '.', 'success');
+        redirectAfterAuth();
+      }, 700);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

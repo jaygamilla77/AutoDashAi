@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title><%= mode === 'login' ? 'Admin Access' : 'Admin — Landing Page Content' %> | AutoDash AI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+  <style>
+    :root {
+      --blue:#2563EB; --blue-dark:#1D4ED8; --blue-soft:#EFF6FF;
+      --ink:#0F172A; --muted:#64748B; --border:#E2E8F0; --bg:#F8FAFC;
+      --green:#16A34A; --green-soft:#DCFCE7; --red:#DC2626; --red-soft:#FEE2E2;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:var(--bg); color:var(--ink); line-height:1.5;
+    }
+    a{color:var(--blue); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* ─── Login ─── */
+    .login-shell{
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:24px;
+    }
+    .login-card{
+      width:100%; max-width:400px; background:#fff; border:1px solid var(--border);
+      border-radius:14px; padding:32px; box-shadow:0 4px 24px rgba(15,23,42,.06);
+    }
+    .login-card .brand{
+      display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:8px;
+    }
+    .login-card .brand i{ color:var(--blue); font-size:24px }
+    .login-card .brand b{ font-size:18px }
+    .login-card h1{
+      font-size:20px; margin:8px 0 4px; text-align:center; font-weight:700;
+    }
+    .login-card .sub{
+      text-align:center; color:var(--muted); font-size:14px; margin-bottom:20px;
+    }
+    .alert{
+      padding:10px 12px; border-radius:8px; font-size:14px; margin-bottom:14px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .alert-error{ background:var(--red-soft); color:var(--red); border:1px solid #FCA5A5 }
+    .alert-success{ background:var(--green-soft); color:var(--green); border:1px solid #86EFAC }
+
+    /* ─── Editor shell ─── */
+    .topbar{
+      background:#fff; border-bottom:1px solid var(--border);
+      padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:10;
+    }
+    .topbar .brand{ display:flex; align-items:center; gap:10px; font-weight:600 }
+    .topbar .brand i{ color:var(--blue); font-size:20px }
+    .topbar .actions{ display:flex; gap:8px; align-items:center }
+
+    .container{
+      max-width:920px; margin:0 auto; padding:24px;
+    }
+    .page-head{ margin-bottom:18px }
+    .page-head h1{ font-size:22px; margin:0 0 4px; font-weight:700 }
+    .page-head p{ margin:0; color:var(--muted); font-size:14px }
+
+    .card{
+      background:#fff; border:1px solid var(--border); border-radius:12px;
+      padding:20px; margin-bottom:16px;
+    }
+    .card h2{
+      font-size:14px; text-transform:uppercase; letter-spacing:.04em;
+      color:var(--muted); margin:0 0 14px; font-weight:600;
+      display:flex; align-items:center; gap:8px;
+    }
+    .card h2 i{ color:var(--blue) }
+
+    .grid{
+      display:grid; grid-template-columns:1fr 1fr; gap:14px;
+    }
+    .grid .full{ grid-column:1 / -1 }
+    @media (max-width:720px){ .grid{ grid-template-columns:1fr } }
+
+    label{ display:block; font-size:13px; font-weight:500; color:var(--ink); margin-bottom:4px }
+    input[type=text], input[type=password], textarea{
+      width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 11px;
+      font:inherit; color:var(--ink); background:#fff; transition:border-color .15s, box-shadow .15s;
+    }
+    input:focus, textarea:focus{
+      outline:none; border-color:var(--blue);
+      box-shadow:0 0 0 3px rgba(37,99,235,.15);
+    }
+    textarea{ resize:vertical; min-height:72px }
+
+    .row-set{ border-top:1px dashed var(--border); padding-top:12px; margin-top:12px }
+    .row-set:first-child{ border-top:0; padding-top:0; margin-top:0 }
+    .row-label{ font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:.04em }
+
+    .btn{
+      display:inline-flex; align-items:center; gap:6px; padding:9px 16px;
+      border-radius:8px; font:inherit; font-weight:500; font-size:14px;
+      border:1px solid var(--border); background:#fff; color:var(--ink);
+      cursor:pointer; transition:background .15s, border-color .15s;
+    }
+    .btn:hover{ background:var(--bg) }
+    .btn-primary{ background:var(--blue); border-color:var(--blue); color:#fff }
+    .btn-primary:hover{ background:var(--blue-dark); border-color:var(--blue-dark) }
+    .btn-danger{ color:var(--red); border-color:#FCA5A5 }
+    .btn-danger:hover{ background:var(--red-soft) }
+    .btn-block{ width:100%; justify-content:center }
+
+    .footer-bar{
+      position:sticky; bottom:0; background:#fff; border-top:1px solid var(--border);
+      padding:12px 24px; display:flex; gap:8px; justify-content:flex-end; align-items:center;
+      z-index:5;
+    }
+    .footer-bar .left{ margin-right:auto; color:var(--muted); font-size:13px }
+  </style>
+</head>
+<body>
+
+<% if (mode === 'login') { %>
+
+  <main class="login-shell">
+    <div class="login-card">
+      <div class="brand">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <b>AutoDash <span style="color:var(--blue)">AI</span></b>
+      </div>
+      <h1>Admin Access</h1>
+      <p class="sub">Enter the admin password to continue.</p>
+
+      <% if (error) { %>
+        <div class="alert alert-error">
+          <i class="bi bi-exclamation-circle"></i>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/admin/login" autocomplete="off">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autofocus
+               placeholder="Enter admin password" />
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:14px">
+          <i class="bi bi-box-arrow-in-right"></i> Login
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Mirror server cookie to localStorage for UX
+    try { localStorage.removeItem('autodash_admin'); } catch (_) {}
+  </script>
+
+<% } else { /* editor mode */ %>
+
+  <%
+    var brand    = (content && content.branding) || {};
+    var nav      = (content && content.nav) || { items: [] };
+    var hero     = (content && content.hero) || {};
+    var features = (content && content.features && content.features.items) || [];
+    var stats    = (content && content.stats && content.stats.items) || [];
+    var footer   = (content && content.footer) || {};
+    var navItems = nav.items || [];
+    function navLabel(i){ return (navItems[i] && navItems[i].label) || ''; }
+    function feat(i, k){ return (features[i] && features[i][k]) || ''; }
+    function stat(i, k){ return (stats[i] && stats[i][k]) || ''; }
+  %>
+
+  <header class="topbar">
+    <div class="brand">
+      <i class="bi bi-bar-chart-line-fill"></i>
+      <span>AutoDash AI · Admin</span>
+    </div>
+    <div class="actions">
+      <a class="btn" href="/" target="_blank" title="View landing page">
+        <i class="bi bi-box-arrow-up-right"></i> View Site
+      </a>
+      <form method="POST" action="/admin/logout" style="margin:0">
+        <button type="submit" class="btn">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-head">
+      <h1>Landing Page Content</h1>
+      <p>Edit the text shown on your public landing page. Changes go live immediately after saving.</p>
+    </div>
+
+    <% if (success) { %>
+      <div class="alert alert-success">
+        <i class="bi bi-check-circle"></i>
+        <span><%= success %></span>
+      </div>
+    <% } %>
+
+    <form method="POST" action="/admin/save" id="adminForm">
+
+      <!-- 1. Branding -->
+      <section class="card">
+        <h2><i class="bi bi-palette2"></i> Branding</h2>
+        <div class="grid">
+          <div>
+            <label>Product name</label>
+            <input type="text" name="brand_name" value="<%= brand.name || '' %>" />
+          </div>
+          <div>
+            <label>Parent brand text</label>
+            <input type="text" name="brand_tagline" value="<%= brand.tagline || '' %>" placeholder="e.g. by Liknaya" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Navigation -->
+      <section class="card">
+        <h2><i class="bi bi-menu-button-wide"></i> Navigation</h2>
+        <div class="grid">
+          <div><label>Features link label</label><input type="text" name="nav_features" value="<%= navLabel(0) %>" /></div>
+          <div><label>About link label</label><input type="text" name="nav_about" value="<%= navLabel(1) %>" /></div>
+          <div><label>FAQ link label</label><input type="text" name="nav_faq" value="<%= navLabel(2) %>" /></div>
+          <div><label>Pricing link label</label><input type="text" name="nav_pricing" value="<%= navLabel(3) %>" /></div>
+          <div><label>Contact link label</label><input type="text" name="nav_contact" value="<%= navLabel(4) %>" /></div>
+          <div></div>
+          <div><label>Sign In button label</label><input type="text" name="nav_signin" value="<%= nav.signInLabel || '' %>" /></div>
+          <div><label>Get Started button label</label><input type="text" name="nav_getstarted" value="<%= nav.getStartedLabel || '' %>" /></div>
+        </div>
+      </section>
+
+      <!-- 3. Hero -->
+      <section class="card">
+        <h2><i class="bi bi-window-stack"></i> Hero Section</h2>
+        <div class="grid">
+          <div class="full">
+            <label>Badge text</label>
+            <input type="text" name="hero_badge" value="<%= hero.eyebrowText || '' %>" />
+          </div>
+          <div>
+            <label>Main headline</label>
+            <input type="text" name="hero_title" value="<%= hero.titleStart || '' %>" />
+          </div>
+          <div>
+            <label>Highlight text</label>
+            <input type="text" name="hero_highlight" value="<%= hero.titleAccent || '' %>" />
+          </div>
+          <div class="full">
+            <label>Subtitle</label>
+            <textarea name="hero_subtitle"><%= hero.subtitle || '' %></textarea>
+          </div>
+          <div>
+            <label>Primary CTA label</label>
+            <input type="text" name="hero_primary_cta" value="<%= (hero.primaryCta && hero.primaryCta.label) || '' %>" />
+          </div>
+          <div>
+            <label>Secondary CTA label</label>
+            <input type="text" name="hero_secondary_cta" value="<%= (hero.secondaryCta && hero.secondaryCta.label) || '' %>" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Feature Cards -->
+      <section class="card">
+        <h2><i class="bi bi-grid-3x3-gap"></i> Feature Cards</h2>
+        <% for (var i = 0; i < 4; i++) { %>
+          <div class="row-set">
+            <div class="row-label">Card <%= i + 1 %></div>
+            <div class="grid">
+              <div>
+                <label>Title</label>
+                <input type="text" name="feature_<%= i %>_title" value="<%= feat(i,'title') %>" />
+              </div>
+              <div>
+                <label>Description</label>
+                <input type="text" name="feature_<%= i %>_description" value="<%= feat(i,'description') %>" />
+              </div>
+            </div>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- 5. Stats -->
+      <section class="card">
+        <h2><i class="bi bi-graph-up-arrow"></i> Stats</h2>
+        <% for (var i = 0; i < 4; i++) { %>
+          <div class="row-set">
+            <div class="row-label">Metric <%= i + 1 %></div>
+            <div class="grid">
+              <div>
+                <label>Metric value</label>
+                <input type="text" name="stat_<%= i %>_value" value="<%= stat(i,'value') %>" placeholder="10K+" />
+              </div>
+              <div>
+                <label>Metric label</label>
+                <input type="text" name="stat_<%= i %>_label" value="<%= stat(i,'label') %>" placeholder="Happy Users" />
+              </div>
+            </div>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- 6. Footer -->
+      <section class="card">
+        <h2><i class="bi bi-layout-text-window-reverse"></i> Footer</h2>
+        <div class="grid">
+          <div class="full">
+            <label>Copyright text</label>
+            <input type="text" name="footer_copyright" value="<%= footer.copyright || '' %>" />
+          </div>
+          <div class="full">
+            <label>Powered by Liknaya.com text</label>
+            <input type="text" name="footer_poweredby_label" value="<%= footer.poweredByLabel || '' %>" />
+          </div>
+        </div>
+      </section>
+
+    </form>
+  </main>
+
+  <div class="footer-bar">
+    <div class="left">Editing as admin · session active</div>
+    <form method="POST" action="/admin/reset" style="margin:0"
+          onsubmit="return confirm('Reset all landing page content to default values?');">
+      <button type="submit" class="btn btn-danger">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset to Default
+      </button>
+    </form>
+    <button type="submit" form="adminForm" class="btn btn-primary">
+      <i class="bi bi-check-lg"></i> Save Changes
+    </button>
+  </div>
+
+  <script>
+    // Mirror admin session in localStorage for UX consistency
+    try { localStorage.setItem('autodash_admin', '1'); } catch (_) {}
+  </script>
+
+<% } %>
+
+</body>
+</html>

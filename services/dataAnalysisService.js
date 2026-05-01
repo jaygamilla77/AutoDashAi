@@ -13,22 +13,34 @@ const aiService = require('./aiService');
 /**
  * Analyze uploaded file (Excel, CSV, JSON)
  */
-async function analyzeFile(filePath, fileType) {
+async function analyzeFile(filePath, fileType, options = {}) {
   try {
     const extension = path.extname(filePath).toLowerCase();
     let data = [];
-    
+    let sourceMeta = {};
+
     if (extension === '.csv' || fileType === 'csv') {
       data = await analyzeCsv(filePath);
+      sourceMeta = { fileType: 'csv', filePath };
     } else if (['.xlsx', '.xls'].includes(extension) || fileType === 'excel') {
-      data = await analyzeExcel(filePath);
+      const result = await analyzeExcel(filePath, options.sheetName);
+      data = result.data;
+      sourceMeta = {
+        fileType: 'excel',
+        filePath,
+        sheets: result.sheets,
+        sheetCount: result.sheets.length,
+        activeSheet: result.activeSheet,
+      };
     } else if (extension === '.json' || fileType === 'json') {
       data = await analyzeJson(filePath);
+      sourceMeta = { fileType: 'json', filePath };
     } else {
       throw new Error('Unsupported file type');
     }
 
-    return analyzeDataQuality(data);
+    const quality = analyzeDataQuality(data);
+    return { ...quality, sourceMeta };
   } catch (e) {
     console.error('File analysis error:', e);
     throw new Error(`File analysis failed: ${e.message}`);
@@ -41,8 +53,10 @@ async function analyzeFile(filePath, fileType) {
 async function analyzeCsv(filePath) {
   return new Promise((resolve, reject) => {
     try {
+      console.log('[DataAnalysis] Reading CSV file:', filePath);
       // Read file content as string
       const content = fs.readFileSync(filePath, 'utf-8');
+      console.log('[DataAnalysis] CSV file read, size:', content.length, 'bytes');
       
       // Parse CSV content
       Papa.parse(content, {
@@ -50,17 +64,26 @@ async function analyzeCsv(filePath) {
         skipEmptyLines: true,
         dynamicTyping: true,
         complete: (results) => {
+          console.log('[DataAnalysis] CSV parsed, rows:', results.data.length);
           if (results.errors && results.errors.length > 0) {
+            console.error('[DataAnalysis] CSV parse errors:', results.errors);
             reject(new Error(`CSV parse error: ${results.errors[0].message}`));
           } else {
-            resolve(results.data || []);
+            const data = results.data || [];
+            if (data.length === 0) {
+              reject(new Error('CSV file is empty or contains no valid data'));
+            } else {
+              resolve(data);
+            }
           }
         },
         error: (error) => {
+          console.error('[DataAnalysis] CSV parse error:', error);
           reject(error);
         },
       });
     } catch (e) {
+      console.error('[DataAnalysis] CSV analysis error:', e);
       reject(e);
     }
   });
@@ -69,102 +92,200 @@ async function analyzeCsv(filePath) {
 /**
  * Analyze Excel file
  */
-async function analyzeExcel(filePath) {
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) throw new Error('Excel file has no sheets');
-  
-  const worksheet = workbook.Sheets[sheetName];
-  return XLSX.utils.sheet_to_json(worksheet);
+async function analyzeExcel(filePath, requestedSheet) {
+  try {
+    console.log('[DataAnalysis] Reading Excel file:', filePath, 'requestedSheet:', requestedSheet || '(default)');
+
+    // Read file with options
+    const workbook = XLSX.readFile(filePath, {
+      defval: '',
+      blankrows: false,
+    });
+
+    console.log('[DataAnalysis] Excel workbook loaded, sheets:', workbook.SheetNames);
+
+    if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+      throw new Error('Excel file has no sheets');
+    }
+
+    // Build metadata for every sheet
+    const sheets = workbook.SheetNames.map((name) => {
+      const ws = workbook.Sheets[name];
+      const rows = ws ? XLSX.utils.sheet_to_json(ws, { defval: '' }) : [];
+      const validRows = rows.filter((r) =>
+        Object.values(r).some((v) => v !== null && v !== '' && v !== undefined)
+      );
+      return {
+        name,
+        rowCount: validRows.length,
+        columnCount: validRows.length > 0 ? Object.keys(validRows[0]).length : 0,
+      };
+    });
+
+    // Choose sheet: requested → largest by row count → first
+    let sheetName;
+    if (requestedSheet && workbook.SheetNames.includes(requestedSheet)) {
+      sheetName = requestedSheet;
+    } else {
+      const largest = [...sheets].sort((a, b) => b.rowCount - a.rowCount)[0];
+      sheetName = largest && largest.rowCount > 0 ? largest.name : workbook.SheetNames[0];
+    }
+
+    console.log('[DataAnalysis] Reading sheet:', sheetName);
+    const worksheet = workbook.Sheets[sheetName];
+
+    if (!worksheet) {
+      throw new Error(`Could not read sheet: ${sheetName}`);
+    }
+
+    const data = XLSX.utils.sheet_to_json(worksheet, {
+      defval: '',
+      raw: false,
+    });
+
+    if (!data || data.length === 0) {
+      throw new Error(`Sheet "${sheetName}" is empty or contains no valid data`);
+    }
+
+    const validData = data.filter((row) =>
+      Object.values(row).some((val) => val !== null && val !== '' && val !== undefined)
+    );
+
+    if (validData.length === 0) {
+      throw new Error(`Sheet "${sheetName}" contains no valid data rows`);
+    }
+
+    console.log('[DataAnalysis] Valid data rows:', validData.length, 'across', sheets.length, 'sheet(s)');
+    return { data: validData, sheets, activeSheet: sheetName };
+  } catch (e) {
+    console.error('[DataAnalysis] Excel analysis error:', e.message);
+    throw new Error(`Failed to read Excel file: ${e.message}`);
+  }
 }
 
 /**
  * Analyze JSON file
  */
 async function analyzeJson(filePath) {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const parsed = JSON.parse(content);
-  
-  if (!Array.isArray(parsed)) {
-    if (typeof parsed === 'object' && parsed !== null) {
-      return Array.isArray(parsed.data) ? parsed.data : [parsed];
+  try {
+    console.log('[DataAnalysis] Reading JSON file:', filePath);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    console.log('[DataAnalysis] JSON file read, size:', content.length, 'bytes');
+    
+    const parsed = JSON.parse(content);
+    console.log('[DataAnalysis] JSON parsed successfully');
+    
+    if (!Array.isArray(parsed)) {
+      if (typeof parsed === 'object' && parsed !== null) {
+        const data = Array.isArray(parsed.data) ? parsed.data : [parsed];
+        if (data.length === 0) {
+          throw new Error('JSON data array is empty');
+        }
+        console.log('[DataAnalysis] JSON data extracted:', data.length, 'rows');
+        return data;
+      }
+      throw new Error('JSON file must contain an array or object with data property');
     }
-    throw new Error('JSON file must contain an array or object with data property');
+    
+    if (parsed.length === 0) {
+      throw new Error('JSON array is empty');
+    }
+    
+    console.log('[DataAnalysis] JSON data extracted:', parsed.length, 'rows');
+    return parsed;
+  } catch (e) {
+    console.error('[DataAnalysis] JSON analysis error:', e);
+    throw new Error(`Failed to parse JSON file: ${e.message}`);
   }
-  
-  return parsed;
 }
 
 /**
  * Analyze data quality and extract insights
  */
 function analyzeDataQuality(data) {
-  if (!data || data.length === 0) {
-    throw new Error('No data found in file');
-  }
+  try {
+    if (!data || data.length === 0) {
+      throw new Error('No data found in file');
+    }
 
-  const totalRows = data.length;
-  const columns = Object.keys(data[0] || {});
-  const totalColumns = columns.length;
+    console.log('[DataAnalysis] Analyzing quality for', data.length, 'rows');
+    const totalRows = data.length;
+    const columns = Object.keys(data[0] || {});
+    const totalColumns = columns.length;
 
-  // Analyze each column
-  const columnAnalysis = {};
-  let nullCount = 0;
-  let duplicateCount = 0;
+    if (totalColumns === 0) {
+      throw new Error('Data contains no columns/fields');
+    }
 
-  columns.forEach((col) => {
-    const values = data.map((row) => row[col]);
-    const nonNullValues = values.filter((v) => v != null && v !== '');
-    const nulls = values.length - nonNullValues.length;
-    const duplicates = values.length - new Set(values).size;
+    console.log('[DataAnalysis] Found', totalColumns, 'columns:', columns.join(', '));
 
-    nullCount += nulls;
-    duplicateCount += duplicates;
+    // Analyze each column
+    const columnAnalysis = {};
+    let nullCount = 0;
+    let duplicateCount = 0;
 
-    // Infer column type
-    const inferredType = inferColumnType(nonNullValues);
+    columns.forEach((col) => {
+      const values = data.map((row) => row[col]);
+      const nonNullValues = values.filter((v) => v != null && v !== '');
+      const nulls = values.length - nonNullValues.length;
+      const duplicates = values.length - new Set(values).size;
 
-    columnAnalysis[col] = {
-      type: inferredType,
-      nullCount: nulls,
-      nullPercentage: ((nulls / values.length) * 100).toFixed(1),
-      duplicates: duplicates,
-      uniqueValues: new Set(nonNullValues).size,
-      sampleValues: nonNullValues.slice(0, 5),
+      nullCount += nulls;
+      duplicateCount += duplicates;
+
+      // Infer column type
+      const inferredType = inferColumnType(nonNullValues);
+
+      columnAnalysis[col] = {
+        type: inferredType,
+        nullCount: nulls,
+        nullPercentage: ((nulls / values.length) * 100).toFixed(1),
+        duplicates: duplicates,
+        uniqueValues: new Set(nonNullValues).size,
+        sampleValues: nonNullValues.slice(0, 5),
+      };
+    });
+
+    // Calculate data quality score
+    const qualityScore = Math.max(0, Math.min(100, 
+      100 - (nullCount / (totalRows * totalColumns)) * 50 - (duplicateCount / totalRows) * 10
+    )).toFixed(1);
+
+    console.log('[DataAnalysis] Quality score:', qualityScore);
+
+    // Detect potential KPIs
+    const potentialKpis = detectKpis(columns, columnAnalysis);
+    console.log('[DataAnalysis] Detected', potentialKpis.length, 'potential KPIs');
+
+    // Detect potential measures and dimensions
+    const measures = columns.filter((col) => columnAnalysis[col].type === 'number');
+    const dimensions = columns.filter((col) => columnAnalysis[col].type !== 'number');
+
+    console.log('[DataAnalysis] Measures:', measures.length, 'Dimensions:', dimensions.length);
+
+    return {
+      totalRows,
+      totalColumns,
+      columns,
+      columnAnalysis,
+      qualityScore,
+      nullCount,
+      duplicateCount,
+      potentialKpis,
+      measures,
+      dimensions,
+      suggestedCharts: suggestCharts(measures, dimensions),
+      analysis: {
+        hasTimeSeries: hasTimeSeriesColumn(columns, columnAnalysis),
+        hasCategorical: dimensions.length > 0,
+        hasNumerical: measures.length > 0,
+        dataCompleteness: (((totalRows * totalColumns - nullCount) / (totalRows * totalColumns)) * 100).toFixed(1),
+      },
     };
-  });
-
-  // Calculate data quality score
-  const qualityScore = Math.max(0, Math.min(100, 
-    100 - (nullCount / (totalRows * totalColumns)) * 50 - (duplicateCount / totalRows) * 10
-  )).toFixed(1);
-
-  // Detect potential KPIs
-  const potentialKpis = detectKpis(columns, columnAnalysis);
-
-  // Detect potential measures and dimensions
-  const measures = columns.filter((col) => columnAnalysis[col].type === 'number');
-  const dimensions = columns.filter((col) => columnAnalysis[col].type !== 'number');
-
-  return {
-    totalRows,
-    totalColumns,
-    columns,
-    columnAnalysis,
-    qualityScore,
-    nullCount,
-    duplicateCount,
-    potentialKpis,
-    measures,
-    dimensions,
-    suggestedCharts: suggestCharts(measures, dimensions),
-    analysis: {
-      hasTimeSeries: hasTimeSeriesColumn(columns, columnAnalysis),
-      hasCategorical: dimensions.length > 0,
-      hasNumerical: measures.length > 0,
-      dataCompleteness: (((totalRows * totalColumns - nullCount) / (totalRows * totalColumns)) * 100).toFixed(1),
-    },
-  };
+  } catch (e) {
+    console.error('[DataAnalysis] Quality analysis error:', e);
+    throw e;
+  }
 }
 
 /**
@@ -295,7 +416,12 @@ Respond ONLY with valid JSON.
       prompt,
       { max_tokens: 1500 }
     );
-    return JSON.parse(recommendations);
+    
+    // aiService.chatJSON already returns an object, so check if it's already parsed
+    if (typeof recommendations === 'string') {
+      return JSON.parse(recommendations);
+    }
+    return recommendations;
   } catch (e) {
     console.error('AI recommendations error:', e);
     return {

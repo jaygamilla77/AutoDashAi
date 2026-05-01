@@ -1,0 +1,59 @@
+<footer class="site-footer" role="contentinfo">
+  <div class="site-footer-inner">
+    <div class="site-footer-grid">
+      <div class="site-footer-col site-footer-brand-col">
+        <a href="/" class="site-footer-brand" aria-label="AutoDash AI by Liknaya">
+          <span class="site-footer-brand-icon"><i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i></span>
+          <span class="site-footer-brand-text">
+            <span class="site-footer-brand-name">AutoDash <span class="ai">AI</span></span>
+            <span class="site-footer-brand-tag">by Liknaya</span>
+          </span>
+        </a>
+        <p class="site-footer-tagline">
+          The intelligent AI dashboard builder for modern businesses. Turn any data source into
+          beautiful, interactive dashboards in minutes — no coding required.
+        </p>
+      </div>
+
+      <div class="site-footer-col">
+        <h4 class="site-footer-heading">Product</h4>
+        <ul class="site-footer-list">
+          <li><a href="/features">Features</a></li>
+          <% if (typeof isAuthenticated !== 'undefined' && isAuthenticated) { %>
+          <li><a href="/ai-builder">AI Builder</a></li>
+          <li><a href="/templates">Dashboard Templates</a></li>
+          <li><a href="/sources">Data Sources</a></li>
+          <% } else { %>
+          <li><a href="/auth?tab=signup">AI Builder</a></li>
+          <li><a href="/features#data-sources">Data Sources</a></li>
+          <% } %>
+        </ul>
+      </div>
+
+      <div class="site-footer-col">
+        <h4 class="site-footer-heading">Company</h4>
+        <ul class="site-footer-list">
+          <li><a href="/about">About AutoDash AI</a></li>
+          <li><a href="/faq">FAQ</a></li>
+          <li><a href="https://liknaya.com" rel="noopener" target="_blank">Liknaya.com</a></li>
+        </ul>
+      </div>
+
+      <div class="site-footer-col">
+        <h4 class="site-footer-heading">Resources</h4>
+        <ul class="site-footer-list">
+          <li><a href="/sitemap.xml">Sitemap</a></li>
+          <li><a href="/robots.txt">Robots</a></li>
+          <li><a href="/health">System Status</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="site-footer-bottom">
+      <div>AutoDash AI &copy; <%= new Date().getFullYear() %></div>
+      <div class="site-footer-poweredby">
+        Powered by <a href="https://liknaya.com" rel="noopener" target="_blank">Liknaya.com</a>
+      </div>
+    </div>
+  </div>
+</footer>

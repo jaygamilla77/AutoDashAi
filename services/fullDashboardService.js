@@ -31,10 +31,80 @@ function firstOf(columns, ...roles) {
   return columns[0] || null;
 }
 
+/** Build a structuredRequest stub from buildPanel params so the front-end
+ *  Properties → Data tab can populate from a saved dataConfig. */
+function buildStructuredRequestFromParams(params) {
+  if (!params) return null;
+  const agg = (params.aggregation || (params.chartType === 'cards' ? 'COUNT' : 'SUM')).toLowerCase();
+  return {
+    focusArea: params.tableKey || null,
+    dimensions: params.dimension ? [params.dimension] : [],
+    metrics: params.measure ? [params.measure] : [],
+    aggregation: agg,
+    chartPreference: params.chartType || null,
+    limit: params.limit || null,
+    filters: Array.isArray(params.filters) ? params.filters : [],
+    sort: params.sortBy ? { field: params.sortBy, direction: params.sortDirection || 'desc' } : null,
+    joinTable: params.joinTableKey || null,
+  };
+}
+
+/** Build a flat dataConfig snapshot for the front-end Data tab. */
+function buildDataConfig(panel, params) {
+  if (!params) return null;
+  const agg = (params.aggregation || (params.chartType === 'cards' ? 'COUNT' : 'SUM')).toLowerCase();
+  const metric = params.measure || null;
+  const dim = params.dimension || null;
+  const tableLabel = params.tableKey || '';
+  const qualMetric = metric ? (tableLabel ? tableLabel + '.' + metric : metric) : '*';
+  const qualDim = dim ? (tableLabel ? tableLabel + '.' + dim : dim) : '';
+  const aggLabel = agg.charAt(0).toUpperCase() + agg.slice(1);
+  let calculationLabel = aggLabel + '(' + qualMetric + ')';
+  if (qualDim) calculationLabel += ' grouped by ' + qualDim;
+  const labels = (panel && panel.labels) || [];
+  const values = (panel && panel.values) || [];
+  const resultPreview = labels.slice(0, 10).map((l, i) => ({
+    [dim || 'group']: l != null ? l : '(null)',
+    [agg + '_' + (metric || 'value')]: values[i] != null ? values[i] : null,
+  }));
+  return {
+    sourceId: params.sourceId != null ? params.sourceId : null,
+    sourceName: params.sourceId ? `Source #${params.sourceId}` : 'Internal Database',
+    table: tableLabel,
+    groupByField: dim,
+    valueField: metric,
+    xField: dim,
+    yField: metric,
+    metricField: metric || (agg === 'count' ? 'id' : null),
+    aggregation: agg,
+    calculationLabel,
+    filters: Array.isArray(params.filters) ? params.filters : [],
+    sortBy: params.sortBy || null,
+    sortDirection: params.sortDirection || (params.sortBy ? 'desc' : null),
+    topN: params.limit || null,
+    resultPreview,
+    currentValue: panel && panel.kpiValue != null ? panel.kpiValue
+                : (values.length === 1 ? values[0] : null),
+    lastCalculatedAt: new Date().toISOString(),
+  };
+}
+
+/** Attach saved data context onto a built panel so the UI Data tab can edit it. */
+function attachPanelContext(panel, params) {
+  if (!panel || !params) return panel;
+  panel.dataSourceId = params.sourceId != null ? params.sourceId : (panel.dataSourceId || null);
+  if (!panel.structuredRequest) {
+    panel.structuredRequest = buildStructuredRequestFromParams(params);
+  }
+  panel.dataConfig = buildDataConfig(panel, params);
+  return panel;
+}
+
 /** Safely build one panel — returns null on error so the rest still render. */
 async function safePanel(params) {
   try {
-    return await builderService.buildPanel(params);
+    const panel = await builderService.buildPanel(params);
+    return attachPanelContext(panel, params);
   } catch (e) {
     console.warn('[fullDashboard] panel skipped:', e.message, params);
     return null;
@@ -44,7 +114,30 @@ async function safePanel(params) {
 /** Safely build a raw all-columns table panel — returns null on error. */
 async function safeRawPanel(params) {
   try {
-    return await buildRawTablePanel(params);
+    const panel = await buildRawTablePanel(params);
+    if (panel) {
+      panel.dataSourceId = params.sourceId != null ? params.sourceId : null;
+      panel.structuredRequest = panel.structuredRequest || {
+        focusArea: params.tableKey || null,
+        dimensions: [],
+        metrics: [],
+        aggregation: 'list',
+        chartPreference: 'table',
+        limit: params.limit || null,
+        filters: [],
+        sort: null,
+      };
+      panel.dataConfig = {
+        sourceId: panel.dataSourceId,
+        sourceName: params.sourceId ? `Source #${params.sourceId}` : 'Internal Database',
+        table: params.tableKey || '',
+        groupByField: null, valueField: null, aggregation: 'list',
+        calculationLabel: 'List rows from ' + (params.tableKey || 'table'),
+        filters: [], sortBy: null, sortDirection: null, topN: params.limit || null,
+        resultPreview: [], lastCalculatedAt: new Date().toISOString(),
+      };
+    }
+    return panel;
   } catch (e) {
     console.warn('[fullDashboard] raw table panel skipped:', e.message, params);
     return null;
@@ -414,6 +507,12 @@ function generateBasicKPIs(panels) {
       subtitle: 'total',
       icon: KPI_ICON_MAP[i % KPI_ICON_MAP.length],
       color: KPI_COLOR_MAP[i % KPI_COLOR_MAP.length],
+      // Carry the source panel's saved data context so the Data tab can edit it.
+      structuredRequest: p.structuredRequest || null,
+      dataSourceId: p.dataSourceId != null ? p.dataSourceId : null,
+      dataConfig: p.dataConfig
+        ? Object.assign({}, p.dataConfig, { currentValue: total, lastCalculatedAt: new Date().toISOString() })
+        : null,
     });
   });
   return kpis;

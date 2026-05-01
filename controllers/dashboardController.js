@@ -258,6 +258,10 @@ exports.destroy = async (req, res) => {
       req.flash('error', 'Dashboard not found.');
       return res.redirect('/dashboard/history');
     }
+    // Remove dependent rows first to satisfy SQLite FK constraints.
+    if (db.DashboardShare) {
+      await db.DashboardShare.destroy({ where: { dashboardId: dashboard.id } });
+    }
     await dashboard.destroy();
     req.flash('success', 'Dashboard deleted.');
     res.redirect('/dashboard/history');
@@ -341,8 +345,8 @@ exports.editInCanvas = async (req, res) => {
       }
     });
 
-    // Pass the saved dashboard data to home.ejs for pre-population
-    res.render('home', {
+    // Pass the saved dashboard data to ai-builder.ejs for pre-population
+    res.render('ai-builder', {
       title: 'Edit Dashboard - ' + dashboard.title,
       samplePrompts: take(SAMPLE_PROMPTS, 10),
       chartTypes: CHART_TYPES,
@@ -385,7 +389,78 @@ exports.editInCanvas = async (req, res) => {
  */
 exports.recalculatePanel = async (req, res) => {
   try {
-    const { structuredRequest, dataSourceId } = req.body;
+    const { structuredRequest, dataSourceId, sql } = req.body;
+
+    // ── Optional: Safe SQL mode (Advanced tab) ────────────────────────────────
+    if (sql && String(sql).trim()) {
+      const rawSql = String(sql).trim();
+      const upper = rawSql.toUpperCase();
+      const forbidden = /\b(DROP|DELETE|UPDATE|INSERT|ALTER|TRUNCATE|CREATE|REPLACE|ATTACH|DETACH|PRAGMA)\b/i;
+      if (forbidden.test(rawSql)) {
+        return res.json({ error: 'Only safe SELECT queries are allowed. Destructive SQL commands are blocked.' });
+      }
+      if (!/^\s*(SELECT|WITH)\b/i.test(rawSql)) {
+        return res.json({ error: 'Only SELECT queries are allowed.' });
+      }
+      if (dataSourceId) {
+        // For now: SQL mode only for the internal DB (file/API sources use safe in-memory aggregation).
+        return res.json({ error: 'Advanced SQL Mode is only available for the Internal Database.' });
+      }
+
+      // Execute SQL against internal DB safely.
+      const { QueryTypes } = require('sequelize');
+      const sqlNoSemi = rawSql.replace(/;\s*$/, '');
+      const wrapped = `SELECT * FROM (${sqlNoSemi}) AS q LIMIT 200`;
+      const rows = await db.sequelize.query(wrapped, { type: QueryTypes.SELECT });
+      const columns = rows && rows.length ? Object.keys(rows[0]) : [];
+
+      // Derive labels/values for charting when possible (2-column result).
+      let labels = [];
+      let values = [];
+      if (columns.length >= 2) {
+        const c0 = columns[0];
+        const c1 = columns[1];
+        labels = rows.map((r) => r[c0]);
+        values = rows.map((r) => {
+          const v = r[c1];
+          const n = typeof v === 'number' ? v : Number(v);
+          return Number.isFinite(n) ? n : 0;
+        });
+      } else if (columns.length === 1) {
+        const c0 = columns[0];
+        labels = [c0];
+        const v = rows[0] ? rows[0][c0] : 0;
+        const n = typeof v === 'number' ? v : Number(v);
+        values = [Number.isFinite(n) ? n : 0];
+      }
+
+      const chartResult = (labels && labels.length)
+        ? chartService.buildChartConfig(labels, values, (structuredRequest && structuredRequest.chartPreference) || 'bar', (structuredRequest && structuredRequest.title) || 'SQL Query', null)
+        : null;
+
+      const cfg = chartResult ? chartResult.config : null;
+      const chartEngine = chartResult ? chartResult.engine : 'chartjs';
+      const ds = cfg && cfg.data && cfg.data.datasets && cfg.data.datasets[0] ? cfg.data.datasets[0] : null;
+
+      return res.json({
+        title: (structuredRequest && structuredRequest.title) || 'SQL Query',
+        originalPrompt: '',
+        calculationLabel: 'SQL: custom SELECT query',
+        structuredRequest: structuredRequest || null,
+        chartType: (structuredRequest && structuredRequest.chartPreference) || 'bar',
+        chartEngine,
+        hasData: Array.isArray(rows) && rows.length > 0,
+        chartConfig: cfg,
+        labels,
+        values,
+        bgColors: ds ? (Array.isArray(ds.backgroundColor) ? ds.backgroundColor : [ds.backgroundColor]) : [],
+        borderColors: ds ? (Array.isArray(ds.borderColor) ? ds.borderColor : [ds.borderColor]) : [],
+        tableData: { columns, rows },
+        aiInsight: null,
+        parsedByAI: false,
+      });
+    }
+
     if (!structuredRequest || !structuredRequest.focusArea) {
       return res.json({ error: 'structuredRequest with focusArea is required.' });
     }

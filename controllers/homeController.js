@@ -3,7 +3,37 @@ const { SAMPLE_PROMPTS, CHART_TYPES, CHART_TYPE_GROUPS } = require('../utils/con
 const { take } = require('../utils/helpers');
 const aiService = require('../services/aiService');
 
+/**
+ * Executive Dashboard / Home Page
+ */
 exports.index = async (req, res) => {
+  try {
+    const recentDashboards = await db.SavedDashboard.findAll({
+      order: [['updatedAt', 'DESC']],
+      limit: 10,
+      attributes: ['id', 'title', 'createdAt', 'updatedAt', 'dataSourceId'],
+    });
+
+    res.render('home', {
+      title: 'AutoDash AI – Intelligent AI Dashboard Builder',
+      layout: false,
+      userDisplayName: req.user ? req.user.name || 'User' : 'Executive',
+      recentDashboards,
+    });
+  } catch (err) {
+    console.error('Home index error:', err);
+    res.render('home', {
+      title: 'AutoDash AI – Intelligent AI Dashboard Builder',
+      layout: false,
+      recentDashboards: [],
+    });
+  }
+};
+
+/**
+ * AI Builder Page (formerly home)
+ */
+exports.aiBuilder = async (req, res) => {
   try {
     const recentDashboards = await db.SavedDashboard.findAll({
       order: [['createdAt', 'DESC']],
@@ -44,7 +74,7 @@ exports.index = async (req, res) => {
       order: [['isBuiltIn', 'DESC'], ['name', 'ASC']],
     });
 
-    res.render('home', {
+    res.render('ai-builder', {
       title: 'AI Auto-Dashboard Builder',
       samplePrompts: take(SAMPLE_PROMPTS, 10),
       chartTypes: CHART_TYPES,

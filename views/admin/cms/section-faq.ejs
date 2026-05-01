@@ -1,0 +1,51 @@
+<div class="card">
+  <div class="card-head"><h4>Section Header</h4></div>
+  <label class="field"><span class="field-label">Section Title</span>
+    <input class="input" type="text" name="data[title]" value="<%= data.title || '' %>">
+  </label>
+  <label class="field"><span class="field-label">Section Subtitle</span>
+    <textarea class="textarea" rows="2" name="data[subtitle]"><%= data.subtitle || '' %></textarea>
+  </label>
+</div>
+
+<div class="group-head">
+  <h3>Questions</h3>
+  <button type="button" class="add-btn" data-add="faqItems"><i class="bi bi-plus-lg"></i> Add FAQ</button>
+</div>
+<div data-list="faqItems">
+  <% (data.items || []).forEach(function(item, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Question">Question #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <label class="field"><span class="field-label">Question</span>
+        <input class="input" type="text" data-name="data[items][__I__][question]" name="data[items][<%= i %>][question]" value="<%= item.question || '' %>">
+      </label>
+      <label class="field"><span class="field-label">Answer</span>
+        <textarea class="textarea" rows="3" data-name="data[items][__I__][answer]" name="data[items][<%= i %>][answer]"><%= item.answer || '' %></textarea>
+      </label>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="faqItems">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Question">New question</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <label class="field"><span class="field-label">Question</span><input class="input" type="text" data-name="data[items][__I__][question]" value="New question?"></label>
+    <label class="field"><span class="field-label">Answer</span><textarea class="textarea" rows="3" data-name="data[items][__I__][answer]">Answer here.</textarea></label>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

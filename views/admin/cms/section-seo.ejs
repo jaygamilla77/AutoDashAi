@@ -1,0 +1,54 @@
+<%
+  var pages = (data.pages) || {};
+  var pageKeys = ['home','about','features','faq','pricing','contact'];
+  // ensure all keys exist for editing
+  pageKeys.forEach(function(k){ pages[k] = pages[k] || {}; });
+%>
+
+<div class="card">
+  <div class="card-head"><h4>Sitemap</h4></div>
+  <div class="row-2">
+    <label class="check-row">
+      <input type="hidden" name="data[sitemap][enabled]" value="false">
+      <input type="checkbox" name="data[sitemap][enabled]" value="true" <%= (data.sitemap && data.sitemap.enabled !== false) ? 'checked' : '' %>>
+      <span>Enable /sitemap.xml</span>
+    </label>
+    <label class="field">
+      <span class="field-label">Default change frequency</span>
+      <select class="select" name="data[sitemap][changefreq]">
+        <% ['always','hourly','daily','weekly','monthly','yearly','never'].forEach(function(v){ %>
+          <option value="<%= v %>" <%= (data.sitemap && data.sitemap.changefreq === v) ? 'selected' : '' %>><%= v %></option>
+        <% }); %>
+      </select>
+    </label>
+  </div>
+</div>
+
+<% pageKeys.forEach(function(slug){
+     var p = pages[slug] || {};
+     var label = slug.charAt(0).toUpperCase() + slug.slice(1);
+%>
+  <div class="card">
+    <div class="card-head"><h4 data-label="static"><i class="bi bi-file-earmark-text" style="margin-right:6px;color:var(--blue)"></i> /<%= slug === 'home' ? '' : slug %> — <%= label %></h4></div>
+    <label class="field"><span class="field-label">Title</span>
+      <input class="input" type="text" name="data[pages][<%= slug %>][title]" value="<%= p.title || '' %>">
+    </label>
+    <label class="field"><span class="field-label">Meta Description</span>
+      <textarea class="textarea" rows="2" name="data[pages][<%= slug %>][description]"><%= p.description || '' %></textarea>
+    </label>
+    <label class="field"><span class="field-label">Keywords</span>
+      <input class="input" type="text" name="data[pages][<%= slug %>][keywords]" value="<%= p.keywords || '' %>">
+    </label>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Canonical URL</span>
+        <input class="input" type="text" name="data[pages][<%= slug %>][canonical]" value="<%= p.canonical || '' %>">
+      </label>
+      <label class="field"><span class="field-label">OG Image URL</span>
+        <input class="input" type="text" name="data[pages][<%= slug %>][ogImage]" value="<%= p.ogImage || '' %>">
+      </label>
+    </div>
+    <label class="field"><span class="field-label">Robots</span>
+      <input class="input" type="text" name="data[pages][<%= slug %>][robots]" value="<%= p.robots || '' %>" placeholder="index, follow">
+    </label>
+  </div>
+<% }); %>

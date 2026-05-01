@@ -3,51 +3,127 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof title !== 'undefined' ? title : 'AutoDash AI' %></title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <%
+    // ─── SEO defaults (each page can override via res.render locals) ─────
+    var seoTitle = (typeof title !== 'undefined' && title)
+      ? title
+      : 'AutoDash AI – Intelligent AI Dashboard Builder';
+    var seoDescription = (typeof metaDescription !== 'undefined' && metaDescription)
+      ? metaDescription
+      : 'AutoDash AI is an AI dashboard builder and analytics platform that automatically generates KPI dashboards, executive reports, and interactive data visualizations from any data source. Powered by Liknaya.com.';
+    var seoKeywords = (typeof metaKeywords !== 'undefined' && metaKeywords)
+      ? metaKeywords
+      : 'AI dashboard builder, AI analytics platform, automated dashboard creator, business intelligence software, KPI dashboard, AI reporting tool, smart analytics platform, data visualization software, dashboard automation, executive dashboard software, real-time analytics, interactive dashboards, AI-powered reporting, business dashboard platform, analytics dashboard creator';
+    var siteUrl = (typeof process !== 'undefined' && process.env && process.env.SITE_URL) ? process.env.SITE_URL : 'https://autodash.liknaya.com';
+    var canonicalPath = (typeof canonicalPath !== 'undefined' && canonicalPath) ? canonicalPath : '/';
+    var seoCanonical = siteUrl.replace(/\/$/, '') + canonicalPath;
+    var seoImage = (typeof metaImage !== 'undefined' && metaImage) ? metaImage : (siteUrl.replace(/\/$/, '') + '/og-cover.png');
+    var seoType = (typeof pageType !== 'undefined' && pageType) ? pageType : 'website';
+  %>
+  <title><%= seoTitle %></title>
+  <meta name="description" content="<%= seoDescription %>">
+  <meta name="keywords" content="<%= seoKeywords %>">
+  <meta name="author" content="Liknaya.com">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="theme-color" content="#2563EB">
+  <link rel="canonical" href="<%= seoCanonical %>">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="<%= seoType %>">
+  <meta property="og:site_name" content="AutoDash AI">
+  <meta property="og:title" content="<%= seoTitle %>">
+  <meta property="og:description" content="<%= seoDescription %>">
+  <meta property="og:url" content="<%= seoCanonical %>">
+  <meta property="og:image" content="<%= seoImage %>">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= seoTitle %>">
+  <meta name="twitter:description" content="<%= seoDescription %>">
+  <meta name="twitter:image" content="<%= seoImage %>">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
+
+  <!-- Structured data: Organization -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "AutoDash AI",
+    "alternateName": "AutoDashAI",
+    "url": "<%= siteUrl %>",
+    "logo": "<%= siteUrl %>/logo.png",
+    "description": "AutoDash AI is an AI-powered dashboard builder and business intelligence platform.",
+    "parentOrganization": {
+      "@type": "Organization",
+      "name": "Liknaya",
+      "url": "https://liknaya.com"
+    },
+    "sameAs": [
+      "https://liknaya.com"
+    ]
+  }
+  </script>
+
+  <!-- Structured data: WebSite + SearchAction -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "AutoDash AI",
+    "url": "<%= siteUrl %>",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Liknaya.com",
+      "url": "https://liknaya.com"
+    }
+  }
+  </script>
+
+  <!-- Structured data: SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AutoDash AI",
+    "url": "<%= siteUrl %>",
+    "applicationCategory": "BusinessApplication",
+    "applicationSubCategory": "Business Intelligence Software",
+    "operatingSystem": "Web (Cloud-based, browser)",
+    "description": "AI dashboard builder and analytics platform that automatically generates KPI dashboards, executive reports, and interactive data visualizations from any data source.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
+    },
+    "featureList": [
+      "AI dashboard generation",
+      "KPI recommendations",
+      "Smart chart suggestions",
+      "Multi-source data integration",
+      "Interactive dashboards",
+      "AI-powered insights and executive summaries",
+      "Real-time analytics",
+      "Dashboard sharing and collaboration"
+    ],
+    "creator": {
+      "@type": "Organization",
+      "name": "Liknaya",
+      "url": "https://liknaya.com"
+    }
+  }
+  </script>
 </head>
-<body>
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <a href="/"><i class="bi bi-bar-chart-line-fill"></i></a>
-    </div>
-    <nav class="sidebar-nav">
-      <a href="/" class="sidebar-link" title="Home">
-        <i class="bi bi-house-fill"></i>
-        <span>Home</span>
-      </a>
-      <a href="/dashboard/history" class="sidebar-link" title="Dashboards">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
-        <span>Dashboards</span>
-      </a>
-      <a href="/sources" class="sidebar-link" title="Sources">
-        <i class="bi bi-database-fill"></i>
-        <span>Sources</span>
-      </a>
-      <a href="/templates" class="sidebar-link" title="Templates">
-        <i class="bi bi-palette2"></i>
-        <span>Templates</span>
-      </a>
-      <a href="/" class="sidebar-link" title="AI Assistant">
-        <i class="bi bi-stars"></i>
-        <span>AI</span>
-      </a>
-    </nav>
-    <div class="sidebar-bottom">
-      <a href="/ai-settings" class="sidebar-link" title="AI Settings">
-        <i class="bi bi-gear-fill"></i>
-        <span>Settings</span>
-      </a>
-      <a href="#" class="sidebar-link" title="Help" onclick="return false">
-        <i class="bi bi-question-circle-fill"></i>
-        <span>Help</span>
-      </a>
-    </div>
-  </aside>
+<body class="<%= ((typeof isAuthenticated !== 'undefined' && isAuthenticated) && !(typeof hideSidebar !== 'undefined' && hideSidebar)) ? 'is-authed' : 'is-guest' %>">
+  <% if ((typeof isAuthenticated !== 'undefined' && isAuthenticated) && !(typeof hideSidebar !== 'undefined' && hideSidebar)) { %>
+  <!-- Sidebar (authenticated app pages only) -->
+  <%- include('../partials/sidebar') %>
+  <% } %>
 
   <!-- Main Content -->
   <div class="main-wrapper">
@@ -55,6 +131,7 @@
     <main class="main-content">
       <%- body %>
     </main>
+    <%- include('../partials/footer') %>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -71,20 +148,48 @@
   <script src="https://cdn.jsdelivr.net/npm/gridstack@8.4.0/dist/gridstack-all.compat.min.js"></script>
   <script src="/js/dashboard.js"></script>
   <script src="/js/layout-manager.js"></script>
+  <script src="/js/template-previews.js"></script>
   <script>
-    // Highlight active sidebar link
-    document.querySelectorAll('.sidebar-link').forEach(function(link) {
-      var href = link.getAttribute('href');
-      var path = window.location.pathname;
-      if (!href || href === '#') return;
-      if (href === '/') {
-        if (path === '/' || path.startsWith('/dashboard/') && path.endsWith('/edit-canvas')) link.classList.add('active');
-      } else if (href === '/dashboard/history') {
-        if (path === '/dashboard/history' || (path.startsWith('/dashboard/') && !path.endsWith('/edit-canvas'))) link.classList.add('active');
-      } else {
-        if (path === href || path.startsWith(href + '/')) link.classList.add('active');
+    // Highlight active sidebar link (same logic as partials/sidebar.ejs)
+    (function () {
+      var path = window.location.pathname.replace(/\/+$/, '') || '/';
+      function matches(href) {
+        switch (href) {
+          case '/dashboard':
+            return path === '/dashboard';
+          case '/dashboard/history':
+            return path === '/dashboard/history'
+                || /^\/dashboard\/\d+$/.test(path);
+          case '/sources':
+            return path === '/sources' || path.indexOf('/sources/') === 0;
+          case '/templates':
+            return path === '/templates' || path.indexOf('/templates/') === 0;
+          case '/ai-builder':
+            return path === '/ai-builder'
+                || path === '/wizard'
+                || path.indexOf('/wizard/') === 0
+                || path.indexOf('/wizard-guided/') === 0
+                || /^\/dashboard\/\d+\/edit-canvas$/.test(path);
+          case '/ai-settings':
+            return path === '/ai-settings' || path === '/ai/settings';
+          case '/admin':
+          case '/admin/pages':
+          case '/admin/content':
+            return path === '/admin' || path.indexOf('/admin/') === 0;
+          default:
+            return path === href;
+        }
       }
-    });
+      document.querySelectorAll('.sidebar-link').forEach(function (link) {
+        var href = link.getAttribute('href');
+        if (!href || href === '#') return;
+        var isActive = matches(href);
+        link.classList.toggle('active', isActive);
+        if (isActive) {
+          link.addEventListener('click', function (e) { e.preventDefault(); });
+        }
+      });
+    })();
   </script>
 </body>
 </html>

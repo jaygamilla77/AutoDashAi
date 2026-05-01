@@ -1,0 +1,119 @@
+<article class="public-page">
+  <header class="lead-hero">
+    <h1>Simple, transparent pricing</h1>
+    <p>
+      Start free and scale as you grow. No credit card required. Every plan includes the core
+      AutoDash AI dashboard builder, KPI recommendations, and AI-powered reporting.
+    </p>
+  </header>
+
+  <div class="pricing-grid">
+    <div class="pricing-card">
+      <h2>Starter</h2>
+      <p class="pricing-price">$0<span>/month</span></p>
+      <p class="pricing-tag">Perfect for individuals exploring AI dashboards.</p>
+      <ul class="pricing-features">
+        <li><i class="bi bi-check2"></i> Up to 3 dashboards</li>
+        <li><i class="bi bi-check2"></i> Excel, CSV &amp; JSON sources</li>
+        <li><i class="bi bi-check2"></i> AI dashboard generation</li>
+        <li><i class="bi bi-check2"></i> Community support</li>
+      </ul>
+      <a href="/auth?tab=signup" class="pricing-cta">Get started free</a>
+    </div>
+
+    <div class="pricing-card pricing-card-featured">
+      <span class="pricing-badge">Most popular</span>
+      <h2>Business</h2>
+      <p class="pricing-price">$29<span>/user / month</span></p>
+      <p class="pricing-tag">For teams that need real-time analytics and collaboration.</p>
+      <ul class="pricing-features">
+        <li><i class="bi bi-check2"></i> Unlimited dashboards</li>
+        <li><i class="bi bi-check2"></i> SQL databases &amp; REST APIs</li>
+        <li><i class="bi bi-check2"></i> AI insights &amp; executive summaries</li>
+        <li><i class="bi bi-check2"></i> Secure sharing &amp; collaboration</li>
+        <li><i class="bi bi-check2"></i> Priority support</li>
+      </ul>
+      <a href="/auth?tab=signup" class="pricing-cta pricing-cta-primary">Start 14-day trial</a>
+    </div>
+
+    <div class="pricing-card">
+      <h2>Enterprise</h2>
+      <p class="pricing-price">Custom</p>
+      <p class="pricing-tag">For organizations with advanced security and scale needs.</p>
+      <ul class="pricing-features">
+        <li><i class="bi bi-check2"></i> SSO &amp; role-based access</li>
+        <li><i class="bi bi-check2"></i> Dedicated AI capacity</li>
+        <li><i class="bi bi-check2"></i> Custom integrations</li>
+        <li><i class="bi bi-check2"></i> Premium SLA &amp; onboarding</li>
+      </ul>
+      <a href="/contact" class="pricing-cta">Contact sales</a>
+    </div>
+  </div>
+
+  <h2>Frequently asked pricing questions</h2>
+  <p>
+    All plans include the core AI dashboard builder, KPI recommendations, smart chart suggestions,
+    and AI-powered reporting. You can upgrade, downgrade, or cancel at any time. Annual billing
+    is available with a discount on Business and Enterprise plans.
+  </p>
+</article>
+
+<style>
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  .pricing-card {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 28px 26px;
+    position: relative;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  .pricing-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15,23,42,0.08);
+    border-color: #C7D2FE;
+  }
+  .pricing-card-featured {
+    border-color: #2563EB;
+    box-shadow: 0 12px 32px rgba(37,99,235,0.12);
+  }
+  .pricing-badge {
+    position: absolute; top: -12px; left: 24px;
+    background: #2563EB; color: #fff;
+    font-size: 0.72rem; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .pricing-card h2 {
+    font-size: 1.15rem; font-weight: 700; margin: 0 0 12px;
+    color: #0F172A;
+  }
+  .pricing-price {
+    font-size: 2.2rem; font-weight: 800; color: #0F172A;
+    margin: 0 0 6px; letter-spacing: -0.5px;
+  }
+  .pricing-price span {
+    font-size: 0.9rem; font-weight: 500; color: #64748B;
+  }
+  .pricing-tag { color: #64748B; font-size: 0.92rem; margin-bottom: 18px; }
+  .pricing-features { list-style: none; padding: 0; margin: 0 0 22px; display: flex; flex-direction: column; gap: 10px; }
+  .pricing-features li { font-size: 0.92rem; color: #334155; display: flex; align-items: center; gap: 8px; }
+  .pricing-features i { color: #2563EB; font-size: 1rem; }
+  .pricing-cta {
+    display: block; text-align: center; padding: 12px 18px;
+    border-radius: 10px; font-weight: 600; font-size: 0.95rem;
+    border: 1px solid #E2E8F0; color: #0F172A; background: #fff;
+    text-decoration: none; transition: all 0.15s ease;
+  }
+  .pricing-cta:hover { border-color: #2563EB; color: #2563EB; }
+  .pricing-cta-primary { background: #2563EB; color: #fff; border-color: #2563EB; }
+  .pricing-cta-primary:hover { background: #1D4ED8; color: #fff; border-color: #1D4ED8; }
+  @media (max-width: 860px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+  }
+</style>

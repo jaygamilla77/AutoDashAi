@@ -1,0 +1,71 @@
+<div class="card">
+  <div class="card-head"><h4>Top-bar CTAs</h4></div>
+  <div class="row-2">
+    <label class="check-row">
+      <input type="hidden" name="data[showSignIn]" value="false">
+      <input type="checkbox" name="data[showSignIn]" value="true" <%= data.showSignIn !== false ? 'checked' : '' %>>
+      <span>Show "Sign In" button</span>
+    </label>
+    <label class="check-row">
+      <input type="hidden" name="data[showGetStarted]" value="false">
+      <input type="checkbox" name="data[showGetStarted]" value="true" <%= data.showGetStarted !== false ? 'checked' : '' %>>
+      <span>Show "Get Started" button</span>
+    </label>
+  </div>
+  <div class="row-2">
+    <label class="field">
+      <span class="field-label">Sign In Label</span>
+      <input class="input" type="text" name="data[signInLabel]" value="<%= data.signInLabel || '' %>">
+    </label>
+    <label class="field">
+      <span class="field-label">Get Started Label</span>
+      <input class="input" type="text" name="data[getStartedLabel]" value="<%= data.getStartedLabel || '' %>">
+    </label>
+  </div>
+</div>
+
+<div class="group-head">
+  <h3>Menu Items</h3>
+  <button type="button" class="add-btn" data-add="navItems"><i class="bi bi-plus-lg"></i> Add link</button>
+</div>
+<div data-list="navItems">
+  <% (data.items || []).forEach(function(item, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Link">Link #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div class="row-2">
+        <label class="field"><span class="field-label">Label</span>
+          <input class="input" type="text" data-name="data[items][__I__][label]" name="data[items][<%= i %>][label]" value="<%= item.label || '' %>">
+        </label>
+        <label class="field"><span class="field-label">URL</span>
+          <input class="input" type="text" data-name="data[items][__I__][href]" name="data[items][<%= i %>][href]" value="<%= item.href || '' %>">
+        </label>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="navItems">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Link">New link</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-2">
+      <label class="field"><span class="field-label">Label</span><input class="input" type="text" data-name="data[items][__I__][label]" value="New Link"></label>
+      <label class="field"><span class="field-label">URL</span><input class="input" type="text" data-name="data[items][__I__][href]" value="/"></label>
+    </div>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

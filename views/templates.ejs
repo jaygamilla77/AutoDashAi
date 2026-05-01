@@ -1,14 +1,89 @@
-<div class="page-header d-flex justify-content-between align-items-center">
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h1>Templates</h1>
-    <p>Choose a visual theme for your dashboards — colors, fonts, and chart style.</p>
+    <h1>Templates & Themes</h1>
+    <p>Choose a dashboard layout template and customize with a color theme.</p>
   </div>
-  <a href="/templates/new" class="btn btn-primary btn-sm">Create Template</a>
+  <a href="/templates/new" class="btn btn-primary btn-sm">Create Color Theme</a>
 </div>
 
-<% if (typeof templates !== 'undefined' && templates.length > 0) { %>
+<!-- Tabs Navigation -->
+<ul class="nav nav-tabs" role="tablist" style="border-bottom: 2px solid #E2E8F0; margin-bottom: 32px;">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="dashboard-templates-tab" data-bs-toggle="tab" data-bs-target="#dashboard-templates" type="button" role="tab" style="border: none; color: #64748B; font-weight: 600; padding: 12px 24px; border-bottom: 3px solid transparent;">
+      <i class="bi bi-layout-text-window-reverse me-2" style="color: #0EA5E9;"></i>Dashboard Templates
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="color-themes-tab" data-bs-toggle="tab" data-bs-target="#color-themes" type="button" role="tab" style="border: none; color: #64748B; font-weight: 600; padding: 12px 24px; border-bottom: 3px solid transparent;">
+      <i class="bi bi-palette-fill me-2" style="color: #0EA5E9;"></i>Color Themes
+    </button>
+  </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content">
+  <!-- Dashboard Templates Tab -->
+  <div class="tab-pane fade show active" id="dashboard-templates" role="tabpanel">
+    <% if (typeof dashboardLayoutTemplates !== 'undefined' && dashboardLayoutTemplates.length > 0) { %>
+    <div class="tpc-grid" id="dashboardTemplatesGrid"></div>
+    <script id="dashboardTemplatesData" type="application/json"><%-
+      JSON.stringify(dashboardLayoutTemplates.map(function(dt){
+        var k = []; try { k = JSON.parse(dt.kpis || '[]'); } catch(e) {}
+        return {
+          id: dt.id,
+          name: dt.name,
+          description: dt.description,
+          category: dt.category,
+          icon: dt.icon,
+          kpis: k
+        };
+      }))
+    %></script>
+    <script>
+      (function () {
+        function init() {
+          var dataEl = document.getElementById('dashboardTemplatesData');
+          var grid = document.getElementById('dashboardTemplatesGrid');
+          if (!dataEl || !grid || !window.TemplatePreviewCard) return;
+          var templates;
+          try { templates = JSON.parse(dataEl.textContent); } catch (e) { return; }
+          templates.forEach(function (t) {
+            var type = window.resolveTemplatePreviewType(t.id || t.name);
+            var meta = window.getTemplateMeta(type);
+            var card = window.TemplatePreviewCard({
+              templateId: t.id,
+              title: t.name,
+              description: t.description,
+              category: t.category || meta.category,
+              accentColor: meta.accent,
+              recommendedKpis: t.kpis || [],
+              previewLayoutType: type,
+              onUseTemplate: function (id, name) {
+                sessionStorage.setItem('selectedDashboardTemplate', id);
+                sessionStorage.setItem('selectedDashboardTemplateName', name);
+                window.location.href = '/ai-builder?template=' + encodeURIComponent(id) +
+                  '&templateName=' + encodeURIComponent(name);
+              }
+            });
+            grid.appendChild(card);
+          });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+        else init();
+      })();
+    </script>
+    <% } else { %>
+    <div class="text-center py-5">
+      <p class="text-muted">No dashboard templates found.</p>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Color Themes Tab -->
+  <div class="tab-pane fade" id="color-themes" role="tabpanel">
+    <% if (typeof colorThemes !== 'undefined' && colorThemes.length > 0) { %>
 <div class="row g-3">
-  <% templates.forEach(function(t) { %>
+  <% colorThemes.forEach(function(t) { %>
     <% var palette = JSON.parse(t.colorPalette || '[]'); %>
     <div class="col-lg-3 col-md-4 col-sm-6">
       <div class="card template-card h-100">
@@ -118,10 +193,38 @@
       </div>
     </div>
   <% }); %>
+  <% } else { %>
+  <div class="text-center py-5">
+    <p class="text-muted">No color themes found.</p>
+    <a href="/templates/new" class="btn btn-primary btn-sm">Create your first color theme</a>
+  </div>
+  <% } %>
+  </div>
 </div>
-<% } else { %>
-<div class="text-center py-5">
-  <p class="text-muted">No templates yet.</p>
-  <a href="/templates/new" class="btn btn-primary btn-sm">Create your first template</a>
-</div>
-<% } %>
+
+<!-- Tab Active State Styling -->
+<style>
+  .nav-link.active {
+    color: #0F172A !important;
+    border-bottom-color: #0EA5E9 !important;
+  }
+
+  .template-card:hover {
+    border-color: #0EA5E9 !important;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1) !important;
+    transform: translateY(-2px);
+  }
+</style>
+
+<!-- JavaScript for Template Selection -->
+<script>
+  function selectDashboardTemplate(templateId, templateName) {
+    // Store selected template in session storage
+    sessionStorage.setItem('selectedDashboardTemplate', templateId);
+    sessionStorage.setItem('selectedDashboardTemplateName', templateName);
+    
+    // Redirect to AI builder with template selected
+    window.location.href = '/ai-builder?template=' + templateId + '&templateName=' + encodeURIComponent(templateName);
+  }
+</script>
+

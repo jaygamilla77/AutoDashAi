@@ -23,12 +23,13 @@ module.exports = {
   chartTypes: ['auto', 'bar', 'line', 'pie', 'doughnut', 'table'],
 
   // Allowed upload extensions
-  allowedExtensions: ['.csv', '.xlsx', '.json'],
+  allowedExtensions: ['.csv', '.xlsx', '.xls', '.json'],
 
   // Allowed MIME types
   allowedMimeTypes: [
     'text/csv',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
     'application/json',
     'text/plain',
   ],

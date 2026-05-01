@@ -22,11 +22,35 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
+  const mimeType = file.mimetype;
+  
+  console.log('[Multer] File upload attempt:', {
+    originalName: file.originalname,
+    extension: ext,
+    mimeType: mimeType,
+    allowedExtensions: appConfig.allowedExtensions,
+  });
+
+  // Check by extension first (more reliable)
   if (appConfig.allowedExtensions.includes(ext)) {
+    console.log('[Multer] File extension approved:', ext);
     cb(null, true);
-  } else {
-    cb(new Error(`File type ${ext} is not allowed. Allowed: ${appConfig.allowedExtensions.join(', ')}`), false);
+    return;
   }
+
+  // Also check MIME type as fallback
+  if (appConfig.allowedMimeTypes.includes(mimeType)) {
+    console.log('[Multer] File MIME type approved:', mimeType);
+    cb(null, true);
+    return;
+  }
+
+  // If neither extension nor MIME type matches, reject
+  const error = new Error(
+    `File type not allowed. Received: ${ext} (${mimeType}). Allowed: ${appConfig.allowedExtensions.join(', ')}`
+  );
+  console.error('[Multer] File rejected:', error.message);
+  cb(error, false);
 };
 
 const upload = multer({

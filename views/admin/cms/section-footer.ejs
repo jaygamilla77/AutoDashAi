@@ -1,0 +1,113 @@
+<div class="card">
+  <div class="card-head"><h4>Footer Brand</h4></div>
+  <label class="field"><span class="field-label">Tagline / about line</span>
+    <textarea class="textarea" rows="2" name="data[tagline]"><%= data.tagline || '' %></textarea>
+  </label>
+  <div class="row-2">
+    <label class="field"><span class="field-label">Copyright Line</span>
+      <input class="input" type="text" name="data[copyright]" value="<%= data.copyright || '' %>">
+    </label>
+    <label class="field"><span class="field-label">"Powered by" Prefix</span>
+      <input class="input" type="text" name="data[poweredBy]" value="<%= data.poweredBy || '' %>">
+    </label>
+  </div>
+  <div class="row-2">
+    <label class="field"><span class="field-label">Powered-by Label</span>
+      <input class="input" type="text" name="data[poweredByLabel]" value="<%= data.poweredByLabel || '' %>">
+    </label>
+    <label class="field"><span class="field-label">Powered-by URL</span>
+      <input class="input" type="text" name="data[poweredByUrl]" value="<%= data.poweredByUrl || '' %>">
+    </label>
+  </div>
+</div>
+
+<div class="group-head">
+  <h3>Social Links</h3>
+  <button type="button" class="add-btn" data-add="socials"><i class="bi bi-plus-lg"></i> Add social</button>
+</div>
+<div data-list="socials">
+  <% (data.socials || []).forEach(function(s, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Social">Social #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <div class="row-3">
+        <label class="field"><span class="field-label">Icon</span>
+          <input class="input" type="text" data-name="data[socials][__I__][icon]" name="data[socials][<%= i %>][icon]" value="<%= s.icon || '' %>">
+        </label>
+        <label class="field"><span class="field-label">URL</span>
+          <input class="input" type="text" data-name="data[socials][__I__][href]" name="data[socials][<%= i %>][href]" value="<%= s.href || '' %>">
+        </label>
+        <label class="field"><span class="field-label">Aria Label</span>
+          <input class="input" type="text" data-name="data[socials][__I__][label]" name="data[socials][<%= i %>][label]" value="<%= s.label || '' %>">
+        </label>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="socials">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Social">New social</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <div class="row-3">
+      <label class="field"><span class="field-label">Icon</span><input class="input" type="text" data-name="data[socials][__I__][icon]" value="bi-link-45deg"></label>
+      <label class="field"><span class="field-label">URL</span><input class="input" type="text" data-name="data[socials][__I__][href]" value="https://"></label>
+      <label class="field"><span class="field-label">Aria Label</span><input class="input" type="text" data-name="data[socials][__I__][label]" value="Link"></label>
+    </div>
+  </div>
+</template>
+
+<div class="group-head">
+  <h3>Footer Columns</h3>
+  <button type="button" class="add-btn" data-add="footerCols"><i class="bi bi-plus-lg"></i> Add column</button>
+</div>
+<div data-list="footerCols">
+  <% (data.columns || []).forEach(function(col, i){ %>
+    <div class="card" data-row>
+      <div class="card-head">
+        <h4 data-prefix="Column">Column #<%= i+1 %></h4>
+        <div class="controls">
+          <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+          <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+          <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+        </div>
+      </div>
+      <label class="field"><span class="field-label">Column Title</span>
+        <input class="input" type="text" data-name="data[columns][__I__][title]" name="data[columns][<%= i %>][title]" value="<%= col.title || '' %>">
+      </label>
+      <label class="field"><span class="field-label">Links <span class="field-hint">format: Label | /href (one per line)</span></span>
+        <textarea class="textarea" rows="6" data-name="data[columns][__I__][links_text]" name="data[columns][<%= i %>][links_text]"><% (col.links || []).forEach(function(l, j){ %><%= (j>0 ? '\n' : '') + (l.label || '') + ' | ' + (l.href || '') %><% }); %></textarea>
+      </label>
+    </div>
+  <% }); %>
+</div>
+
+<template data-tpl="footerCols">
+  <div class="card" data-row>
+    <div class="card-head">
+      <h4 data-prefix="Column">New column</h4>
+      <div class="controls">
+        <button type="button" class="icon-btn" data-move="up"><i class="bi bi-arrow-up"></i></button>
+        <button type="button" class="icon-btn" data-move="down"><i class="bi bi-arrow-down"></i></button>
+        <button type="button" class="icon-btn icon-btn-danger" data-remove><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+    <label class="field"><span class="field-label">Column Title</span><input class="input" type="text" data-name="data[columns][__I__][title]" value="New Column"></label>
+    <label class="field"><span class="field-label">Links (Label | /href, one per line)</span><textarea class="textarea" rows="5" data-name="data[columns][__I__][links_text]">Home | /
+Pricing | /pricing</textarea></label>
+  </div>
+</template>
+
+<%- include('row-manager-script') %>

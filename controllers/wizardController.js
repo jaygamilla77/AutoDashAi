@@ -8,6 +8,7 @@ const dataAnalysisService = require('../services/dataAnalysisService');
 const wizardRecommendationService = require('../services/wizardRecommendationService');
 const dashboardService = require('../services/dashboardService');
 const builderService = require('../services/fullDashboardService');
+const sourceIngestionService = require('../services/sourceIngestionService');
 const { safeJsonParse } = require('../utils/helpers');
 
 /**
@@ -22,8 +23,13 @@ exports.show = async (req, res) => {
       attributes: ['id', 'name', 'sourceType', 'analysisJson'],
     });
 
-    // Get templates for Step 4
-    const templates = await db.DashboardTemplate.findAll({
+    // Get dashboard layout templates
+    const dashboardLayoutTemplates = await db.DashboardLayoutTemplate.findAll({
+      order: [['sortOrder', 'ASC'], ['name', 'ASC']],
+    });
+
+    // Get color themes (renamed from templates to colorThemes)
+    const colorThemes = await db.DashboardTemplate.findAll({
       order: [['isBuiltIn', 'DESC'], ['name', 'ASC']],
     });
 
@@ -31,7 +37,9 @@ exports.show = async (req, res) => {
       title: 'Create Dashboard via Wizard',
       layout: false,
       dataSources,
-      templates,
+      templates: colorThemes, // Keep for backward compatibility
+      colorThemes,
+      dashboardLayoutTemplates,
       themes: wizardRecommendationService.getThemeOptions(),
       layouts: wizardRecommendationService.getLayoutOptions(),
       dashboardTypes: [
@@ -59,14 +67,68 @@ exports.analyzeDataSource = async (req, res) => {
     const { sourceType, sourceId, databaseConfig, fileType } = req.body;
     let analysis = null;
 
-    console.log('[Wizard] Analyzing data source:', { sourceType, hasFile: !!req.file, sourceId });
+    console.log('[Wizard Controller] Analyzing data source:', { 
+      sourceType, 
+      hasFile: !!req.file, 
+      sourceId, 
+      receivedFileType: fileType,
+      bodyKeys: Object.keys(req.body),
+    });
 
     if (sourceType === 'file' && req.file) {
       // Analyze uploaded file
       const detectedFileType = fileType || 'csv';
-      console.log('[Wizard] Analyzing file:', req.file.originalname, 'type:', detectedFileType);
-      analysis = await dataAnalysisService.analyzeFile(req.file.path, detectedFileType);
-      console.log('[Wizard] Analysis complete:', { rows: analysis.totalRows, cols: analysis.totalColumns });
+      console.log('[Wizard Controller] File upload detected:', {
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size,
+        detectedFileType: detectedFileType,
+      });
+      
+      try {
+        analysis = await dataAnalysisService.analyzeFile(req.file.path, detectedFileType);
+        console.log('[Wizard Controller] Analysis complete:', { 
+          rows: analysis.totalRows, 
+          cols: analysis.totalColumns,
+          quality: analysis.qualityScore,
+        });
+      } catch (err) {
+        console.error('[Wizard Controller] Analysis service error:', err.message);
+        console.error('[Wizard Controller] Full error:', err);
+        throw new Error(`File analysis failed: ${err.message}`);
+      }
+
+      // Create a persistent DataSource record so the file can be queried
+      // by the dashboard generator (otherwise it falls back to internal demo data).
+      try {
+        const baseName = (req.file.originalname || 'Uploaded File').replace(/\.[^.]+$/, '');
+        const ds = await db.DataSource.create({
+          name: `${baseName} (Wizard ${new Date().toISOString().slice(0, 10)})`,
+          sourceType: detectedFileType, // 'csv' | 'excel' | 'json'
+          status: 'active',
+          filePath: req.file.path,
+          originalFileName: req.file.originalname,
+          mimeType: req.file.mimetype,
+        });
+        console.log('[Wizard Controller] DataSource created id=', ds.id);
+
+        try {
+          await sourceIngestionService.ingest(ds);
+          ds.lastSyncedAt = new Date();
+          await ds.save();
+          console.log('[Wizard Controller] DataSource ingested + profiled id=', ds.id);
+        } catch (ingErr) {
+          console.error('[Wizard Controller] Ingestion error:', ingErr.message);
+          ds.status = 'error';
+          await ds.save();
+        }
+
+        analysis.dataSourceId = ds.id;
+        analysis.dataSourceName = ds.name;
+      } catch (createErr) {
+        console.error('[Wizard Controller] DataSource create failed:', createErr.message);
+        // Continue — analysis still works, dashboard will fall back to internal data
+      }
     } else if (sourceType === 'database') {
       if (sourceId) {
         // Analyze existing database source
@@ -96,23 +158,62 @@ exports.analyzeDataSource = async (req, res) => {
       // Analyze API source
       throw new Error('API analysis not yet implemented');
     } else {
-      throw new Error('Invalid source type or no file provided');
+      const errorMsg = 'Invalid source type or no file provided';
+      console.error('[Wizard Controller]', errorMsg, '- sourceType:', sourceType, 'hasFile:', !!req.file);
+      throw new Error(errorMsg);
     }
 
     // Get AI recommendations
+    console.log('[Wizard Controller] Getting AI recommendations...');
     const recommendations = await dataAnalysisService.getAiRecommendations(analysis);
 
+    console.log('[Wizard Controller] Returning success response');
     return res.json({
       success: true,
       analysis,
       recommendations,
     });
   } catch (err) {
-    console.error('Data source analysis error:', err);
+    console.error('[Wizard Controller] FATAL ERROR:', err.message || err);
+    console.error('[Wizard Controller] Stack:', err.stack);
     return res.json({
       success: false,
-      error: err.message,
+      error: err.message || 'Analysis failed',
     });
+  }
+};
+
+/**
+ * Re-analyze a different sheet of an already-uploaded Excel file
+ */
+exports.analyzeSheet = async (req, res) => {
+  try {
+    const { filePath, sheetName, fileType } = req.body;
+    console.log('[Wizard Controller] analyzeSheet:', { filePath, sheetName, fileType });
+
+    if (!filePath || !sheetName) {
+      throw new Error('filePath and sheetName are required');
+    }
+
+    // Security: only allow files inside the uploads directory
+    const path = require('path');
+    const fs = require('fs');
+    const uploadsDir = path.resolve(__dirname, '..', 'uploads');
+    const resolved = path.resolve(filePath);
+    if (!resolved.startsWith(uploadsDir + path.sep)) {
+      throw new Error('Invalid file path');
+    }
+    if (!fs.existsSync(resolved)) {
+      throw new Error('Uploaded file no longer exists. Please re-upload.');
+    }
+
+    const analysis = await dataAnalysisService.analyzeFile(resolved, fileType || 'excel', { sheetName });
+    const recommendations = await dataAnalysisService.getAiRecommendations(analysis);
+
+    return res.json({ success: true, analysis, recommendations });
+  } catch (err) {
+    console.error('[Wizard Controller] analyzeSheet error:', err.message);
+    return res.json({ success: false, error: err.message || 'Sheet analysis failed' });
   }
 };
 
@@ -194,15 +295,16 @@ exports.generateDashboard = async (req, res) => {
 - Layout: ${layout}
 - Include executive summary and insights`;
 
-    // Generate using full dashboard service
-    const result = await builderService.generateFullDashboard({
-      title,
-      dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
-      prompt,
-      dashboardType,
-      theme,
-      layout,
-    });
+    // Generate using full dashboard service.
+    // NOTE: generateFullDashboard expects a numeric sourceId (or null for internal data),
+    // NOT an options object — passing an object would always fall through to internal data.
+    const sid = dataSourceId ? parseInt(dataSourceId, 10) : null;
+    const result = await builderService.generateFullDashboard(sid);
+
+    // Override the auto-generated title with the user's chosen one
+    if (title && title.trim()) {
+      result.title = title.trim();
+    }
 
     return res.json({
       success: true,
@@ -353,6 +455,248 @@ exports.testConnection = async (req, res) => {
     throw new Error('Invalid source type');
   } catch (err) {
     console.error('Test connection error:', err);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Get available dashboard templates for guided wizard
+ */
+exports.getAvailableTemplates = async (req, res) => {
+  try {
+    const dashboardTemplateService = require('../services/dashboardTemplateService');
+    
+    const templates = dashboardTemplateService.getAllTemplates();
+    const colorThemes = dashboardTemplateService.getColorThemes();
+    const layouts = dashboardTemplateService.getLayoutOptions();
+
+    return res.json({
+      success: true,
+      templates,
+      colorThemes,
+      layouts,
+    });
+  } catch (err) {
+    console.error('[Wizard] Get templates error:', err.message);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Analyze all connected data sources for auto-generation
+ */
+exports.getSourcesAnalysis = async (req, res) => {
+  try {
+    const sourceAnalysisService = require('../services/sourceAnalysisService');
+    
+    const analysis = await sourceAnalysisService.analyzeAllSources();
+
+    return res.json({
+      success: true,
+      analysis,
+    });
+  } catch (err) {
+    console.error('[Wizard] Get sources analysis error:', err.message);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Generate auto dashboard from template + source analysis
+ */
+exports.generateAutoDashboard = async (req, res) => {
+  try {
+    const { templateId, colorTheme, sourceId, title } = req.body;
+
+    if (!templateId || !colorTheme) {
+      throw new Error('Template ID and color theme are required');
+    }
+
+    const autoDashboardService = require('../services/autoDashboardService');
+    
+    const config = {
+      templateId,
+      colorTheme,
+      sourceId: sourceId || null,
+      dashboardType: templateId,
+      title: title || null,
+    };
+
+    const generatedDashboard = await autoDashboardService.generateAutoDashboard(config);
+
+    return res.json({
+      success: true,
+      dashboard: generatedDashboard,
+    });
+  } catch (err) {
+    console.error('[Wizard] Generate auto dashboard error:', err.message);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Create dashboard from natural language AI prompt
+ */
+exports.createFromPrompt = async (req, res) => {
+  try {
+    const { prompt, sourceId } = req.body;
+
+    if (!prompt || !prompt.trim()) {
+      throw new Error('Dashboard prompt is required');
+    }
+
+    const aiService = require('../services/aiService');
+    const autoDashboardService = require('../services/autoDashboardService');
+    
+    if (!aiService.isAvailable()) {
+      throw new Error('AI service is not available');
+    }
+
+    // Use AI to parse the prompt and select the best template
+    const systemPrompt = `You are an expert business intelligence consultant. 
+Analyze the user's request for a dashboard and determine the best template to use.
+Return a JSON object with:
+{
+  "templateId": "id-of-best-template",
+  "colorTheme": "color-theme-id",
+  "title": "suggested dashboard title",
+  "description": "why this template was chosen"
+}`;
+
+    const parsingPrompt = `User request: "${prompt}"
+
+Based on this request, which of these templates would work best?
+- executive-dashboard: High-level business metrics
+- hr-dashboard: Employee metrics and hiring
+- sales-dashboard: Revenue and pipeline
+- finance-dashboard: Budget and expenses
+- operations-dashboard: Process efficiency
+- customer-service-dashboard: Support tickets
+- it-service-management: System performance
+- project-management-dashboard: Project progress
+- recruitment-dashboard: Job applications
+- inventory-dashboard: Stock levels
+- custom-ai-dashboard: AI-generated from data
+
+Respond with the best choice and reasoning.`;
+
+    const aiResponse = await aiService.chatJSON(systemPrompt, parsingPrompt, { max_tokens: 500 });
+    
+    if (!aiResponse || !aiResponse.templateId) {
+      throw new Error('AI could not determine best template');
+    }
+
+    // Now generate the dashboard with the AI-selected template
+    const config = {
+      templateId: aiResponse.templateId || 'custom-ai-dashboard',
+      colorTheme: aiResponse.colorTheme || 'corporate',
+      sourceId: sourceId || null,
+      dashboardType: aiResponse.templateId,
+      title: aiResponse.title || `Dashboard — ${new Date().toLocaleString()}`,
+    };
+
+    const generatedDashboard = await autoDashboardService.generateAutoDashboard(config);
+
+    return res.json({
+      success: true,
+      dashboard: generatedDashboard,
+      aiRecommendation: aiResponse,
+    });
+  } catch (err) {
+    console.error('[Wizard] Create from prompt error:', err.message);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Save generated dashboard from wizard
+ */
+exports.saveGeneratedDashboard = async (req, res) => {
+  try {
+    const { title, panels, sourceId, description, colorTheme } = req.body;
+
+    if (!title || !panels) {
+      throw new Error('Title and panels are required');
+    }
+
+    // Create dashboard configuration
+    const dashboardConfig = {
+      panels: Array.isArray(panels) ? panels : [panels],
+      colorTheme: colorTheme || 'corporate',
+      createdAt: new Date().toISOString(),
+      source: 'auto-wizard',
+    };
+
+    // Save as new dashboard
+    const dashboard = await db.SavedDashboard.create({
+      title: title.trim(),
+      dashboardConfigJson: JSON.stringify(dashboardConfig),
+      description: description || null,
+      DataSourceId: sourceId ? parseInt(sourceId, 10) : null,
+    });
+
+    return res.json({
+      success: true,
+      dashboard: {
+        id: dashboard.id,
+        title: dashboard.title,
+        url: `/dashboard/${dashboard.id}`,
+      },
+    });
+  } catch (err) {
+    console.error('[Wizard] Save generated dashboard error:', err.message);
+    return res.json({
+      success: false,
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * NEW: Generate full multi-panel dashboard from template
+ * This generates 8-15 panels automatically instead of single charts
+ */
+exports.generateFullDashboard = async (req, res) => {
+  try {
+    const { templateId, colorTheme, sourceId, sourceName, prompt } = req.body;
+
+    if (!templateId || !colorTheme) {
+      throw new Error('Template ID and color theme are required');
+    }
+
+    const fullDashboardGeneratorService = require('../services/fullDashboardGeneratorService');
+    
+    const config = {
+      templateId,
+      colorTheme,
+      sourceId: sourceId || null,
+      sourceName: sourceName || null,
+      prompt: prompt || `Generate dashboard for ${templateId}`,
+    };
+
+    const generatedDashboard = await fullDashboardGeneratorService.generateFullDashboardFromDatasource(config);
+
+    return res.json({
+      success: true,
+      dashboard: generatedDashboard,
+    });
+  } catch (err) {
+    console.error('[Wizard] Generate full dashboard error:', err.message);
     return res.json({
       success: false,
       error: err.message,

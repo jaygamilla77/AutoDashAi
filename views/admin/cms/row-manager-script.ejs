@@ -1,0 +1,65 @@
+<script>
+/**
+ * Generic add/remove/reorder behavior for any [data-list] container.
+ * Each row inside has [data-row]. Inputs use [data-name] with __I__ which is
+ * rewritten to the row's current index every time anything changes.
+ */
+(function(){
+  function reindex(list){
+    var key = list.getAttribute('data-list');
+    var rows = list.querySelectorAll('[data-row]');
+    rows.forEach(function(row, i){
+      row.querySelectorAll('[data-name]').forEach(function(el){
+        var tpl = el.getAttribute('data-name');
+        el.setAttribute('name', tpl.replace(/__I__/g, i));
+      });
+      var head = row.querySelector('.card-head h4');
+      if (head && head.dataset.label !== 'static') {
+        head.textContent = head.dataset.prefix
+          ? (head.dataset.prefix + ' #' + (i+1))
+          : ('#' + (i+1));
+      }
+    });
+  }
+
+  function findList(forKey) {
+    return document.querySelector('[data-list="' + forKey + '"]');
+  }
+
+  document.addEventListener('click', function(e){
+    var addBtn = e.target.closest('[data-add]');
+    if (addBtn) {
+      var key = addBtn.getAttribute('data-add');
+      var list = findList(key);
+      var tpl = document.querySelector('template[data-tpl="' + key + '"]');
+      if (!list || !tpl) return;
+      var node = tpl.content.firstElementChild.cloneNode(true);
+      list.appendChild(node);
+      reindex(list);
+      return;
+    }
+    var rmBtn = e.target.closest('[data-remove]');
+    if (rmBtn) {
+      var row = rmBtn.closest('[data-row]');
+      var list = row && row.parentElement;
+      row.remove();
+      if (list) reindex(list);
+      return;
+    }
+    var mvBtn = e.target.closest('[data-move]');
+    if (mvBtn) {
+      var dir = mvBtn.getAttribute('data-move');
+      var row = mvBtn.closest('[data-row]');
+      var list = row && row.parentElement;
+      if (!list) return;
+      if (dir === 'up' && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+      if (dir === 'down' && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+      reindex(list);
+      return;
+    }
+  });
+
+  // initial pass
+  document.querySelectorAll('[data-list]').forEach(reindex);
+})();
+</script>

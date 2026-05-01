@@ -3,12 +3,29 @@ const { safeJsonParse } = require('../utils/helpers');
 
 exports.list = async (req, res) => {
   try {
-    const templates = await db.DashboardTemplate.findAll({ order: [['isBuiltIn', 'DESC'], ['name', 'ASC']] });
-    res.render('templates', { title: 'Templates', templates });
+    // Fetch dashboard layout templates
+    const dashboardLayoutTemplates = await db.DashboardLayoutTemplate.findAll({ 
+      order: [['sortOrder', 'ASC'], ['name', 'ASC']] 
+    });
+
+    // Fetch color themes (using DashboardTemplate model)
+    const colorThemes = await db.DashboardTemplate.findAll({ 
+      order: [['isBuiltIn', 'DESC'], ['name', 'ASC']] 
+    });
+
+    res.render('templates', { 
+      title: 'Templates & Themes', 
+      dashboardLayoutTemplates,
+      colorThemes 
+    });
   } catch (err) {
     console.error('Template list error:', err);
     req.flash('error', 'Failed to load templates.');
-    res.render('templates', { title: 'Templates', templates: [] });
+    res.render('templates', { 
+      title: 'Templates & Themes', 
+      dashboardLayoutTemplates: [], 
+      colorThemes: [] 
+    });
   }
 };
 
@@ -130,5 +147,73 @@ exports.destroy = async (req, res) => {
     console.error('Template delete error:', err);
     req.flash('error', 'Failed to delete template.');
     res.redirect('/templates');
+  }
+};
+
+// API: Get dashboard layout template by ID
+exports.getLayoutTemplate = async (req, res) => {
+  try {
+    console.log('[TemplateController] getLayoutTemplate called with ID:', req.params.id);
+    const template = await db.DashboardLayoutTemplate.findByPk(req.params.id);
+    console.log('[TemplateController] Template result:', template ? template.name : 'NOT FOUND');
+    
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    // Parse JSON fields
+    const kpis = safeJsonParse(template.kpis, []);
+    const chartTypes = safeJsonParse(template.chartTypes, []);
+    const sections = safeJsonParse(template.sections, []);
+
+    res.json({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      icon: template.icon,
+      kpis,
+      chartTypes,
+      sections,
+      defaultTitle: template.defaultTitle,
+      promptStarter: template.promptStarter,
+      dashboardRole: template.dashboardRole,
+      isBuiltIn: template.isBuiltIn,
+      sortOrder: template.sortOrder,
+    });
+  } catch (err) {
+    console.error('[TemplateController] getLayoutTemplate error:', err.message);
+    console.error('[TemplateController] Stack:', err.stack);
+    res.status(500).json({ error: 'Failed to fetch template: ' + err.message });
+  }
+};
+
+// API: List all dashboard layout templates
+exports.listLayoutTemplates = async (req, res) => {
+  try {
+    const templates = await db.DashboardLayoutTemplate.findAll({
+      order: [['sortOrder', 'ASC'], ['name', 'ASC']],
+    });
+
+    const result = templates.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      category: t.category,
+      icon: t.icon,
+      kpis: safeJsonParse(t.kpis, []),
+      chartTypes: safeJsonParse(t.chartTypes, []),
+      sections: safeJsonParse(t.sections, []),
+      defaultTitle: t.defaultTitle,
+      promptStarter: t.promptStarter,
+      dashboardRole: t.dashboardRole,
+      isBuiltIn: t.isBuiltIn,
+      sortOrder: t.sortOrder,
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('List layout templates error:', err);
+    res.status(500).json({ error: 'Failed to fetch templates' });
   }
 };

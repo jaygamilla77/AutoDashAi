@@ -1,0 +1,595 @@
+<!-- 
+  Guided Dashboard Creation Wizard Modal
+  Modern multi-step modal for creating dashboards with AI assistance
+  Step 1: Template Selection
+  Step 2: Source Analysis  
+  Step 3: Auto Dashboard Generation
+  Step 4: Preview and Save
+-->
+
+<div id="wizardGuidedModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; pointer-events: none; visibility: hidden; opacity: 0">
+  <div class="modal-dialog modal-fullscreen" role="document" style="background: #FFFFFF !important; z-index: 10001; margin: 0; max-width: 100%; width: 100%; height: 100%; pointer-events: none">
+    <div class="modal-content" style="border: none; box-shadow: none; background: #FFFFFF">
+      <!-- Modal Header -->
+      <div style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%); color: white; padding: 24px; display: flex; align-items: center; justify-content: space-between" role="banner">
+        <div>
+          <h2 style="margin: 0; font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 12px">
+            <i class="bi bi-stars"></i>Create Dashboard
+          </h2>
+          <p style="margin: 4px 0 0 0; opacity: 0.95; font-size: 14px">Let AI build a dashboard from your data</p>
+        </div>
+        <div style="text-align: right">
+          <div id="wizardStepIndicator" style="display: flex; gap: 8px; margin-bottom: 8px">
+            <span class="wizard-step-dot active" data-step="1" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid white; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s">1</span>
+            <span class="wizard-step-dot" data-step="2" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.3s">2</span>
+            <span class="wizard-step-dot" data-step="3" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.3s">3</span>
+            <span class="wizard-step-dot" data-step="4" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; cursor: not-allowed; opacity: 0.5; transition: all 0.3s">4</span>
+          </div>
+          <small style="opacity: 0.9"><span id="currentStepNum">1</span> of <span id="totalStepsNum">4</span></small>
+        </div>
+        <button type="button" class="btn btn-close" onclick="closeWizardModal()" style="background: rgba(255,255,255,0.2); color: white; border: none; opacity: 0.8">
+          <i class="bi bi-x" style="font-size: 24px"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body with Steps -->
+      <div class="modal-body" style="padding: 0; overflow-y: auto; max-height: calc(100vh - 200px); background: #F8FAFC">
+        
+        <!-- STEP 1: Template Selection -->
+        <div id="wizardStep1" class="wizard-step-content" style="padding: 40px; display: block">
+          <div style="max-width: 1200px; margin: 0 auto">
+            <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #0F172A">Choose a Dashboard Template</h3>
+            <p style="color: #64748B; margin-bottom: 32px; font-size: 15px">Select a pre-built template tailored to your business needs. We'll customize it with your data automatically.</p>
+
+            <!-- AI Prompt Option -->
+            <div style="background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.1) 100%); border: 2px solid #E0E7FF; border-radius: 12px; padding: 24px; margin-bottom: 32px; cursor: pointer" id="aiPromptCard" onclick="switchToAiPrompt()">
+              <div style="display: flex; align-items: center; gap: 16px">
+                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px">
+                  <i class="bi bi-sparkles"></i>
+                </div>
+                <div>
+                  <div style="font-weight: 700; font-size: 16px; color: #0F172A; margin-bottom: 4px">Create from AI Prompt</div>
+                  <div style="font-size: 14px; color: #64748B">Describe what you want and let AI build it for you</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Template Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px" id="templateGrid">
+              <!-- Templates will be loaded here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 1B: AI Prompt Input -->
+        <div id="wizardStep1B" class="wizard-step-content" style="padding: 40px; display: none">
+          <div style="max-width: 600px; margin: 0 auto">
+            <button onclick="backToTemplates()" style="background: none; border: none; color: #6366F1; font-weight: 600; margin-bottom: 24px; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 8px">
+              <i class="bi bi-chevron-left"></i> Back to Templates
+            </button>
+
+            <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #0F172A">Create from AI Prompt</h3>
+            <p style="color: #64748B; margin-bottom: 32px; font-size: 15px">Describe the dashboard you want to create. The more specific, the better AI can help.</p>
+
+            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px">
+              <label style="display: block; font-weight: 600; color: #0F172A; margin-bottom: 12px">Dashboard Description</label>
+              <textarea id="aiPromptInput" placeholder="Example: Create an executive dashboard for employee productivity analysis with headcount, salary trends, and department-wise performance metrics" style="width: 100%; min-height: 120px; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; resize: vertical" onkeydown="if(event.key==='Enter' && event.ctrlKey) submitAiPrompt()"></textarea>
+              <small style="color: #94A3B8; display: block; margin-top: 8px">💡 Mention specific metrics, dimensions, and business goals</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Source Analysis -->
+        <div id="wizardStep2" class="wizard-step-content" style="padding: 40px; display: none">
+          <div style="max-width: 1000px; margin: 0 auto">
+            <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #0F172A">Analyzing Your Data Sources</h3>
+            <p style="color: #64748B; margin-bottom: 32px; font-size: 15px">AI is scanning your data sources to understand relationships, metrics, and opportunities.</p>
+
+            <div id="sourceAnalysisResults" style="display: none">
+              <!-- Analysis results will be shown here -->
+            </div>
+
+            <div id="sourceAnalysisLoading" style="text-align: center; padding: 40px">
+              <div style="display: inline-block; width: 50px; height: 50px; border: 4px solid #E2E8F0; border-top-color: #6366F1; border-radius: 50%; animation: spin 1s linear infinite"></div>
+              <p style="margin-top: 16px; color: #64748B">Analyzing data sources...</p>
+              <small style="color: #94A3B8">This may take a few moments</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Auto Dashboard Preview -->
+        <div id="wizardStep3" class="wizard-step-content" style="padding: 40px; display: none">
+          <div style="max-width: 1200px; margin: 0 auto">
+            <h3 style="font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #0F172A">Your Auto-Generated Dashboard</h3>
+            <p style="color: #64748B; margin-bottom: 32px; font-size: 15px">AI has generated a complete dashboard based on your template and data. Preview it below.</p>
+
+            <div id="dashboardPreview" style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; min-height: 400px">
+              <!-- Dashboard preview will be rendered here -->
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px">
+              <button onclick="wizardGoToStep(3)" style="background: white; border: 1px solid #E2E8F0; color: #0F172A; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s">
+                ← Edit Layout
+              </button>
+              <button onclick="changeTemplate()" style="background: white; border: 1px solid #E2E8F0; color: #0F172A; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s">
+                🎨 Change Template
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Save & Finish -->
+        <div id="wizardStep4" class="wizard-step-content" style="padding: 40px; display: none">
+          <div style="max-width: 600px; margin: 0 auto">
+            <div style="text-align: center; margin-bottom: 40px">
+              <div style="width: 80px; height: 80px; background: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px">
+                <i class="bi bi-check-circle-fill" style="font-size: 48px; color: #10B981"></i>
+              </div>
+              <h3 style="font-size: 24px; font-weight: 700; color: #0F172A; margin-bottom: 8px">Dashboard Ready!</h3>
+              <p style="color: #64748B; font-size: 15px">Your dashboard is ready to save and use</p>
+            </div>
+
+            <div style="background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; margin-bottom: 24px">
+              <label style="display: block; font-weight: 600; color: #0F172A; margin-bottom: 12px">Dashboard Title</label>
+              <input type="text" id="dashboardTitleInput" placeholder="e.g., Executive Dashboard Q2 2024" style="width: 100%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-size: 14px" value="">
+              
+              <label style="display: block; font-weight: 600; color: #0F172A; margin-bottom: 12px; margin-top: 16px">Description (Optional)</label>
+              <textarea id="dashboardDescInput" placeholder="Add notes about this dashboard..." style="width: 100%; min-height: 80px; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; resize: vertical"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+              <button onclick="wizardGoToStep(3)" style="background: white; border: 1px solid #E2E8F0; color: #0F172A; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer">
+                Back
+              </button>
+              <button onclick="saveGeneratedDashboard()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px">
+                <i class="bi bi-check-circle"></i> Save & Open
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer with Navigation -->
+      <div style="background: white; border-top: 1px solid #E2E8F0; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center">
+        <button id="prevBtn" onclick="wizardPrevStep()" style="background: white; border: 1px solid #E2E8F0; color: #0F172A; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: none">
+          ← Previous
+        </button>
+        <div style="flex: 1"></div>
+        <button id="nextBtn" onclick="wizardNextStep()" style="background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px">
+          Next → <i class="bi bi-arrow-right"></i>
+        </button>
+        <button id="skipBtn" onclick="skipWizardStep()" style="background: white; border: none; color: #94A3B8; padding: 10px 12px; cursor: pointer; font-size: 14px; display: none">
+          Skip
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.wizard-step-dot {
+  transition: all 0.3s ease !important;
+}
+
+.wizard-step-dot.active {
+  background: white !important;
+  color: #6366F1 !important;
+  border-color: white !important;
+}
+
+.template-card {
+  background: white;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.template-card:hover {
+  border-color: #6366F1;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+  transform: translateY(-4px);
+}
+
+.template-card.selected {
+  background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(139,92,246,0.05) 100%);
+  border-color: #6366F1;
+}
+
+.template-card .template-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.template-card .template-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #0F172A;
+  margin-bottom: 8px;
+}
+
+.template-card .template-desc {
+  font-size: 13px;
+  color: #64748B;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.template-card .template-kpis {
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.color-theme-option {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid #E2E8F0;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.color-theme-option:hover {
+  border-color: #6366F1;
+  transform: scale(1.05);
+}
+
+.color-theme-option.selected {
+  border-color: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.color-theme-option::after {
+  content: '✓';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #6366F1;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.color-theme-option.selected::after {
+  opacity: 1;
+}
+</style>
+
+<script>
+let currentWizardStep = 1;
+let wizardState = {
+  selectedTemplate: null,
+  selectedColorTheme: 'corporate',
+  selectedSourceId: null,
+  generatedDashboard: null,
+};
+
+// Open guided wizard modal
+function openWizardGuidedModal() {
+  const modal = document.getElementById('wizardGuidedModal');
+  const modalDialog = modal.querySelector('.modal-dialog');
+  modal.style.display = 'block';
+  modal.style.visibility = 'visible';
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'auto';
+  modalDialog.style.pointerEvents = 'auto';
+  modal.removeAttribute('aria-hidden');
+  modal.setAttribute('aria-modal', 'true');
+  loadAvailableTemplates();
+  wizardGoToStep(1);
+  
+  // Darken background
+  document.body.style.overflow = 'hidden';
+}
+
+// Close wizard modal
+function closeWizardModal() {
+  const modal = document.getElementById('wizardGuidedModal');
+  const modalDialog = modal.querySelector('.modal-dialog');
+  modal.style.display = 'none';
+  modal.style.visibility = 'hidden';
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
+  modalDialog.style.pointerEvents = 'none';
+  modal.setAttribute('aria-hidden', 'true');
+  modal.removeAttribute('aria-modal');
+  document.body.style.overflow = 'auto';
+  currentWizardStep = 1;
+}
+
+// Load available templates
+async function loadAvailableTemplates() {
+  try {
+    const response = await fetch('/wizard-guided/templates');
+    const data = await response.json();
+    
+    if (data.success) {
+      renderTemplateGrid(data.templates);
+    }
+  } catch (err) {
+    console.error('Error loading templates:', err);
+  }
+}
+
+// Render template grid
+function renderTemplateGrid(templates) {
+  const grid = document.getElementById('templateGrid');
+  grid.innerHTML = templates.map(template => `
+    <div class="template-card" onclick="selectTemplate('${template.id}', this)">
+      <div class="template-icon" style="color: ${template.defaultColors.primary}">${getTemplateIcon(template.id)}</div>
+      <div class="template-name">${template.name}</div>
+      <div class="template-desc">${template.description}</div>
+      <div class="template-kpis">
+        <strong>KPIs:</strong> ${template.recommendedKpis.slice(0, 2).join(', ')}${template.recommendedKpis.length > 2 ? '...' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Get template icon
+function getTemplateIcon(templateId) {
+  const icons = {
+    'executive-dashboard': '📊',
+    'hr-dashboard': '👥',
+    'sales-dashboard': '📈',
+    'finance-dashboard': '💰',
+    'operations-dashboard': '⚙️',
+    'customer-service-dashboard': '📞',
+    'it-service-management': '🖥️',
+    'project-management-dashboard': '📋',
+    'recruitment-dashboard': '🎯',
+    'inventory-dashboard': '📦',
+    'custom-ai-dashboard': '✨',
+  };
+  return icons[templateId] || '📊';
+}
+
+// Select template
+function selectTemplate(templateId, element) {
+  // Remove previous selection
+  document.querySelectorAll('.template-card').forEach(el => {
+    el.classList.remove('selected');
+  });
+  
+  // Mark as selected
+  element.classList.add('selected');
+  wizardState.selectedTemplate = templateId;
+  
+  // Enable next button
+  document.getElementById('nextBtn').disabled = false;
+}
+
+// Switch to AI prompt
+function switchToAiPrompt() {
+  document.getElementById('wizardStep1').style.display = 'none';
+  document.getElementById('wizardStep1B').style.display = 'block';
+}
+
+// Back to templates
+function backToTemplates() {
+  document.getElementById('wizardStep1B').style.display = 'none';
+  document.getElementById('wizardStep1').style.display = 'block';
+}
+
+// Submit AI prompt
+async function submitAiPrompt() {
+  const prompt = document.getElementById('aiPromptInput').value.trim();
+  
+  if (!prompt) {
+    alert('Please enter a dashboard description');
+    return;
+  }
+  
+  // Show loading in step 2
+  currentWizardStep = 2;
+  wizardGoToStep(2);
+  
+  try {
+    const response = await fetch('/wizard-guided/generate-from-prompt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      wizardState.generatedDashboard = data.dashboard;
+      wizardState.selectedTemplate = data.aiRecommendation.templateId;
+      
+      // Move to preview
+      setTimeout(() => wizardGoToStep(3), 500);
+    } else {
+      alert('Error: ' + data.error);
+      wizardGoToStep(1);
+    }
+  } catch (err) {
+    console.error('Error:', err);
+    alert('Failed to generate dashboard');
+    wizardGoToStep(1);
+  }
+}
+
+// Go to specific wizard step
+function wizardGoToStep(step) {
+  currentWizardStep = step;
+  
+  // Hide all steps
+  document.querySelectorAll('.wizard-step-content').forEach(el => {
+    el.style.display = 'none';
+  });
+  
+  // Show current step
+  document.getElementById('wizardStep' + step).style.display = 'block';
+  
+  // Update step indicator
+  document.querySelectorAll('.wizard-step-dot').forEach(dot => {
+    const dotStep = parseInt(dot.dataset.step);
+    if (dotStep === step) {
+      dot.classList.add('active');
+    } else {
+      dot.classList.remove('active');
+    }
+  });
+  
+  document.getElementById('currentStepNum').textContent = step;
+  
+  // Update button visibility
+  document.getElementById('prevBtn').style.display = step > 1 ? 'block' : 'none';
+  
+  if (step === 1) {
+    document.getElementById('nextBtn').textContent = 'Next →';
+    document.getElementById('nextBtn').disabled = !wizardState.selectedTemplate;
+  } else if (step === 2) {
+    analyzeSourcesForWizard();
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('prevBtn').style.display = 'block';
+  } else if (step === 3) {
+    document.getElementById('nextBtn').textContent = 'Next: Save →';
+    document.getElementById('nextBtn').style.display = 'block';
+  } else if (step === 4) {
+    document.getElementById('nextBtn').style.display = 'none';
+  }
+}
+
+// Analyze sources
+async function analyzeSourcesForWizard() {
+  try {
+    document.getElementById('sourceAnalysisLoading').style.display = 'block';
+    document.getElementById('sourceAnalysisResults').style.display = 'none';
+    
+    const response = await fetch('/wizard-guided/analyze-sources', { method: 'POST' });
+    const data = await response.json();
+    
+    if (data.success) {
+      // Generate dashboard
+      generateAutoDashboard();
+    }
+  } catch (err) {
+    console.error('Error analyzing sources:', err);
+  }
+}
+
+// Generate auto dashboard
+async function generateAutoDashboard() {
+  try {
+    const response = await fetch('/wizard-guided/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        templateId: wizardState.selectedTemplate,
+        colorTheme: wizardState.selectedColorTheme,
+        sourceId: wizardState.selectedSourceId
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      wizardState.generatedDashboard = data.dashboard;
+      document.getElementById('sourceAnalysisLoading').style.display = 'none';
+      
+      // Move to preview
+      setTimeout(() => wizardGoToStep(3), 300);
+    }
+  } catch (err) {
+    console.error('Error generating dashboard:', err);
+  }
+}
+
+// Next step
+function wizardNextStep() {
+  if (currentWizardStep === 1) {
+    if (!wizardState.selectedTemplate) {
+      alert('Please select a template');
+      return;
+    }
+    wizardGoToStep(2);
+  } else if (currentWizardStep === 3) {
+    wizardGoToStep(4);
+  }
+}
+
+// Previous step
+function wizardPrevStep() {
+  if (currentWizardStep > 1) {
+    wizardGoToStep(currentWizardStep - 1);
+  }
+}
+
+// Save generated dashboard
+async function saveGeneratedDashboard() {
+  const title = document.getElementById('dashboardTitleInput').value.trim();
+  
+  if (!title) {
+    alert('Please enter a dashboard title');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/wizard-guided/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        panels: wizardState.generatedDashboard.panels,
+        sourceId: wizardState.selectedSourceId,
+        description: document.getElementById('dashboardDescInput').value,
+        colorTheme: wizardState.selectedColorTheme
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      closeWizardModal();
+      // Redirect to new dashboard
+      setTimeout(() => {
+        window.location.href = data.dashboard.url;
+      }, 300);
+    } else {
+      alert('Error: ' + data.error);
+    }
+  } catch (err) {
+    console.error('Error saving dashboard:', err);
+    alert('Failed to save dashboard');
+  }
+}
+
+// Skip step
+function skipWizardStep() {
+  wizardNextStep();
+}
+
+// Change template
+function changeTemplate() {
+  wizardGoToStep(1);
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('wizardGuidedModal');
+  if (event.target === modal) {
+    closeWizardModal();
+  }
+});</script>
