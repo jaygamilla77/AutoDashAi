@@ -1,0 +1,70 @@
+<h1>Landing Page</h1>
+<p style="color:#6b7280; margin-top:-16px; margin-bottom:24px;">Edit the hero section that appears at the top of your landing page.</p>
+
+<form method="POST" action="/admin/landing">
+  <div class="admin-card">
+    <h2>Hero Content</h2>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Badge Text</label>
+        <input class="form-control" name="badge" value="<%= hero.eyebrowText || '' %>" placeholder="AI-Powered Dashboard Platform">
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Headline</label>
+        <div class="row g-2">
+          <div class="col-md-6"><input class="form-control" name="titleStart" value="<%= hero.titleStart || '' %>" placeholder="Turn Your Data Into Powerful Insights with"></div>
+          <div class="col-md-3"><input class="form-control" name="titleAccent" value="<%= hero.titleAccent || '' %>" placeholder="AI"></div>
+          <div class="col-md-3"><input class="form-control" name="titleEnd" value="<%= hero.titleEnd || '' %>" placeholder=""></div>
+        </div>
+        <small style="color:#6b7280;font-size:12px;">First part · Highlighted accent · End part</small>
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Subtitle</label>
+        <textarea class="form-control" name="subtitle" rows="2"><%= hero.subtitle || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Call-to-Action Buttons</h2>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Primary CTA Label</label>
+        <input class="form-control" name="primaryCtaLabel" value="<%= hero.primaryCta && hero.primaryCta.label || '' %>">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Primary CTA Link</label>
+        <input class="form-control" name="primaryCtaHref" value="<%= hero.primaryCta && hero.primaryCta.href || '' %>">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Secondary CTA Label</label>
+        <input class="form-control" name="secondaryCtaLabel" value="<%= hero.secondaryCta && hero.secondaryCta.label || '' %>">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Secondary CTA Link</label>
+        <input class="form-control" name="secondaryCtaHref" value="<%= hero.secondaryCta && hero.secondaryCta.href || '' %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Dashboard Preview</h2>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Preview Title</label>
+        <input class="form-control" name="previewTitle" value="<%= hero.previewTitle || '' %>">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Preview Subtitle</label>
+        <input class="form-control" name="previewSubtitle" value="<%= hero.previewSubtitle || '' %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn-primary-pill"><i class="bi bi-check-lg"></i> Save Changes</button>
+    <a href="/" target="_blank" class="btn btn-outline-secondary" style="border-radius:999px;padding:10px 20px;">
+      <i class="bi bi-eye"></i> Preview Site
+    </a>
+  </div>
+</form>

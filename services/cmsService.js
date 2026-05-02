@@ -175,6 +175,50 @@ const DEFAULTS = {
     poweredByUrl: 'https://liknaya.com',
     poweredByLabel: 'Liknaya.com',
   },
+
+  about: {
+    title: 'About AutoDash AI',
+    mission: 'Empower every team to make data-driven decisions in minutes, not months.',
+    description: 'AutoDash AI by Liknaya is an AI-powered dashboard platform that turns raw data into clear, actionable insights — automatically.',
+    poweredBy: 'Powered by Liknaya.com',
+  },
+
+  contact: {
+    title: 'Get in touch',
+    subtitle: 'Talk to our team about AutoDash AI.',
+    supportEmail: 'support@liknaya.com',
+    businessEmail: 'hello@liknaya.com',
+    phone: '',
+    address: '',
+    formEnabled: true,
+    formSuccessMessage: 'Thanks! We received your message and will reply within 1 business day.',
+  },
+
+  blog: {
+    items: [],
+  },
+
+  testimonials: {
+    items: [],
+  },
+
+  portfolio: {
+    items: [],
+  },
+
+  settings: {
+    logoText: 'AutoDash AI',
+    brandName: 'AutoDash AI by Liknaya',
+    footerText: '© 2026 AutoDash AI by Liknaya. All rights reserved.',
+    seoTitle: 'AutoDash AI – Intelligent AI Dashboard Builder',
+    seoDescription: 'AutoDash AI is an AI dashboard builder and analytics platform that automatically generates KPI dashboards from any data source.',
+    social: [
+      { label: 'LinkedIn', icon: 'bi-linkedin',  href: 'https://liknaya.com' },
+      { label: 'Twitter',  icon: 'bi-twitter-x', href: '#' },
+      { label: 'YouTube',  icon: 'bi-youtube',   href: '#' },
+      { label: 'GitHub',   icon: 'bi-github',    href: '#' },
+    ],
+  },
 };
 
 // ───────────────────────── SECTIONS METADATA ─────────────────────────

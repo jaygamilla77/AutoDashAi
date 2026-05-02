@@ -1,0 +1,55 @@
+<h1>Site Settings</h1>
+<form method="POST" action="/admin/settings">
+  <div class="admin-card">
+    <h2>Branding</h2>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Logo Text</label><input class="form-control" name="logoText" value="<%= settings.logoText || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Brand Name</label><input class="form-control" name="brandName" value="<%= settings.brandName || '' %>"></div>
+      <div class="col-md-12"><label class="form-label">Footer Text</label><input class="form-control" name="footerText" value="<%= settings.footerText || '' %>"></div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>SEO Defaults</h2>
+    <div class="row g-3">
+      <div class="col-md-12"><label class="form-label">SEO Title</label><input class="form-control" name="seoTitle" value="<%= settings.seoTitle || '' %>"></div>
+      <div class="col-md-12"><label class="form-label">SEO Description</label><textarea class="form-control" name="seoDescription" rows="3"><%= settings.seoDescription || '' %></textarea></div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Social Links</h2>
+    <p style="color:#6b7280;font-size:13px;margin-top:-8px;">Add social media links shown in your site footer. Icon names use Bootstrap Icons (e.g. <code>bi-linkedin</code>).</p>
+    <div id="social-rows">
+      <% (settings.social || []).forEach(function(s) { %>
+        <div class="row g-2 mb-2 social-row">
+          <div class="col-md-3"><input class="form-control" name="socialLabel" value="<%= s.label || '' %>" placeholder="LinkedIn"></div>
+          <div class="col-md-3"><input class="form-control" name="socialIcon" value="<%= s.icon || '' %>" placeholder="bi-linkedin"></div>
+          <div class="col-md-5"><input class="form-control" name="socialHref" value="<%= s.href || '' %>" placeholder="https://..."></div>
+          <div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger remove-social"><i class="bi bi-x"></i></button></div>
+        </div>
+      <% }) %>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-social"><i class="bi bi-plus"></i> Add Social Link</button>
+  </div>
+
+  <button type="submit" class="btn-primary-pill"><i class="bi bi-check-lg"></i> Save Settings</button>
+</form>
+
+<script>
+  document.getElementById('add-social').addEventListener('click', function() {
+    var row = document.createElement('div');
+    row.className = 'row g-2 mb-2 social-row';
+    row.innerHTML = '<div class="col-md-3"><input class="form-control" name="socialLabel" placeholder="Label"></div>'
+      + '<div class="col-md-3"><input class="form-control" name="socialIcon" placeholder="bi-link"></div>'
+      + '<div class="col-md-5"><input class="form-control" name="socialHref" placeholder="https://..."></div>'
+      + '<div class="col-md-1 d-flex align-items-center"><button type="button" class="btn btn-sm btn-outline-danger remove-social"><i class="bi bi-x"></i></button></div>';
+    document.getElementById('social-rows').appendChild(row);
+  });
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-social')) {
+      var row = e.target.closest('.social-row');
+      if (row) row.remove();
+    }
+  });
+</script>

@@ -1,3 +1,13 @@
+<% if (typeof isAuthenticated !== 'undefined' && isAuthenticated) { %>
+<footer class="site-footer site-footer-mini" role="contentinfo">
+  <div class="site-footer-mini-inner">
+    <div>AutoDash AI &copy; <%= new Date().getFullYear() %></div>
+    <div class="site-footer-poweredby">
+      Powered by <a href="https://liknaya.com" rel="noopener" target="_blank">Liknaya.com</a>
+    </div>
+  </div>
+</footer>
+<% } else { %>
 <footer class="site-footer" role="contentinfo">
   <div class="site-footer-inner">
     <div class="site-footer-grid">
@@ -57,3 +67,4 @@
     </div>
   </div>
 </footer>
+<% } %>

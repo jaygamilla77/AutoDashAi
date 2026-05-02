@@ -1,0 +1,90 @@
+<h1>Pricing Plans</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add Pricing Plan</h2>
+  <form method="POST" action="/admin/pricing" id="pForm">
+    <input type="hidden" name="index" id="p-index" value="">
+    <div class="row g-3">
+      <div class="col-md-4"><label class="form-label">Plan Name</label><input class="form-control" name="name" id="p-name" required></div>
+      <div class="col-md-3"><label class="form-label">Price</label><input class="form-control" name="price" id="p-price" placeholder="$29 or Custom"></div>
+      <div class="col-md-3"><label class="form-label">Period</label><input class="form-control" name="period" id="p-period" placeholder="/month"></div>
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="recommended" id="p-recommended">
+          <label class="form-check-label" for="p-recommended">Recommended</label>
+        </div>
+      </div>
+      <div class="col-md-12"><label class="form-label">Description</label><textarea class="form-control" name="description" id="p-description" rows="2"></textarea></div>
+      <div class="col-md-12">
+        <label class="form-label">Features (one per line)</label>
+        <textarea class="form-control" name="features" id="p-features" rows="5" placeholder="Unlimited dashboards&#10;All data sources&#10;Priority support"></textarea>
+      </div>
+      <div class="col-md-6"><label class="form-label">CTA Label</label><input class="form-control" name="ctaLabel" id="p-ctaLabel" value="Get Started"></div>
+      <div class="col-md-6"><label class="form-label">CTA Link</label><input class="form-control" name="ctaHref" id="p-ctaHref" value="#"></div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="p-submit"><i class="bi bi-plus-lg"></i> Add Plan</button>
+      <button type="button" class="btn btn-outline-secondary" id="p-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!plans.length) { %>
+    <div class="empty-state"><i class="bi bi-tag"></i><p>No pricing plans yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Name</th><th>Price</th><th>Description</th><th>Features</th><th>Flags</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% plans.forEach(function(pl, i) { %>
+          <tr>
+            <td><strong><%= pl.name %></strong></td>
+            <td><strong><%= pl.price %></strong> <small style="color:#6b7280;"><%= pl.period || '' %></small></td>
+            <td style="color:#6b7280;"><%= (pl.description || '').slice(0,80) %></td>
+            <td><%= (pl.features || []).length %> items</td>
+            <td><% if (pl.recommended) { %><span class="badge-pill badge-published">Recommended</span><% } %></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary p-edit"
+                data-i="<%= i %>" data-name="<%= pl.name %>" data-price="<%= pl.price %>" data-period="<%= pl.period || '' %>"
+                data-description="<%= pl.description || '' %>" data-features="<%= (pl.features || []).join('\n') %>"
+                data-ctalabel="<%= (pl.cta && pl.cta.label) || '' %>" data-ctahref="<%= (pl.cta && pl.cta.href) || '' %>"
+                data-recommended="<%= pl.recommended ? '1' : '0' %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/admin/pricing/<%= i %>/delete" style="display:inline;" onsubmit="return confirm('Delete this plan?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.p-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('p-index').value = btn.dataset.i;
+      document.getElementById('p-name').value = btn.dataset.name;
+      document.getElementById('p-price').value = btn.dataset.price;
+      document.getElementById('p-period').value = btn.dataset.period;
+      document.getElementById('p-description').value = btn.dataset.description;
+      document.getElementById('p-features').value = btn.dataset.features;
+      document.getElementById('p-ctaLabel').value = btn.dataset.ctalabel;
+      document.getElementById('p-ctaHref').value = btn.dataset.ctahref;
+      document.getElementById('p-recommended').checked = btn.dataset.recommended === '1';
+      document.getElementById('formTitle').textContent = 'Edit Pricing Plan';
+      document.getElementById('p-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save Plan';
+      document.getElementById('p-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('p-cancel').addEventListener('click', function() {
+    document.getElementById('pForm').reset();
+    document.getElementById('p-index').value = '';
+    document.getElementById('formTitle').textContent = 'Add Pricing Plan';
+    document.getElementById('p-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add Plan';
+    this.style.display = 'none';
+  });
+</script>

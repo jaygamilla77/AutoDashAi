@@ -12,7 +12,7 @@ const aiController = require('../controllers/aiController');
 const shareController = require('../controllers/shareController');
 const wizardController = require('../controllers/wizardController');
 const adminController = require('../controllers/adminController');
-const adminSimple = require('../controllers/adminSimpleController');
+const authController = require('../controllers/authController');
 const cmsService = require('../services/cmsService');
 
 // ─── Lightweight auth helpers (mock auth via cookie) ─────────────────
@@ -59,6 +59,12 @@ router.post('/auth/logout', (req, res) => {
   }
   res.redirect('/auth');
 });
+
+// Real auth — signup with email verification + password sign-in
+router.post('/auth/signup',  authController.signup);
+router.post('/auth/signin',  authController.signin);
+router.post('/auth/resend',  authController.resend);
+router.get('/auth/verify',   authController.verify);
 
 // Public landing page (marketing homepage) — content from CMS
 router.get('/', async (req, res, next) => {
@@ -131,12 +137,64 @@ router.get('/contact', renderMarketingPage('contact', 'contact', {
   canonicalPath: '/contact',
 }));
 
-// Admin: simple password-protected landing-page content editor
-router.get('/admin',         adminSimple.show);
-router.post('/admin/login',  adminSimple.login);
-router.post('/admin/logout', adminSimple.logout);
-router.post('/admin/save',   adminSimple.save);
-router.post('/admin/reset',  adminSimple.reset);
+// Admin: unified password-protected admin panel
+router.get('/admin/login',                       adminController.showLogin);
+router.post('/admin/login',                      adminController.login);
+router.post('/admin/logout',                     adminController.logout);
+
+router.get('/admin',                             adminController.requireAdmin, adminController.dashboard);
+
+router.get('/admin/landing',                     adminController.requireAdmin, adminController.landingShow);
+router.post('/admin/landing',                    adminController.requireAdmin, adminController.landingSave);
+
+router.get('/admin/features',                    adminController.requireAdmin, adminController.featuresShow);
+router.post('/admin/features',                   adminController.requireAdmin, adminController.featuresSave);
+router.post('/admin/features/:index/delete',     adminController.requireAdmin, adminController.featuresDelete);
+
+router.get('/admin/faq',                         adminController.requireAdmin, adminController.faqShow);
+router.post('/admin/faq',                        adminController.requireAdmin, adminController.faqSave);
+router.post('/admin/faq/:index/delete',          adminController.requireAdmin, adminController.faqDelete);
+
+router.get('/admin/pricing',                     adminController.requireAdmin, adminController.pricingShow);
+router.post('/admin/pricing',                    adminController.requireAdmin, adminController.pricingSave);
+router.post('/admin/pricing/:index/delete',      adminController.requireAdmin, adminController.pricingDelete);
+
+router.get('/admin/about',                       adminController.requireAdmin, adminController.aboutShow);
+router.post('/admin/about',                      adminController.requireAdmin, adminController.aboutSave);
+
+router.get('/admin/contact',                     adminController.requireAdmin, adminController.contactShow);
+router.post('/admin/contact',                    adminController.requireAdmin, adminController.contactSave);
+
+router.get('/admin/blog',                        adminController.requireAdmin, adminController.blogShow);
+router.post('/admin/blog',                       adminController.requireAdmin, adminController.blogSave);
+router.post('/admin/blog/:index/delete',         adminController.requireAdmin, adminController.blogDelete);
+
+router.get('/admin/testimonials',                adminController.requireAdmin, adminController.testimonialsShow);
+router.post('/admin/testimonials',               adminController.requireAdmin, adminController.testimonialsSave);
+router.post('/admin/testimonials/:index/delete', adminController.requireAdmin, adminController.testimonialsDelete);
+
+router.get('/admin/portfolio',                   adminController.requireAdmin, adminController.portfolioShow);
+router.post('/admin/portfolio',                  adminController.requireAdmin, adminController.portfolioSave);
+router.post('/admin/portfolio/:index/delete',    adminController.requireAdmin, adminController.portfolioDelete);
+
+router.get('/admin/templates',                   adminController.requireAdmin, adminController.templatesShow);
+router.post('/admin/templates',                  adminController.requireAdmin, adminController.templatesSave);
+router.post('/admin/templates/:id/delete',       adminController.requireAdmin, adminController.templatesDelete);
+
+router.get('/admin/inquiries',                   adminController.requireAdmin, adminController.inquiriesShow);
+router.post('/admin/inquiries/:id/status',       adminController.requireAdmin, adminController.inquiriesUpdateStatus);
+router.post('/admin/inquiries/:id/delete',       adminController.requireAdmin, adminController.inquiriesDelete);
+
+router.get('/admin/settings',                    adminController.requireAdmin, adminController.settingsShow);
+router.post('/admin/settings',                   adminController.requireAdmin, adminController.settingsSave);
+
+// Legacy marketing-pages CRUD (keeps /admin/pages working under new layout)
+router.get('/admin/pages',                       adminController.requireAdmin, adminController.list);
+router.get('/admin/pages/:slug/edit',            adminController.requireAdmin, adminController.editForm);
+router.post('/admin/pages/:slug',                adminController.requireAdmin, adminController.update);
+
+// Public contact-form submission → stored as inquiry
+router.post('/contact',                          adminController.contactSubmit);
 
 // SEO: robots.txt
 router.get('/robots.txt', (req, res) => {
@@ -289,6 +347,7 @@ router.get('/ai/status', aiController.status);
 router.post('/ai/suggestions', aiController.suggestions);
 router.post('/ai/executive-summary', aiController.executiveSummary);
 router.get('/ai/settings', requireAuth, aiController.settingsPage);
+router.get('/ai-settings', requireAuth, aiController.settingsPage);
 router.post('/ai/test', aiController.testConnection);
 
 module.exports = router;

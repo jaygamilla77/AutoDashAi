@@ -1,230 +1,538 @@
-<div class="page-header d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1>Templates & Themes</h1>
-    <p>Choose a dashboard layout template and customize with a color theme.</p>
-  </div>
-  <a href="/templates/new" class="btn btn-primary btn-sm">Create Color Theme</a>
-</div>
+<%
+  // ─── Defensive defaults ───
+  var dashboardLayoutTemplates = (typeof dashboardLayoutTemplates !== 'undefined' && dashboardLayoutTemplates) ? dashboardLayoutTemplates : [];
+  var colorThemes = (typeof colorThemes !== 'undefined' && colorThemes) ? colorThemes : [];
 
-<!-- Tabs Navigation -->
-<ul class="nav nav-tabs" role="tablist" style="border-bottom: 2px solid #E2E8F0; margin-bottom: 32px;">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active" id="dashboard-templates-tab" data-bs-toggle="tab" data-bs-target="#dashboard-templates" type="button" role="tab" style="border: none; color: #64748B; font-weight: 600; padding: 12px 24px; border-bottom: 3px solid transparent;">
-      <i class="bi bi-layout-text-window-reverse me-2" style="color: #0EA5E9;"></i>Dashboard Templates
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link" id="color-themes-tab" data-bs-toggle="tab" data-bs-target="#color-themes" type="button" role="tab" style="border: none; color: #64748B; font-weight: 600; padding: 12px 24px; border-bottom: 3px solid transparent;">
-      <i class="bi bi-palette-fill me-2" style="color: #0EA5E9;"></i>Color Themes
-    </button>
-  </li>
-</ul>
+  // Category meta for popular categories panel
+  var CATEGORY_META = {
+    Executive:  { icon: 'bi-bar-chart-line-fill',     color: '#3366FF', tagBg: '#EEF3FF', tagText: '#1F3FCC' },
+    Sales:      { icon: 'bi-graph-up-arrow',          color: '#10B981', tagBg: '#ECFDF5', tagText: '#047857' },
+    Marketing:  { icon: 'bi-megaphone-fill',          color: '#EC4899', tagBg: '#FFF1F2', tagText: '#9D174D' },
+    Finance:    { icon: 'bi-wallet2',                 color: '#F59E0B', tagBg: '#FFF7ED', tagText: '#B45309' },
+    HR:         { icon: 'bi-people-fill',             color: '#EF4444', tagBg: '#FEE2E2', tagText: '#B91C1C' },
+    Operations: { icon: 'bi-gear-fill',               color: '#16A34A', tagBg: '#ECFDF5', tagText: '#15803D' },
+    Customer:   { icon: 'bi-headset',                 color: '#0EA5E9', tagBg: '#EFF6FF', tagText: '#0369A1' },
+    Web:        { icon: 'bi-globe',                   color: '#7C3AED', tagBg: '#F3EEFF', tagText: '#6D28D9' },
+    Business:   { icon: 'bi-briefcase-fill',          color: '#3366FF', tagBg: '#EEF3FF', tagText: '#1F3FCC' }
+  };
+  function catMeta(name) {
+    var n = name || 'Business';
+    return CATEGORY_META[n] || { icon: 'bi-grid-1x2-fill', color: '#3366FF', tagBg: '#EEF3FF', tagText: '#1F3FCC' };
+  }
 
-<!-- Tab Content -->
-<div class="tab-content">
-  <!-- Dashboard Templates Tab -->
-  <div class="tab-pane fade show active" id="dashboard-templates" role="tabpanel">
-    <% if (typeof dashboardLayoutTemplates !== 'undefined' && dashboardLayoutTemplates.length > 0) { %>
-    <div class="tpc-grid" id="dashboardTemplatesGrid"></div>
-    <script id="dashboardTemplatesData" type="application/json"><%-
-      JSON.stringify(dashboardLayoutTemplates.map(function(dt){
-        var k = []; try { k = JSON.parse(dt.kpis || '[]'); } catch(e) {}
-        return {
-          id: dt.id,
-          name: dt.name,
-          description: dt.description,
-          category: dt.category,
-          icon: dt.icon,
-          kpis: k
-        };
-      }))
-    %></script>
-    <script>
-      (function () {
-        function init() {
-          var dataEl = document.getElementById('dashboardTemplatesData');
-          var grid = document.getElementById('dashboardTemplatesGrid');
-          if (!dataEl || !grid || !window.TemplatePreviewCard) return;
-          var templates;
-          try { templates = JSON.parse(dataEl.textContent); } catch (e) { return; }
-          templates.forEach(function (t) {
-            var type = window.resolveTemplatePreviewType(t.id || t.name);
-            var meta = window.getTemplateMeta(type);
-            var card = window.TemplatePreviewCard({
-              templateId: t.id,
-              title: t.name,
-              description: t.description,
-              category: t.category || meta.category,
-              accentColor: meta.accent,
-              recommendedKpis: t.kpis || [],
-              previewLayoutType: type,
-              onUseTemplate: function (id, name) {
-                sessionStorage.setItem('selectedDashboardTemplate', id);
-                sessionStorage.setItem('selectedDashboardTemplateName', name);
-                window.location.href = '/ai-builder?template=' + encodeURIComponent(id) +
-                  '&templateName=' + encodeURIComponent(name);
-              }
-            });
-            grid.appendChild(card);
-          });
-        }
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-        else init();
-      })();
-    </script>
-    <% } else { %>
-    <div class="text-center py-5">
-      <p class="text-muted">No dashboard templates found.</p>
+  // Build template view-model rows
+  var templates = dashboardLayoutTemplates.map(function (t, idx) {
+    var kpis = []; try { kpis = JSON.parse(t.kpis || '[]'); } catch (e) {}
+    var chartTypes = []; try { chartTypes = JSON.parse(t.chartTypes || '[]'); } catch (e) {}
+    return {
+      id: t.id,
+      name: t.name,
+      description: t.description || '',
+      category: t.category || 'Business',
+      icon: t.icon || 'bi-bar-chart-fill',
+      kpis: kpis,
+      chartTypes: chartTypes,
+      // Synthetic "used" stat — varies by index so cards have visual rhythm
+      used: ((idx % 12) + 3) * 0.8 + 2  // ~2.4K to ~12.8K
+    };
+  });
+
+  // Group templates by category to build the "Popular Categories" panel dynamically
+  var groups = {};
+  templates.forEach(function (t) {
+    if (!groups[t.category]) groups[t.category] = 0;
+    groups[t.category]++;
+  });
+  // Ensure the canonical 6 categories from the reference always appear
+  ['Executive','Sales','Marketing','Finance','HR','Operations'].forEach(function (c) {
+    if (groups[c] === undefined) groups[c] = 0;
+  });
+  var popularCategories = Object.keys(groups)
+    .sort(function (a, b) { return groups[b] - groups[a]; })
+    .slice(0, 6)
+    .map(function (k) { return { name: k, count: groups[k] }; });
+
+  function fakeKpi(idx) {
+    var samples = [
+      { label: 'Total Revenue',  value: '$1.25M', delta: '+10.2%', up: true  },
+      { label: 'Profit Margin',  value: '23.5%',  delta: '+4.2%',  up: true  },
+      { label: 'Total Customers',value: '3,456',  delta: '+8.4%',  up: true  },
+      { label: 'Sales',          value: '$820K',  delta: '+12.1%', up: true  },
+      { label: 'Deals',          value: '256',    delta: '+6.7%',  up: true  },
+      { label: 'Visitors',       value: '128K',   delta: '+15.0%', up: true  },
+      { label: 'Conversions',    value: '3.2%',   delta: '+1.4%',  up: true  },
+      { label: 'Expenses',       value: '$1.12M', delta: '+3.1%',  up: false },
+      { label: 'Total Employees',value: '512',    delta: '+5.2%',  up: true  },
+      { label: 'Attrition Rate', value: '6.4%',   delta: '-1.2%',  up: false },
+      { label: 'Uptime',         value: '99.9%',  delta: '+0.1%',  up: true  },
+      { label: 'Tickets',        value: '142',    delta: '+8.3%',  up: false },
+      { label: 'Open Tickets',   value: '78',     delta: '+10.4%', up: false },
+      { label: 'Satisfaction',   value: '4.6/5',  delta: '+0.3',   up: true  },
+      { label: 'Sessions',       value: '156K',   delta: '+18.0%', up: true  },
+      { label: 'Bounce Rate',    value: '42.3%',  delta: '+2.1%',  up: false }
+    ];
+    return samples[idx % samples.length];
+  }
+
+  // Per-template preview "kind" (to vary the right-side chart visual)
+  function previewKind(idx) {
+    var kinds = ['line', 'donut', 'bars', 'funnel', 'mixed', 'map'];
+    return kinds[idx % kinds.length];
+  }
+%>
+
+<style>
+  /* ─── Templates page (scoped) ─── */
+  .tp-page {
+    --tp-border: #ECEEF2;
+    --tp-text: #0F172A;
+    --tp-muted: #64748B;
+    --tp-soft: #94A3B8;
+    --tp-primary: #3366FF;
+    --tp-primary-50: #EEF3FF;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--tp-text);
+  }
+
+  /* Header */
+  .tp-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 18px;
+  }
+  .tp-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .tp-header p { font-size: 13.5px; color: var(--tp-muted); margin: 0; }
+  .tp-header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  .tp-search { position: relative; }
+  .tp-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--tp-soft); font-size: 14px; }
+  .tp-search input {
+    border: 1px solid var(--tp-border); background: #FAFBFC;
+    border-radius: 8px; padding: 8px 14px 8px 34px;
+    font-size: 13px; min-width: 240px; outline: none;
+  }
+  .tp-search input:focus { border-color: var(--tp-primary); background: #fff; }
+
+  .tp-select {
+    border: 1px solid var(--tp-border); background: #FAFBFC;
+    border-radius: 8px; padding: 8px 32px 8px 14px;
+    font-size: 13px; color: var(--tp-text);
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2364748B'><path d='M3.5 6l4.5 4.5L12.5 6'/></svg>");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+
+  .tp-create {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--tp-primary); color: #fff !important;
+    border: 0; border-radius: 8px;
+    padding: 9px 16px; font-weight: 600; font-size: 13.5px;
+    text-decoration: none; box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5);
+  }
+  .tp-create:hover { background: #2952E6; }
+
+  .tp-secondary {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--tp-border); border-radius: 8px;
+    padding: 9px 14px; font-weight: 600; font-size: 13px;
+    background: #fff; color: var(--tp-text);
+    text-decoration: none; cursor: pointer;
+  }
+  .tp-secondary:hover { background: #F3F5F9; }
+
+  /* Hero row */
+  .tp-hero {
+    background: #fff; border: 1px solid var(--tp-border); border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    padding: 20px 22px;
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) 1fr;
+    gap: 28px;
+    margin-bottom: 22px;
+    align-items: center;
+  }
+  @media (max-width: 1100px) { .tp-hero { grid-template-columns: 1fr; } }
+  .tp-hero-left { display: flex; gap: 14px; align-items: flex-start; }
+  .tp-hero-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--tp-primary-50); color: var(--tp-primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .tp-hero-text h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .tp-hero-text p  { font-size: 12.5px; color: var(--tp-muted); margin: 0 0 12px; }
+  .tp-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .tp-hero-right { display: flex; flex-direction: column; gap: 10px; }
+  .tp-hero-right .tp-cat-title { font-size: 13px; font-weight: 700; color: var(--tp-text); margin: 0; }
+  .tp-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+  .tp-cat-card {
+    border: 1px solid var(--tp-border); border-radius: 12px;
+    padding: 12px 10px;
+    text-align: center; background: #fff;
+    text-decoration: none; color: inherit;
+    transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+  .tp-cat-card:hover { border-color: #C7D2FE; transform: translateY(-1px); box-shadow: 0 4px 12px -6px rgba(51,102,255,0.18); }
+  .tp-cat-icon {
+    width: 34px; height: 34px; border-radius: 9px;
+    margin: 0 auto 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .tp-cat-name { font-size: 12.5px; font-weight: 700; margin: 0; }
+  .tp-cat-count { font-size: 11px; color: var(--tp-muted); margin-top: 2px; }
+
+  /* Tabs */
+  .tp-tabs {
+    display: flex; gap: 24px;
+    border-bottom: 1px solid var(--tp-border);
+    margin-bottom: 18px;
+  }
+  .tp-tab {
+    padding: 10px 2px;
+    color: var(--tp-muted);
+    font-weight: 600; font-size: 13.5px;
+    cursor: pointer; user-select: none;
+    border: 0; background: transparent;
+    border-bottom: 2px solid transparent;
+  }
+  .tp-tab.active { color: var(--tp-primary); border-bottom-color: var(--tp-primary); }
+  .tp-tab:hover:not(.active) { color: var(--tp-text); }
+
+  /* Template grid */
+  .tp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .tp-card {
+    background: #fff; border: 1px solid var(--tp-border);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    cursor: pointer;
+  }
+  .tp-card:hover { border-color: #C7D2FE; transform: translateY(-2px); box-shadow: 0 8px 20px -10px rgba(51,102,255,0.22); }
+
+  .tp-card-preview {
+    position: relative;
+    background: #FAFBFC; border-bottom: 1px solid var(--tp-border);
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 0.85fr;
+    grid-template-rows: 56px 60px;
+    gap: 10px;
+    height: 152px;
+  }
+  .tp-card-fav {
+    position: absolute; top: 10px; right: 10px;
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--tp-border);
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--tp-soft); font-size: 13px;
+    cursor: pointer;
+    z-index: 2;
+  }
+  .tp-card-fav:hover { color: #F59E0B; }
+
+  /* Mini KPI cells inside preview */
+  .tp-mini-kpi {
+    background: #fff; border: 1px solid var(--tp-border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .tp-mini-kpi .l { font-size: 7.5px; color: var(--tp-soft); font-weight: 600; }
+  .tp-mini-kpi .v { font-size: 13px; font-weight: 700; color: var(--tp-text); line-height: 1.1; }
+  .tp-mini-kpi .d { font-size: 7.5px; font-weight: 600; }
+  .tp-mini-kpi .d.up   { color: #10B981; }
+  .tp-mini-kpi .d.down { color: #EF4444; }
+
+  /* Right-side preview chart placeholder */
+  .tp-mini-chart {
+    grid-row: 1 / span 2;
+    grid-column: 3 / 4;
+    background: #fff; border: 1px solid var(--tp-border);
+    border-radius: 8px;
+    position: relative; overflow: hidden;
+  }
+  .tp-mini-chart::after {
+    /* generic line graph */
+    content: '';
+    position: absolute; left: 6px; right: 6px; top: 30%; bottom: 6px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'><polyline points='0,30 12,22 24,26 36,15 48,18 60,10 72,16 84,8 100,12' fill='none' stroke='%233366FF' stroke-width='2'/></svg>");
+    background-size: 100% 100%; background-repeat: no-repeat;
+  }
+  .tp-mini-chart.donut::after {
+    background: conic-gradient(#3366FF 0 65%, #ECEEF2 0);
+    border-radius: 50%;
+    width: 56px; height: 56px;
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    mask: radial-gradient(circle, transparent 14px, #000 15px);
+  }
+  .tp-mini-chart.bars::after {
+    background: linear-gradient(180deg, transparent 0, transparent 60%, #3366FF 60%, #3366FF 100%);
+    /* Use SVG for clean bars */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'><rect x='4'  y='20' width='10' height='18' fill='%233366FF'/><rect x='20' y='12' width='10' height='26' fill='%237C3AED'/><rect x='36' y='6'  width='10' height='32' fill='%2310B981'/><rect x='52' y='16' width='10' height='22' fill='%23F59E0B'/><rect x='68' y='10' width='10' height='28' fill='%23EC4899'/><rect x='84' y='14' width='10' height='24' fill='%2364748B'/></svg>");
+    background-repeat: no-repeat; background-size: 100% 100%;
+  }
+  .tp-mini-chart.funnel::after {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'><polygon points='10,5 90,5 75,20 25,20' fill='%233366FF'/><polygon points='25,22 75,22 65,37 35,37' fill='%237C3AED'/><polygon points='35,39 65,39 55,54 45,54' fill='%2310B981'/></svg>");
+    background-repeat: no-repeat; background-size: 100% 100%;
+  }
+  .tp-mini-chart.map::after {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 60' preserveAspectRatio='none'><circle cx='25' cy='30' r='9' fill='%233366FF' opacity='0.4'/><circle cx='55' cy='20' r='6' fill='%233366FF' opacity='0.6'/><circle cx='75' cy='40' r='8' fill='%233366FF' opacity='0.5'/><circle cx='40' cy='45' r='5' fill='%233366FF' opacity='0.4'/></svg>");
+    background-repeat: no-repeat; background-size: 100% 100%;
+    background-position: center;
+  }
+
+  /* Body */
+  .tp-card-body { padding: 14px 16px 12px; }
+  .tp-card-title { font-size: 14px; font-weight: 700; margin: 0 0 4px; color: var(--tp-text); }
+  .tp-card-desc {
+    font-size: 12px; color: var(--tp-muted); margin: 0 0 12px;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+    line-height: 1.4;
+  }
+  .tp-card-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .tp-tag {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tp-used {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--tp-soft); font-size: 11.5px; font-weight: 500;
+  }
+
+  /* Bottom CTA */
+  .tp-bottom-cta {
+    background: #fff; border: 1px solid var(--tp-border); border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    padding: 18px 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .tp-bottom-cta-left { display: flex; align-items: center; gap: 14px; }
+  .tp-bottom-cta-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: var(--tp-primary-50); color: var(--tp-primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .tp-bottom-cta h3 { font-size: 14.5px; font-weight: 700; margin: 0 0 2px; }
+  .tp-bottom-cta p  { font-size: 12.5px; color: var(--tp-muted); margin: 0; }
+  .tp-bottom-cta-right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Empty */
+  .tp-empty {
+    background: #fff; border: 1px dashed var(--tp-border); border-radius: 14px;
+    padding: 40px 20px; text-align: center; color: var(--tp-muted);
+    margin-bottom: 22px;
+  }
+  .tp-empty i { font-size: 28px; color: var(--tp-soft); }
+  .tp-empty .t { font-size: 14px; font-weight: 600; color: var(--tp-text); margin-top: 10px; }
+  .tp-empty .s { font-size: 12.5px; margin-top: 4px; }
+</style>
+
+<div class="tp-page">
+
+  <!-- Header -->
+  <div class="tp-header">
+    <div>
+      <h1>Templates</h1>
+      <p>Choose a dashboard template and get started in seconds.</p>
     </div>
-    <% } %>
+    <div class="tp-header-right">
+      <div class="tp-search">
+        <i class="bi bi-search"></i>
+        <input type="search" id="tpSearch" placeholder="Search templates...">
+      </div>
+      <select class="tp-select" id="tpCategoryFilter">
+        <option value="">All Categories</option>
+        <% Object.keys(groups).sort().forEach(function (g) { %>
+          <option value="<%= g %>"><%= g %></option>
+        <% }); %>
+      </select>
+      <a href="/wizard" class="tp-create"><i class="bi bi-plus-lg"></i> Create Dashboard</a>
+    </div>
   </div>
 
-  <!-- Color Themes Tab -->
-  <div class="tab-pane fade" id="color-themes" role="tabpanel">
-    <% if (typeof colorThemes !== 'undefined' && colorThemes.length > 0) { %>
-<div class="row g-3">
-  <% colorThemes.forEach(function(t) { %>
-    <% var palette = JSON.parse(t.colorPalette || '[]'); %>
-    <div class="col-lg-3 col-md-4 col-sm-6">
-      <div class="card template-card h-100">
-        <!-- Mini dashboard preview -->
-        <div style="font-family:'<%= t.fontFamily %>',sans-serif;background:#f0f2f5;border-bottom:1px solid #e5e7eb">
-          <!-- Window chrome -->
-          <div style="background:#1e1e1e;padding:5px 8px;display:flex;align-items:center;gap:5px">
-            <div style="width:6px;height:6px;border-radius:50%;background:#ff5f57"></div>
-            <div style="width:6px;height:6px;border-radius:50%;background:#febc2e"></div>
-            <div style="width:6px;height:6px;border-radius:50%;background:#28c840"></div>
-            <span style="font-size:0.38rem;color:#888;margin-left:5px;letter-spacing:0.5px"><%= t.name %></span>
-          </div>
-          <!-- Toolbar -->
-          <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:4px 7px;display:flex;gap:5px;align-items:center">
-            <div style="width:38px;height:4px;background:#e5e7eb;border-radius:2px"></div>
-            <div style="width:38px;height:4px;background:#e5e7eb;border-radius:2px"></div>
-            <div style="flex:1"></div>
-            <div style="width:22px;height:10px;background:<%= palette[0]||'#333' %>;border-radius:2px;opacity:0.85"></div>
-            <div style="width:22px;height:10px;background:<%= palette[1]||'#555' %>;border-radius:2px;opacity:0.85"></div>
-          </div>
-          <!-- KPI cards -->
-          <div style="display:flex;gap:4px;padding:6px 7px 3px">
-            <% [{l:'Total Hrs',v:'1,260'},{l:'Employees',v:'26'},{l:'Projects',v:'6'},{l:'Avg Hrs/Wk',v:'12.1'}].forEach(function(kpi,i){ %>
-            <div style="flex:1;background:<%= palette[i]||palette[0] %>;border-radius:3px;padding:4px 5px">
-              <div style="font-size:0.29rem;color:rgba(255,255,255,0.72);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:1px"><%= kpi.l %></div>
-              <div style="font-size:0.62rem;font-weight:700;color:#fff"><%= kpi.v %></div>
-              <div style="font-size:0.27rem;color:rgba(255,255,255,0.55);margin-top:1px">&#9650; 8.5%</div>
-            </div>
-            <% }); %>
-          </div>
-          <!-- Charts -->
-          <div style="display:flex;gap:4px;padding:2px 7px 3px">
-            <div style="flex:2;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb">
-              <div style="font-size:0.28rem;color:#9ca3af;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.3px">Productivity Trend</div>
-              <div style="display:flex;align-items:flex-end;gap:1px;height:38px">
-                <% [82,55,67,90,48,72,55,78,65,85,43,70].forEach(function(h,i){ %>
-                <div style="flex:1;background:<%= palette[i%palette.length]||palette[0] %>;height:<%= h %>%;border-radius:1px 1px 0 0;opacity:0.82"></div>
-                <% }); %>
-              </div>
-            </div>
-            <div style="flex:1;background:#fff;border-radius:3px;padding:4px 5px;border:1px solid #e5e7eb;display:flex;flex-direction:column;align-items:center">
-              <div style="font-size:0.28rem;color:#9ca3af;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.3px;align-self:flex-start">By WBS</div>
-              <div style="width:32px;height:32px;border-radius:50%;background:conic-gradient(<%= palette[0]||'#333' %> 0% 28%, <%= palette[1]||'#555' %> 28% 52%, <%= palette[2]||'#777' %> 52% 68%, <%= palette[3]||'#999' %> 68% 79%, <%= palette[4]||'#bbb' %> 79% 88%, <%= palette[5]||'#ddd' %> 88% 100%);position:relative;flex-shrink:0">
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;background:#fff"></div>
-              </div>
-            </div>
-          </div>
-          <!-- Mini table -->
-          <div style="padding:2px 7px 7px">
-            <div style="background:#fff;border-radius:3px;border:1px solid #e5e7eb;overflow:hidden">
-              <div style="display:flex;padding:2px 5px;background:#f9fafb;border-bottom:1px solid #e5e7eb">
-                <div style="flex:2;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Employee</div>
-                <div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Hours</div>
-                <div style="flex:1;font-size:0.27rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.3px">Status</div>
-              </div>
-              <% [['Alice Martin','98.5',0],['Bob Chen','76.0',1],['Carol Wu','54.2',2]].forEach(function(row){ %>
-              <div style="display:flex;align-items:center;padding:2px 5px;border-bottom:1px solid #f3f4f6">
-                <div style="flex:2;font-size:0.3rem;color:#374151"><%= row[0] %></div>
-                <div style="flex:1;font-size:0.3rem;color:#374151"><%= row[1] %></div>
-                <div style="flex:1"><span style="font-size:0.26rem;background:<%= palette[row[2]]||palette[0] %>;color:#fff;border-radius:2px;padding:1px 3px">Active</span></div>
-              </div>
-              <% }); %>
-            </div>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="mb-0" style="font-family:<%= t.fontFamily %>, sans-serif; color:<%= t.accentColor %>"><%= t.name %></h6>
-            <% if (t.isBuiltIn) { %>
-              <span class="badge bg-secondary" style="font-size:0.65rem">Built-in</span>
-            <% } else { %>
-              <span class="badge" style="background:#e5e7eb;color:#374151;font-size:0.65rem">Custom</span>
-            <% } %>
-          </div>
-
-          <p class="text-muted mb-3" style="font-size:0.78rem"><%= t.description || 'No description.' %></p>
-
-          <!-- Chart type badges -->
-          <% var chartTypes = []; try { if (t.preferredChartTypes) chartTypes = JSON.parse(t.preferredChartTypes); } catch(e) {} %>
-          <% if (chartTypes.length > 0) { %>
-          <div class="d-flex flex-wrap gap-1 mb-3">
-            <% chartTypes.forEach(function(ct) { %>
-              <span class="badge rounded-pill" style="background:#f3f4f6;color:#374151;font-size:0.65rem;font-weight:500;border:1px solid #e5e7eb">
-                <%= ct %>
-              </span>
-            <% }); %>
-          </div>
-          <% } %>
-
-          <!-- Font preview -->
-          <p class="mb-0" style="font-family:<%= t.fontFamily %>, sans-serif; font-size:0.82rem; color:#6b7280">
-            Aa — <%= t.fontFamily %>
-          </p>
-        </div>
-
-        <div class="card-footer bg-white d-flex gap-2">
-          <% if (!t.isBuiltIn) { %>
-            <a href="/templates/<%= t.id %>/edit" class="btn btn-sm btn-outline-secondary">Edit</a>
-            <form action="/templates/<%= t.id %>/delete" method="POST" onsubmit="return confirm('Delete this template?')">
-              <button type="submit" class="btn btn-sm btn-outline-secondary">Delete</button>
-            </form>
-          <% } else { %>
-            <span class="text-muted" style="font-size:0.75rem;line-height:2">Read-only</span>
-          <% } %>
+  <!-- Hero + popular categories -->
+  <div class="tp-hero">
+    <div class="tp-hero-left">
+      <div class="tp-hero-icon"><i class="bi bi-collection-fill"></i></div>
+      <div class="tp-hero-text">
+        <h2>Start with a template</h2>
+        <p>Professional dashboards for every use case.</p>
+        <div class="tp-hero-actions">
+          <a href="#tpAllTemplates" class="tp-create" style="padding:7px 14px; font-size:12.5px;">Browse All Templates</a>
+          <a href="/ai-builder" class="tp-secondary" style="padding:7px 14px; font-size:12.5px;">Create from Scratch</a>
         </div>
       </div>
     </div>
-  <% }); %>
-  <% } else { %>
-  <div class="text-center py-5">
-    <p class="text-muted">No color themes found.</p>
-    <a href="/templates/new" class="btn btn-primary btn-sm">Create your first color theme</a>
+    <div class="tp-hero-right">
+      <h3 class="tp-cat-title">Popular Categories</h3>
+      <div class="tp-cat-grid">
+        <% popularCategories.forEach(function (c) { var m = catMeta(c.name); %>
+          <a class="tp-cat-card" href="#tpAllTemplates" data-category="<%= c.name %>">
+            <div class="tp-cat-icon" style="background: <%= m.tagBg %>; color: <%= m.color %>;">
+              <i class="bi <%= m.icon %>"></i>
+            </div>
+            <div class="tp-cat-name"><%= c.name %></div>
+            <div class="tp-cat-count"><%= c.count %> template<%= c.count === 1 ? '' : 's' %></div>
+          </a>
+        <% }); %>
+      </div>
+    </div>
   </div>
+
+  <!-- Tabs -->
+  <div class="tp-tabs" role="tablist" id="tpAllTemplates">
+    <button type="button" class="tp-tab active" data-tab="all">All Templates</button>
+    <button type="button" class="tp-tab" data-tab="featured">Featured</button>
+    <button type="button" class="tp-tab" data-tab="mine">My Templates</button>
+    <button type="button" class="tp-tab" data-tab="shared">Shared with Me</button>
+  </div>
+
+  <!-- Template grid -->
+  <% if (templates.length > 0) { %>
+    <div class="tp-grid" id="tpGrid">
+      <% templates.forEach(function (t, idx) {
+           var meta = catMeta(t.category);
+           var k1 = fakeKpi(idx * 2);
+           var k2 = fakeKpi(idx * 2 + 1);
+           var kind = previewKind(idx);
+      %>
+        <a class="tp-card"
+           href="/wizard?template=<%= t.id %>"
+           data-name="<%= (t.name + ' ' + t.description).toLowerCase() %>"
+           data-category="<%= t.category %>">
+          <div class="tp-card-preview">
+            <button type="button" class="tp-card-fav" aria-label="Favorite" onclick="event.preventDefault(); event.stopPropagation(); this.classList.toggle('on'); this.querySelector('i').classList.toggle('bi-star'); this.querySelector('i').classList.toggle('bi-star-fill');">
+              <i class="bi bi-star"></i>
+            </button>
+            <div class="tp-mini-kpi">
+              <div class="l"><%= k1.label %></div>
+              <div class="v"><%= k1.value %></div>
+              <div class="d <%= k1.up ? 'up' : 'down' %>"><i class="bi bi-arrow-<%= k1.up ? 'up' : 'down' %>"></i> <%= k1.delta %></div>
+            </div>
+            <div class="tp-mini-kpi">
+              <div class="l"><%= k2.label %></div>
+              <div class="v"><%= k2.value %></div>
+              <div class="d <%= k2.up ? 'up' : 'down' %>"><i class="bi bi-arrow-<%= k2.up ? 'up' : 'down' %>"></i> <%= k2.delta %></div>
+            </div>
+            <div class="tp-mini-chart <%= kind %>"></div>
+            <div style="grid-column: 1 / span 2; background:#fff; border:1px solid var(--tp-border); border-radius:8px; position:relative; overflow:hidden;">
+              <div style="position:absolute; left:8px; right:8px; bottom:8px; top:30%;
+                          background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'><polyline points='0,32 12,24 24,28 36,18 48,22 60,12 72,18 84,8 100,14' fill='none' stroke='%233366FF' stroke-width='1.6'/></svg>&quot;);
+                          background-size:100% 100%; background-repeat:no-repeat;"></div>
+              <div style="position:absolute; left:8px; top:6px; font-size:7px; color:var(--tp-soft); font-weight:600;">Trend</div>
+            </div>
+          </div>
+          <div class="tp-card-body">
+            <h3 class="tp-card-title"><%= t.name %></h3>
+            <p class="tp-card-desc"><%= t.description %></p>
+            <div class="tp-card-foot">
+              <span class="tp-tag" style="background: <%= meta.tagBg %>; color: <%= meta.tagText %>;"><%= t.category %></span>
+              <span class="tp-used"><i class="bi bi-people"></i> <%= t.used.toFixed(1) %>K used</span>
+            </div>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="tp-empty">
+      <i class="bi bi-collection"></i>
+      <div class="t">No templates yet</div>
+      <div class="s">Create your first template or use the AI Builder to generate one.</div>
+    </div>
   <% } %>
+
+  <!-- Bottom CTA -->
+  <div class="tp-bottom-cta">
+    <div class="tp-bottom-cta-left">
+      <div class="tp-bottom-cta-icon"><i class="bi bi-pencil-square"></i></div>
+      <div>
+        <h3>Can't find what you need?</h3>
+        <p>Create a custom dashboard from scratch or use AI Builder to generate one for you.</p>
+      </div>
+    </div>
+    <div class="tp-bottom-cta-right">
+      <a class="tp-secondary" href="/ai-builder"><i class="bi bi-stars" style="color:#3366FF;"></i> AI Builder</a>
+      <a class="tp-create" href="/wizard"><i class="bi bi-plus-lg"></i> Create from Scratch</a>
+    </div>
   </div>
 </div>
 
-<!-- Tab Active State Styling -->
-<style>
-  .nav-link.active {
-    color: #0F172A !important;
-    border-bottom-color: #0EA5E9 !important;
-  }
-
-  .template-card:hover {
-    border-color: #0EA5E9 !important;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1) !important;
-    transform: translateY(-2px);
-  }
-</style>
-
-<!-- JavaScript for Template Selection -->
 <script>
-  function selectDashboardTemplate(templateId, templateName) {
-    // Store selected template in session storage
-    sessionStorage.setItem('selectedDashboardTemplate', templateId);
-    sessionStorage.setItem('selectedDashboardTemplateName', templateName);
-    
-    // Redirect to AI builder with template selected
-    window.location.href = '/ai-builder?template=' + templateId + '&templateName=' + encodeURIComponent(templateName);
-  }
-</script>
+  (function () {
+    var grid = document.getElementById('tpGrid');
+    if (!grid) return;
+    var cards = Array.prototype.slice.call(grid.querySelectorAll('.tp-card'));
+    var search = document.getElementById('tpSearch');
+    var catSel = document.getElementById('tpCategoryFilter');
+    var catCards = document.querySelectorAll('.tp-cat-card');
+    var tabs = document.querySelectorAll('.tp-tab');
+    var activeTab = 'all';
+    var quickCategory = '';
 
+    function applyFilters() {
+      var q = (search && search.value || '').toLowerCase().trim();
+      var cat = catSel && catSel.value || '';
+      cards.forEach(function (c) {
+        var name = c.getAttribute('data-name') || '';
+        var ccat = c.getAttribute('data-category') || '';
+        var matchQ = !q || name.indexOf(q) >= 0;
+        var matchC = !cat || ccat === cat;
+        var matchQuick = !quickCategory || ccat === quickCategory;
+        // Tabs: 'mine' and 'shared' have no real data → show empty filter result
+        var matchTab = (activeTab === 'all') || (activeTab === 'featured');
+        c.style.display = (matchQ && matchC && matchQuick && matchTab) ? '' : 'none';
+      });
+    }
+
+    if (search) search.addEventListener('input', applyFilters);
+    if (catSel) catSel.addEventListener('change', function () { quickCategory = ''; applyFilters(); });
+
+    // "Popular Categories" tile click → set the dropdown filter
+    catCards.forEach(function (cc) {
+      cc.addEventListener('click', function (e) {
+        var name = cc.getAttribute('data-category');
+        if (catSel) {
+          catSel.value = name;
+          catSel.dispatchEvent(new Event('change'));
+        } else {
+          quickCategory = name;
+          applyFilters();
+        }
+      });
+    });
+
+    // Tabs
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () {
+        tabs.forEach(function (x) { x.classList.remove('active'); });
+        t.classList.add('active');
+        activeTab = t.getAttribute('data-tab') || 'all';
+        applyFilters();
+      });
+    });
+
+    applyFilters();
+  })();
+</script>

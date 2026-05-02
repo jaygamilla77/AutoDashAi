@@ -1,0 +1,27 @@
+<%
+  var nav = (typeof activeNav !== 'undefined') ? activeNav : '';
+  function isActive(key) { return nav === key ? 'active' : ''; }
+%>
+<aside class="admin-sidebar">
+  <a href="/admin" class="nav-link <%= isActive('dashboard') %>">
+    <i class="bi bi-speedometer2"></i> Dashboard
+  </a>
+
+  <div class="nav-section">Content</div>
+  <a href="/admin/landing"      class="nav-link <%= isActive('landing') %>"><i class="bi bi-house-door"></i> Landing Page</a>
+  <a href="/admin/features"     class="nav-link <%= isActive('features') %>"><i class="bi bi-stars"></i> Features</a>
+  <a href="/admin/templates"    class="nav-link <%= isActive('templates') %>"><i class="bi bi-grid-3x3-gap"></i> Templates</a>
+  <a href="/admin/about"        class="nav-link <%= isActive('about') %>"><i class="bi bi-info-circle"></i> About</a>
+  <a href="/admin/faq"          class="nav-link <%= isActive('faq') %>"><i class="bi bi-patch-question"></i> FAQ</a>
+  <a href="/admin/pricing"      class="nav-link <%= isActive('pricing') %>"><i class="bi bi-tag"></i> Pricing Plans</a>
+  <a href="/admin/contact"      class="nav-link <%= isActive('contact') %>"><i class="bi bi-envelope"></i> Contact</a>
+
+  <div class="nav-section">Marketing</div>
+  <a href="/admin/blog"         class="nav-link <%= isActive('blog') %>"><i class="bi bi-journal-text"></i> Blog</a>
+  <a href="/admin/testimonials" class="nav-link <%= isActive('testimonials') %>"><i class="bi bi-chat-quote"></i> Testimonials</a>
+  <a href="/admin/portfolio"    class="nav-link <%= isActive('portfolio') %>"><i class="bi bi-collection"></i> Portfolio</a>
+
+  <div class="nav-section">System</div>
+  <a href="/admin/inquiries"    class="nav-link <%= isActive('inquiries') %>"><i class="bi bi-inbox"></i> Inquiries</a>
+  <a href="/admin/settings"     class="nav-link <%= isActive('settings') %>"><i class="bi bi-gear"></i> Site Settings</a>
+</aside>

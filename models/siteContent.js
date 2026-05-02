@@ -21,10 +21,20 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: {},
+      get() {
+        const v = this.getDataValue('data');
+        if (typeof v === 'string') { try { return JSON.parse(v); } catch (_) { return {}; } }
+        return v == null ? {} : v;
+      },
     },
     draft: {
       type: DataTypes.JSON,
       allowNull: true,
+      get() {
+        const v = this.getDataValue('draft');
+        if (typeof v === 'string') { try { return JSON.parse(v); } catch (_) { return null; } }
+        return v == null ? null : v;
+      },
     },
   }, {
     tableName: 'site_content',

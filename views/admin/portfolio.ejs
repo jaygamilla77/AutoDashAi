@@ -1,0 +1,77 @@
+<h1>Portfolio</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add Portfolio Item</h2>
+  <form method="POST" action="/admin/portfolio" id="pfForm">
+    <input type="hidden" name="index" id="pf-index" value="">
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Title</label><input class="form-control" name="title" id="pf-title" required></div>
+      <div class="col-md-6"><label class="form-label">Link URL</label><input class="form-control" name="link" id="pf-link" placeholder="https://..."></div>
+      <div class="col-md-12"><label class="form-label">Image URL</label><input class="form-control" name="image" id="pf-image" placeholder="https://example.com/image.jpg"></div>
+      <div class="col-md-12"><label class="form-label">Description</label><textarea class="form-control" name="description" id="pf-description" rows="3"></textarea></div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="pf-submit"><i class="bi bi-plus-lg"></i> Add Item</button>
+      <button type="button" class="btn btn-outline-secondary" id="pf-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-collection"></i><p>No portfolio items yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Image</th><th>Title</th><th>Description</th><th>Link</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(p, i) { %>
+          <tr>
+            <td>
+              <% if (p.image) { %>
+                <img src="<%= p.image %>" alt="" style="width:60px;height:40px;object-fit:cover;border-radius:6px;">
+              <% } else { %>
+                <div style="width:60px;height:40px;background:#f3f4f6;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9ca3af;"><i class="bi bi-image"></i></div>
+              <% } %>
+            </td>
+            <td><strong><%= p.title %></strong></td>
+            <td style="color:#6b7280;max-width:300px;"><%= (p.description || '').slice(0,120) %></td>
+            <td><% if (p.link) { %><a href="<%= p.link %>" target="_blank" style="font-size:13px;"><i class="bi bi-link-45deg"></i> View</a><% } %></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary pf-edit"
+                data-i="<%= i %>" data-title="<%= p.title %>" data-description="<%= p.description || '' %>"
+                data-image="<%= p.image || '' %>" data-link="<%= p.link || '' %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/admin/portfolio/<%= i %>/delete" style="display:inline;" onsubmit="return confirm('Delete this item?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.pf-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('pf-index').value = btn.dataset.i;
+      document.getElementById('pf-title').value = btn.dataset.title;
+      document.getElementById('pf-description').value = btn.dataset.description;
+      document.getElementById('pf-image').value = btn.dataset.image;
+      document.getElementById('pf-link').value = btn.dataset.link;
+      document.getElementById('formTitle').textContent = 'Edit Portfolio Item';
+      document.getElementById('pf-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save Item';
+      document.getElementById('pf-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('pf-cancel').addEventListener('click', function() {
+    document.getElementById('pfForm').reset();
+    document.getElementById('pf-index').value = '';
+    document.getElementById('formTitle').textContent = 'Add Portfolio Item';
+    document.getElementById('pf-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add Item';
+    this.style.display = 'none';
+  });
+</script>

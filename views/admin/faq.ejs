@@ -1,0 +1,87 @@
+<h1>FAQ</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add FAQ</h2>
+  <form method="POST" action="/admin/faq" id="qForm">
+    <input type="hidden" name="index" id="q-index" value="">
+    <div class="row g-3">
+      <div class="col-md-9">
+        <label class="form-label">Question</label>
+        <input class="form-control" name="question" id="q-question" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Display Order</label>
+        <input type="number" class="form-control" name="order" id="q-order" value="0">
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Answer</label>
+        <textarea class="form-control" name="answer" id="q-answer" rows="3"></textarea>
+      </div>
+      <div class="col-md-12">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="active" id="q-active" checked>
+          <label class="form-check-label" for="q-active">Active (shown on public site)</label>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="q-submit"><i class="bi bi-plus-lg"></i> Add FAQ</button>
+      <button type="button" class="btn btn-outline-secondary" id="q-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-patch-question"></i><p>No FAQs yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>#</th><th>Question</th><th>Order</th><th>Status</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(it, i) { %>
+          <tr>
+            <td><%= i + 1 %></td>
+            <td><strong><%= it.question %></strong>
+              <div style="color:#6b7280;font-size:13px;margin-top:4px;"><%= (it.answer || '').slice(0,120) %><%= (it.answer || '').length > 120 ? '…' : '' %></div>
+            </td>
+            <td><%= it.order || 0 %></td>
+            <td><span class="badge-pill <%= (it.active === false) ? 'badge-inactive' : 'badge-active' %>"><%= (it.active === false) ? 'Inactive' : 'Active' %></span></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary faq-edit"
+                data-i="<%= i %>" data-q="<%= it.question %>" data-a="<%= it.answer || '' %>"
+                data-order="<%= it.order || 0 %>" data-active="<%= it.active !== false ? '1' : '0' %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/admin/faq/<%= i %>/delete" style="display:inline;" onsubmit="return confirm('Delete this FAQ?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.faq-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('q-index').value = btn.dataset.i;
+      document.getElementById('q-question').value = btn.dataset.q;
+      document.getElementById('q-answer').value = btn.dataset.a;
+      document.getElementById('q-order').value = btn.dataset.order;
+      document.getElementById('q-active').checked = btn.dataset.active === '1';
+      document.getElementById('formTitle').textContent = 'Edit FAQ';
+      document.getElementById('q-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save FAQ';
+      document.getElementById('q-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('q-cancel').addEventListener('click', function() {
+    document.getElementById('qForm').reset();
+    document.getElementById('q-index').value = '';
+    document.getElementById('formTitle').textContent = 'Add FAQ';
+    document.getElementById('q-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add FAQ';
+    this.style.display = 'none';
+  });
+</script>

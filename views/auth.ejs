@@ -43,12 +43,19 @@
     /* ─── Left panel ─────────────────────────────────────────────── */
     .auth-left {
       background: var(--auth-bg-left);
-      padding: 56px 64px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      padding: 28px 56px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 20px;
       position: relative;
       overflow: hidden;
+      min-height: 100vh;
+    }
+    .auth-left-mid {
+      align-self: center;
+      justify-self: center;
+      width: 100%;
+      max-width: 480px;
     }
     .auth-left::before {
       content: "";
@@ -81,56 +88,56 @@
     .auth-brand-tag { font-size: 11px; color: var(--auth-muted, #64748B); font-weight: 500; margin-top: 2px; }
 
     .auth-headline {
-      margin-top: 56px;
+      margin-top: 0;
     }
     .auth-headline h1 {
-      font-size: 2.4rem;
+      font-size: 1.9rem;
       font-weight: 800;
-      letter-spacing: -0.6px;
+      letter-spacing: -0.5px;
       line-height: 1.15;
       color: var(--auth-text);
     }
     .auth-headline h1 span { color: var(--auth-blue); }
     .auth-headline p {
-      margin-top: 18px;
+      margin-top: 12px;
       color: var(--auth-muted);
-      font-size: 1.02rem;
+      font-size: 0.94rem;
       max-width: 480px;
-      line-height: 1.6;
+      line-height: 1.55;
     }
 
     .auth-benefits {
-      margin-top: 44px;
+      margin-top: 22px;
       display: flex;
       flex-direction: column;
-      gap: 22px;
+      gap: 14px;
       max-width: 460px;
     }
     .auth-benefit {
       display: flex;
-      gap: 16px;
+      gap: 14px;
       align-items: flex-start;
     }
     .auth-benefit-icon {
       flex-shrink: 0;
-      width: 40px; height: 40px;
-      border-radius: 10px;
+      width: 34px; height: 34px;
+      border-radius: 9px;
       background: #fff;
       border: 1px solid var(--auth-border);
       color: var(--auth-blue);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.15rem;
+      font-size: 1rem;
     }
     .auth-benefit-text h3 {
-      font-size: 0.98rem;
+      font-size: 0.9rem;
       font-weight: 700;
       color: var(--auth-text);
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .auth-benefit-text p {
-      font-size: 0.88rem;
+      font-size: 0.82rem;
       color: var(--auth-muted);
-      line-height: 1.5;
+      line-height: 1.45;
       margin: 0;
     }
 
@@ -166,8 +173,8 @@
     .auth-security {
       display: flex;
       align-items: flex-start;
-      gap: 14px;
-      padding: 16px 18px;
+      gap: 12px;
+      padding: 12px 14px;
       background: #fff;
       border: 1px solid var(--auth-border);
       border-radius: 12px;
@@ -176,22 +183,22 @@
     }
     .auth-security i {
       color: var(--auth-blue);
-      font-size: 1.2rem;
+      font-size: 1.05rem;
       margin-top: 2px;
     }
     .auth-security strong {
       display: block;
-      font-size: 0.92rem;
+      font-size: 0.86rem;
       color: var(--auth-text);
       margin-bottom: 2px;
     }
     .auth-security span {
-      font-size: 0.84rem;
+      font-size: 0.78rem;
       color: var(--auth-muted);
     }
 
     .auth-footer {
-      font-size: 0.82rem;
+      font-size: 0.76rem;
       color: var(--auth-muted);
     }
     .auth-footer a { font-weight: 500; }
@@ -201,30 +208,30 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 40px;
+      padding: 28px 56px;
     }
     .auth-card {
       background: #fff;
       border: 1px solid var(--auth-border);
-      border-radius: 20px;
+      border-radius: 18px;
       box-shadow: 0 24px 48px -16px rgba(15,23,42,0.08), 0 4px 12px rgba(15,23,42,0.04);
       width: 100%;
-      max-width: 460px;
-      padding: 36px 40px;
+      max-width: 420px;
+      padding: 26px 32px;
     }
 
     .auth-tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
       border-bottom: 1px solid var(--auth-border);
-      margin-bottom: 28px;
+      margin-bottom: 20px;
     }
     .auth-tab {
       background: none;
       border: 0;
-      padding: 14px 0;
+      padding: 11px 0;
       font-family: inherit;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       color: var(--auth-muted);
       cursor: pointer;
@@ -244,18 +251,18 @@
     }
 
     .auth-card h2 {
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       font-weight: 800;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       letter-spacing: -0.3px;
     }
     .auth-subtitle {
       color: var(--auth-muted);
-      font-size: 0.92rem;
-      margin-bottom: 24px;
+      font-size: 0.88rem;
+      margin-bottom: 18px;
     }
 
-    .auth-field { margin-bottom: 18px; }
+    .auth-field { margin-bottom: 14px; }
     .auth-label {
       display: flex;
       justify-content: space-between;
@@ -277,10 +284,10 @@
     }
     .auth-input {
       width: 100%;
-      padding: 12px 14px 12px 42px;
+      padding: 10px 14px 10px 40px;
       border: 1px solid var(--auth-border);
       border-radius: 10px;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-family: inherit;
       color: var(--auth-text);
       background: #fff;
@@ -317,9 +324,9 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       color: var(--auth-muted);
-      margin-bottom: 20px;
+      margin-bottom: 14px;
       user-select: none;
       cursor: pointer;
     }
@@ -332,8 +339,8 @@
       color: #fff;
       border: 0;
       border-radius: 10px;
-      padding: 13px 16px;
-      font-size: 0.98rem;
+      padding: 11px 16px;
+      font-size: 0.94rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s ease, transform 0.05s ease;
@@ -357,9 +364,9 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin: 22px 0;
+      margin: 16px 0;
       color: var(--auth-muted);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
     }
     .auth-divider::before,
     .auth-divider::after {
@@ -374,24 +381,24 @@
       background: #fff;
       border: 1px solid var(--auth-border);
       border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 0.95rem;
+      padding: 10px 16px;
+      font-size: 0.92rem;
       font-weight: 500;
       font-family: inherit;
       color: var(--auth-text);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center; gap: 10px;
       transition: border-color 0.15s ease, background 0.15s ease;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .social-btn:hover { border-color: #94A3B8; background: #F8FAFC; }
     .social-btn img { width: 18px; height: 18px; }
 
     .auth-switch-link {
       text-align: center;
-      font-size: 0.9rem;
+      font-size: 0.86rem;
       color: var(--auth-muted);
-      margin-top: 18px;
+      margin-top: 14px;
     }
     .auth-switch-link a {
       font-weight: 600;
@@ -468,7 +475,9 @@
           <span class="auth-brand-tag">by Liknaya</span>
         </span>
       </a>
+    </div>
 
+    <div class="auth-left-mid">
       <div class="auth-headline">
         <h1>Intelligent Dashboards,<br>Powered by <span>AI</span></h1>
         <p>Transform your data into meaningful insights.<br>Create, customize, and share dashboards in minutes.</p>
@@ -514,7 +523,7 @@
           <span>Your data is safe with enterprise-grade security.</span>
         </div>
       </div>
-      <div class="auth-footer" style="margin-top:24px">
+      <div class="auth-footer" style="margin-top:14px">
         &copy; <%= new Date().getFullYear() %> AutoDash AI. All rights reserved.
         Powered by <a href="https://liknaya.com" target="_blank" rel="noopener">Liknaya.com</a>
       </div>
@@ -792,12 +801,26 @@
     if (!ok) return;
 
     setLoading(formSignIn, true);
-    setTimeout(function () {
-      setSession({ name: email.split('@')[0], email: email });
+    fetch('/auth/signin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email: email, password: pwd })
+    })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+    .then(function (res) {
       setLoading(formSignIn, false);
-      showToast('Welcome back! Redirecting to your dashboard…', 'success');
+      if (!res.body.success) {
+        showToast(res.body.error || 'Sign in failed.', 'error');
+        return;
+      }
+      try { localStorage.setItem('autodash_user', JSON.stringify(res.body.user || {})); } catch (_) {}
+      showToast('Welcome back! Redirecting…', 'success');
       redirectAfterAuth();
-    }, 700);
+    })
+    .catch(function () {
+      setLoading(formSignIn, false);
+      showToast('Network error. Please try again.', 'error');
+    });
   });
 
   // ─── Sign Up submit ───────────────────────────────────────────
@@ -821,18 +844,50 @@
       showToast('You must accept the Terms of Service to continue.', 'error');
       ok = false;
     } else {
-      var f = formSignUp.querySelector('[data-field="terms"]');
-      if (f) f.style.color = '';
+      var f2 = formSignUp.querySelector('[data-field="terms"]');
+      if (f2) f2.style.color = '';
     }
     if (!ok) return;
 
     setLoading(formSignUp, true);
-    setTimeout(function () {
-      setSession({ name: name, email: email });
+    fetch('/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ name: name, email: email, password: pwd })
+    })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+    .then(function (res) {
       setLoading(formSignUp, false);
-      showToast('Account created! Taking you to AutoDash AI…', 'success');
-      redirectAfterAuth();
-    }, 800);
+      if (!res.body.success) {
+        if (res.status === 409) setFieldError(formSignUp, 'email', res.body.error || 'Email already in use.');
+        showToast(res.body.error || 'Sign up failed.', 'error');
+        return;
+      }
+      // Replace the form with a "check your inbox" panel.
+      var card = formSignUp.closest('.auth-card') || formSignUp.parentNode;
+      var dev = res.body.devVerifyUrl ? '<p style="font-size:12px;color:#94a3b8;margin-top:14px;">Dev mode: <a href="' + res.body.devVerifyUrl + '">verify now</a></p>' : '';
+      card.innerHTML =
+        '<div style="padding:8px 4px 4px;text-align:center;">' +
+          '<div style="width:64px;height:64px;border-radius:50%;background:#ecfdf5;color:#10b981;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;"><i class="bi bi-envelope-check"></i></div>' +
+          '<h2 style="margin:0 0 8px;font-size:20px;">Check your email</h2>' +
+          '<p style="color:#475569;line-height:1.55;">We sent a verification link to <strong>' + email + '</strong>. Click it to finish creating your account.</p>' +
+          '<p style="color:#94a3b8;font-size:13px;margin-top:18px;">Didn\'t get it? <a href="#" id="resendLink">Resend email</a></p>' +
+          dev +
+        '</div>';
+      var rl = document.getElementById('resendLink');
+      if (rl) rl.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        fetch('/auth/resend', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ email: email }) })
+          .then(function (r) { return r.json(); })
+          .then(function (j) { showToast(j.message || 'Verification email sent.', j.success ? 'success' : 'error'); })
+          .catch(function () { showToast('Could not resend right now.', 'error'); });
+      });
+      showToast('Verification email sent. Check your inbox.', 'success');
+    })
+    .catch(function () {
+      setLoading(formSignUp, false);
+      showToast('Network error. Please try again.', 'error');
+    });
   });
 
   // ─── Mock social auth ─────────────────────────────────────────

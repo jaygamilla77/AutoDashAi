@@ -1,71 +1,610 @@
-<div class="page-header d-flex justify-content-between align-items-center">
-  <div>
-    <h1>Data Sources</h1>
-    <p>Manage connected data sources</p>
+<%
+  // Defensive defaults
+  var sources = (typeof sources !== 'undefined' && sources) ? sources : [];
+
+  // Helpers (computed once on the server)
+  function fmtRelative(d) {
+    if (!d) return 'Never';
+    var when = new Date(d), now = new Date();
+    var diffM = Math.max(0, Math.round((now - when) / 60000));
+    if (diffM < 1) return 'just now';
+    if (diffM < 60) return '~' + diffM + ' min' + (diffM === 1 ? '' : 's') + ' ago';
+    var diffH = Math.round(diffM / 60);
+    if (diffH < 24) return '~' + diffH + ' hour' + (diffH === 1 ? '' : 's') + ' ago';
+    var diffD = Math.round(diffH / 24);
+    return '~' + diffD + ' day' + (diffD === 1 ? '' : 's') + ' ago';
+  }
+  function typeMeta(t) {
+    var key = String(t || '').toLowerCase();
+    var map = {
+      database: { label: 'Database', icon: 'bi-server',         color: '#3366FF' },
+      excel:    { label: 'Excel',    icon: 'bi-file-earmark-excel-fill', color: '#16A34A' },
+      csv:      { label: 'CSV',      icon: 'bi-filetype-csv',   color: '#16A34A' },
+      json:     { label: 'JSON',     icon: 'bi-filetype-json',  color: '#7C3AED' },
+      api:      { label: 'REST API', icon: 'bi-cloud-fill',     color: '#EF4444' }
+    };
+    return map[key] || { label: t || 'Source', icon: 'bi-database-fill', color: '#64748B' };
+  }
+
+  var statusCounts = { connected: 0, warning: 0, error: 0, disconnected: 0 };
+  sources.forEach(function (s) {
+    var st = String(s.status || 'active').toLowerCase();
+    if (st === 'active' || st === 'connected') statusCounts.connected++;
+    else if (st === 'warning') statusCounts.warning++;
+    else if (st === 'error' || st === 'failed') statusCounts.error++;
+    else statusCounts.disconnected++;
+  });
+  var totalCount = sources.length;
+  var connectedPct = totalCount ? Math.round((statusCounts.connected / totalCount) * 100) : 0;
+
+  // Connector catalog for the "Connect a New Source" tile grid
+  var connectors = [
+    { type: 'database', subtype: 'mysql',      name: 'MySQL',         desc: 'Connect to MySQL databases',      icon: 'bi-server',                color: '#0284C7', action: 'Connect', upload: false, href: '/sources/new?type=database' },
+    { type: 'database', subtype: 'postgres',   name: 'PostgreSQL',    desc: 'Connect to PostgreSQL databases', icon: 'bi-server',                color: '#1F6FEB', action: 'Connect', upload: false, href: '/sources/new?type=database' },
+    { type: 'database', subtype: 'sqlserver',  name: 'SQL Server',    desc: 'Connect to SQL Server databases', icon: 'bi-server',                color: '#DC2626', action: 'Connect', upload: false, href: '/sources/new?type=database' },
+    { type: 'excel',    subtype: 'excel',      name: 'Excel / CSV',   desc: 'Upload Excel or CSV files',       icon: 'bi-file-earmark-spreadsheet-fill', color: '#16A34A', action: 'Upload',  upload: true,  href: '/sources/new?type=excel' },
+    { type: 'csv',      subtype: 'gsheets',    name: 'Google Sheets', desc: 'Connect Google Sheets',           icon: 'bi-grid-3x3-gap-fill',     color: '#16A34A', action: 'Upload',  upload: true,  href: '/sources/new?type=csv' },
+    { type: 'api',      subtype: 'api',        name: 'API / REST',    desc: 'Connect to REST APIs',            icon: 'bi-cloud-fill',            color: '#EF4444', action: 'Connect', upload: false, href: '/sources/new?type=api' }
+  ];
+%>
+
+<style>
+  /* ───────────── Sources page (scoped) ───────────── */
+  .sources-page {
+    --sp-border: #ECEEF2;
+    --sp-text: #0F172A;
+    --sp-muted: #64748B;
+    --sp-soft: #94A3B8;
+    --sp-primary: #3366FF;
+    --sp-primary-50: #EEF3FF;
+    --sp-bg: #F7F8FA;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--sp-text);
+  }
+
+  /* Header */
+  .sp-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; margin-bottom: 18px;
+  }
+  .sp-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sp-header p { font-size: 13.5px; color: var(--sp-muted); margin: 0; }
+  .sp-add-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--sp-primary); color: #fff !important;
+    border: 0; border-radius: 8px;
+    padding: 9px 16px; font-weight: 600; font-size: 13.5px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5);
+    transition: background 0.15s;
+  }
+  .sp-add-btn:hover { background: #2952E6; color: #fff; }
+
+  /* Tabs */
+  .sp-tabs {
+    display: flex; gap: 24px;
+    border-bottom: 1px solid var(--sp-border);
+    margin-bottom: 18px;
+  }
+  .sp-tab {
+    padding: 10px 2px;
+    color: var(--sp-muted);
+    font-weight: 600; font-size: 13.5px;
+    cursor: pointer; user-select: none;
+    border-bottom: 2px solid transparent;
+    background: none; border-top: 0; border-left: 0; border-right: 0;
+  }
+  .sp-tab.active { color: var(--sp-primary); border-bottom-color: var(--sp-primary); }
+  .sp-tab:hover:not(.active) { color: var(--sp-text); }
+
+  /* Two-column grid */
+  .sp-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .sp-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Cards */
+  .sp-card {
+    background: #fff;
+    border: 1px solid var(--sp-border);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    padding: 20px;
+  }
+  .sp-card + .sp-card { margin-top: 18px; }
+  .sp-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .sp-card-title { font-size: 15px; font-weight: 700; margin: 0; }
+
+  /* Toolbar (search + type select + view toggle) */
+  .sp-toolbar { display: flex; align-items: center; gap: 8px; }
+  .sp-search {
+    position: relative;
+  }
+  .sp-search i {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--sp-soft); font-size: 14px;
+  }
+  .sp-search input {
+    border: 1px solid var(--sp-border);
+    background: #FAFBFC;
+    border-radius: 8px;
+    padding: 7px 12px 7px 32px;
+    font-size: 13px; min-width: 220px;
+    color: var(--sp-text);
+    outline: none;
+  }
+  .sp-search input:focus { border-color: var(--sp-primary); background: #fff; }
+  .sp-select {
+    border: 1px solid var(--sp-border);
+    background: #FAFBFC;
+    border-radius: 8px;
+    padding: 7px 26px 7px 12px;
+    font-size: 13px; color: var(--sp-text);
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2364748B'><path d='M3.5 6l4.5 4.5L12.5 6'/></svg>");
+    background-repeat: no-repeat; background-position: right 8px center;
+  }
+  .sp-view-toggle {
+    display: inline-flex; border: 1px solid var(--sp-border); border-radius: 8px; overflow: hidden;
+  }
+  .sp-view-toggle button {
+    border: 0; background: #fff; color: var(--sp-muted);
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; cursor: pointer;
+  }
+  .sp-view-toggle button.active { background: var(--sp-primary-50); color: var(--sp-primary); }
+  .sp-view-toggle button + button { border-left: 1px solid var(--sp-border); }
+
+  /* Connector tiles */
+  .sp-connector-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .sp-conn-card {
+    border: 1px solid var(--sp-border);
+    border-radius: 12px;
+    padding: 16px;
+    background: #fff;
+    text-align: center;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    display: flex; flex-direction: column;
+  }
+  .sp-conn-card:hover { border-color: #C7D2FE; box-shadow: 0 4px 14px -6px rgba(51,102,255,0.18); }
+  .sp-conn-icon {
+    width: 44px; height: 44px;
+    margin: 4px auto 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border-radius: 10px;
+    background: #F7F8FA;
+  }
+  .sp-conn-name { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .sp-conn-desc { font-size: 12px; color: var(--sp-muted); margin: 0 0 14px; flex: 1; }
+  .sp-conn-btn {
+    display: inline-block; width: 100%;
+    padding: 7px 10px; border-radius: 8px;
+    border: 1px solid #DCE5FF; background: #F4F7FF; color: var(--sp-primary);
+    font-size: 12.5px; font-weight: 600; text-decoration: none;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .sp-conn-btn:hover { background: var(--sp-primary); color: #fff; border-color: var(--sp-primary); }
+
+  /* Connected sources table */
+  .sp-table-wrap { overflow-x: auto; }
+  .sp-table { width: 100%; border-collapse: collapse; }
+  .sp-table thead th {
+    text-align: left; font-size: 11.5px; font-weight: 600;
+    color: var(--sp-muted); text-transform: none;
+    padding: 10px 12px; border-bottom: 1px solid var(--sp-border);
+    background: #FAFBFC;
+  }
+  .sp-table tbody td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--sp-border);
+    font-size: 13px; vertical-align: middle;
+  }
+  .sp-table tbody tr:last-child td { border-bottom: 0; }
+  .sp-source-cell { display: flex; align-items: center; gap: 10px; }
+  .sp-source-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; background: #F7F8FA;
+    flex-shrink: 0;
+  }
+  .sp-source-name { font-weight: 600; color: var(--sp-text); }
+  .sp-status-pill {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+  }
+  .sp-status-pill.connected    { background: #ECFDF5; color: #047857; }
+  .sp-status-pill.warning      { background: #FEF3C7; color: #B45309; }
+  .sp-status-pill.error        { background: #FEE2E2; color: #B91C1C; }
+  .sp-status-pill.disconnected { background: #F3F5F9; color: #64748B; }
+
+  .sp-owner { display: inline-flex; align-items: center; gap: 8px; }
+  .sp-owner-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, #7C3AED, #4F46E5);
+    color: #fff; font-weight: 700; font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  .sp-row-actions { display: inline-flex; gap: 4px; }
+  .sp-row-icon-btn {
+    width: 30px; height: 30px;
+    background: transparent; border: 0;
+    color: var(--sp-soft); border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sp-row-icon-btn:hover { background: #F3F5F9; color: var(--sp-text); }
+
+  .sp-table-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 12px 4px;
+    font-size: 12px; color: var(--sp-muted);
+  }
+  .sp-pager { display: inline-flex; gap: 4px; align-items: center; }
+  .sp-pager button {
+    border: 1px solid var(--sp-border); background: #fff;
+    width: 28px; height: 28px; border-radius: 6px;
+    color: var(--sp-muted); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sp-pager button.active { background: var(--sp-primary); color: #fff; border-color: var(--sp-primary); }
+
+  /* Right side panel */
+  .sp-side .sp-card { padding: 18px; }
+  .sp-donut-wrap {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 6px;
+  }
+  .sp-donut {
+    --pct: 100;
+    --size: 88px;
+    width: var(--size); height: var(--size);
+    border-radius: 50%;
+    background:
+      conic-gradient(#10B981 calc(var(--pct) * 1%), #ECEEF2 0);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .sp-donut::after {
+    content: '';
+    position: absolute; inset: 10px;
+    background: #fff; border-radius: 50%;
+  }
+  .sp-donut-center {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; line-height: 1;
+    z-index: 1;
+  }
+  .sp-donut-center .v { font-size: 22px; font-weight: 700; color: var(--sp-text); }
+  .sp-donut-center .l { font-size: 11px; color: var(--sp-muted); margin-top: 2px; }
+  .sp-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; font-size: 12.5px; }
+  .sp-legend .row {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--sp-text);
+  }
+  .sp-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sp-legend .label { color: var(--sp-muted); margin-left: auto; }
+
+  .sp-quick-action {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sp-border);
+    text-decoration: none; color: inherit;
+  }
+  .sp-quick-action:last-child { border-bottom: 0; }
+  .sp-quick-action .qa-icon {
+    width: 36px; height: 36px; border-radius: 9px;
+    background: #F7F8FA; color: var(--sp-muted);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .sp-quick-action .qa-text { flex: 1; min-width: 0; }
+  .sp-quick-action .qa-t { font-size: 13px; font-weight: 600; color: var(--sp-text); }
+  .sp-quick-action .qa-s { font-size: 11.5px; color: var(--sp-muted); }
+  .sp-quick-action .qa-arr { color: var(--sp-soft); font-size: 12px; }
+
+  .sp-help { text-align: left; }
+  .sp-help h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; }
+  .sp-help p { font-size: 12.5px; color: var(--sp-muted); margin: 0 0 12px; line-height: 1.5; }
+  .sp-help-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%;
+    padding: 8px 14px;
+    border: 1px solid #DCE5FF; border-radius: 8px;
+    background: #F4F7FF;
+    color: var(--sp-primary);
+    font-size: 13px; font-weight: 600;
+    text-decoration: none;
+  }
+  .sp-help-btn:hover { background: var(--sp-primary); color: #fff; border-color: var(--sp-primary); }
+
+  /* Empty state */
+  .sp-empty {
+    text-align: center; padding: 36px 16px;
+    color: var(--sp-muted);
+  }
+  .sp-empty i { font-size: 28px; color: var(--sp-soft); }
+  .sp-empty .t { font-size: 14px; font-weight: 600; color: var(--sp-text); margin-top: 10px; }
+  .sp-empty .s { font-size: 12.5px; margin-top: 4px; }
+</style>
+
+<div class="sources-page">
+
+  <!-- ─── Header ─── -->
+  <div class="sp-header">
+    <div>
+      <h1>Data Sources</h1>
+      <p>Manage and connect all your data sources in one place.</p>
+    </div>
+    <a href="/sources/new" class="sp-add-btn"><i class="bi bi-plus-lg"></i> Add Source</a>
   </div>
-  <a href="/sources/new" class="btn btn-primary btn-sm">Add Source</a>
+
+  <!-- ─── Tabs ─── -->
+  <div class="sp-tabs" role="tablist">
+    <button type="button" class="sp-tab active" data-filter="all" role="tab" aria-selected="true">All Sources</button>
+    <button type="button" class="sp-tab" data-filter="connected" role="tab">Connected</button>
+    <button type="button" class="sp-tab" data-filter="disconnected" role="tab">Disconnected</button>
+  </div>
+
+  <!-- ─── Two-column body ─── -->
+  <div class="sp-grid">
+
+    <!-- Main column -->
+    <div class="sp-main">
+
+      <!-- Connect a New Source -->
+      <div class="sp-card">
+        <div class="sp-card-head">
+          <h2 class="sp-card-title">Connect a New Source</h2>
+          <div class="sp-toolbar">
+            <div class="sp-search">
+              <i class="bi bi-search"></i>
+              <input type="search" id="spConnectorSearch" placeholder="Search sources...">
+            </div>
+            <select class="sp-select" id="spTypeFilter">
+              <option value="">All Types</option>
+              <option value="database">Database</option>
+              <option value="excel">Files</option>
+              <option value="api">API</option>
+            </select>
+            <div class="sp-view-toggle" role="group" aria-label="View mode">
+              <button type="button" class="active" data-view="grid" aria-label="Grid view"><i class="bi bi-grid-fill"></i></button>
+              <button type="button" data-view="list" aria-label="List view"><i class="bi bi-list"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sp-connector-grid" id="spConnectorGrid">
+          <% connectors.forEach(function (c) { %>
+            <div class="sp-conn-card" data-type="<%= c.type %>" data-name="<%= c.name.toLowerCase() %>">
+              <span class="sp-conn-icon" style="color: <%= c.color %>;">
+                <i class="bi <%= c.icon %>"></i>
+              </span>
+              <div class="sp-conn-name"><%= c.name %></div>
+              <div class="sp-conn-desc"><%= c.desc %></div>
+              <a class="sp-conn-btn" href="<%= c.href %>"><%= c.action %></a>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Connected Sources -->
+      <div class="sp-card">
+        <div class="sp-card-head">
+          <h2 class="sp-card-title">Connected Sources</h2>
+        </div>
+
+        <% if (sources.length > 0) { %>
+          <div class="sp-table-wrap">
+            <table class="sp-table" id="spSourcesTable">
+              <thead>
+                <tr>
+                  <th>Source Name</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Last Sync</th>
+                  <th>Records</th>
+                  <th>Owner</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% sources.forEach(function (s) {
+                     var meta = typeMeta(s.sourceType);
+                     var st = String(s.status || 'active').toLowerCase();
+                     var statusClass = (st === 'active' || st === 'connected') ? 'connected'
+                                     : (st === 'warning') ? 'warning'
+                                     : (st === 'error' || st === 'failed') ? 'error'
+                                     : 'disconnected';
+                     var statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+                %>
+                  <tr data-status="<%= statusClass %>">
+                    <td>
+                      <div class="sp-source-cell">
+                        <span class="sp-source-icon" style="color: <%= meta.color %>;"><i class="bi <%= meta.icon %>"></i></span>
+                        <span class="sp-source-name"><%= s.name %></span>
+                      </div>
+                    </td>
+                    <td><%= meta.label %></td>
+                    <td><span class="sp-status-pill <%= statusClass %>"><%= statusLabel %></span></td>
+                    <td style="color: var(--sp-muted);"><%= fmtRelative(s.lastSyncedAt || s.updatedAt) %></td>
+                    <td style="color: var(--sp-muted);"><%= s.originalFileName ? '—' : '—' %></td>
+                    <td>
+                      <span class="sp-owner">
+                        <span class="sp-owner-avatar">J</span>
+                        <span>John Doe</span>
+                      </span>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="sp-row-actions">
+                        <a class="sp-row-icon-btn" href="/sources/<%= s.id %>" title="View"><i class="bi bi-eye"></i></a>
+                        <form action="/sources/<%= s.id %>/test" method="POST" style="display:inline;">
+                          <button type="submit" class="sp-row-icon-btn" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+                        </form>
+                        <button type="button" class="sp-row-icon-btn" title="More" onclick="window.location.href='/sources/<%= s.id %>'"><i class="bi bi-three-dots"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sp-table-foot">
+            <span>Showing 1 to <%= sources.length %> of <%= sources.length %> sources</span>
+            <div class="sp-pager">
+              <button type="button" aria-label="Previous"><i class="bi bi-chevron-left"></i></button>
+              <button type="button" class="active">1</button>
+              <button type="button" aria-label="Next"><i class="bi bi-chevron-right"></i></button>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="sp-empty">
+            <i class="bi bi-database"></i>
+            <div class="t">No data sources yet</div>
+            <div class="s">Pick a connector above or click <strong>Add Source</strong> to get started.</div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Side column -->
+    <aside class="sp-side">
+
+      <!-- Source health donut -->
+      <div class="sp-card">
+        <div class="sp-card-head">
+          <h2 class="sp-card-title">Source Health</h2>
+        </div>
+        <div class="sp-donut-wrap">
+          <div class="sp-donut" style="--pct: <%= connectedPct %>;">
+            <div class="sp-donut-center">
+              <span class="v"><%= totalCount %></span>
+              <span class="l">Total</span>
+            </div>
+          </div>
+          <div class="sp-legend">
+            <div class="row"><span class="dot" style="background:#10B981"></span> <%= statusCounts.connected %> Connected</div>
+            <div class="row"><span class="dot" style="background:#F59E0B"></span> <%= statusCounts.warning %> Warning</div>
+            <div class="row"><span class="dot" style="background:#EF4444"></span> <%= statusCounts.error %> Error</div>
+            <div class="row"><span class="dot" style="background:#94A3B8"></span> <%= statusCounts.disconnected %> Disconnected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="sp-card">
+        <div class="sp-card-head">
+          <h2 class="sp-card-title">Quick Actions</h2>
+        </div>
+        <a class="sp-quick-action" href="/sources/new">
+          <span class="qa-icon" style="color:#3366FF;"><i class="bi bi-plus-circle-fill"></i></span>
+          <span class="qa-text">
+            <div class="qa-t">Add New Source</div>
+            <div class="qa-s">Connect a new data source</div>
+          </span>
+          <i class="bi bi-chevron-right qa-arr"></i>
+        </a>
+        <a class="sp-quick-action" href="javascript:document.getElementById('spRefreshAll').click()">
+          <span class="qa-icon" style="color:#10B981;"><i class="bi bi-arrow-clockwise"></i></span>
+          <span class="qa-text">
+            <div class="qa-t">Refresh All Sources</div>
+            <div class="qa-s">Sync all connected sources</div>
+          </span>
+          <i class="bi bi-chevron-right qa-arr"></i>
+        </a>
+        <a class="sp-quick-action" href="/admin">
+          <span class="qa-icon" style="color:#7C3AED;"><i class="bi bi-people-fill"></i></span>
+          <span class="qa-text">
+            <div class="qa-t">Manage Permissions</div>
+            <div class="qa-s">Set access for team members</div>
+          </span>
+          <i class="bi bi-chevron-right qa-arr"></i>
+        </a>
+        <button id="spRefreshAll" type="button" style="display:none;" onclick="document.querySelectorAll('form[action$=\'/test\']').forEach(function(f){ try { f.submit(); } catch(e){} });"></button>
+      </div>
+
+      <!-- Help -->
+      <div class="sp-card sp-help">
+        <h3>Need Help?</h3>
+        <p>Learn how to connect and manage your data sources.</p>
+        <a class="sp-help-btn" href="/" target="_blank" rel="noopener">View Documentation <i class="bi bi-box-arrow-up-right"></i></a>
+      </div>
+    </aside>
+
+  </div>
 </div>
 
-<div class="card">
-  <div class="card-body">
-    <% if (typeof sources !== 'undefined' && sources.length > 0) { %>
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>File</th>
-            <th>Last Sync</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% sources.forEach(function(s, idx) { %>
-          <tr>
-            <td><%= idx + 1 %></td>
-            <td><strong><%= s.name %></strong></td>
-            <td>
-              <span class="badge bg-<%= s.sourceType === 'database' ? 'primary' : (s.sourceType === 'api' ? 'warning' : 'info') %>">
-                <%= s.sourceType %>
-              </span>
-            </td>
-            <td>
-              <span class="badge bg-<%= s.status === 'active' ? 'success' : (s.status === 'error' ? 'danger' : 'secondary') %>">
-                <%= s.status %>
-              </span>
-            </td>
-            <td><small><%= s.originalFileName || '-' %></small></td>
-            <td><small><%= s.lastSyncedAt ? new Date(s.lastSyncedAt).toLocaleString() : 'Never' %></small></td>
-            <td>
-              <a href="/sources/<%= s.id %>" class="btn btn-sm btn-outline-primary me-1">
-                <i class="bi bi-eye"></i>
-              </a>
-              <form action="/sources/<%= s.id %>/test" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-sm btn-outline-success" title="Test / Refresh">
-                  <i class="bi bi-arrow-clockwise"></i>
-                </button>
-              </form>
-              <form action="/sources/<%= s.id %>/delete" method="POST" class="d-inline"
-                    onsubmit="return confirm('Delete \"<%= s.name %>\"? This cannot be undone.')">
-                <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Delete source">
-                  <i class="bi bi-trash"></i>
-                </button>
-              </form>
-            </td>
-          </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } else { %>
-      <div class="text-center py-5">
-        <i class="bi bi-database-add fs-2 text-muted"></i>
-        <p class="text-muted mt-3">No data sources yet.</p>
-        <a href="/sources/new" class="btn btn-primary btn-sm">Add Source</a>
-      </div>
-    <% } %>
-  </div>
-</div>
+<script>
+  (function () {
+    // Tab filter (status of connected-sources table)
+    var tabs = document.querySelectorAll('.sp-tabs .sp-tab');
+    var rows = document.querySelectorAll('#spSourcesTable tbody tr');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+        tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+        var f = tab.getAttribute('data-filter');
+        rows.forEach(function (r) {
+          var st = r.getAttribute('data-status');
+          var show = (f === 'all')
+                    || (f === 'connected'    && st === 'connected')
+                    || (f === 'disconnected' && (st === 'disconnected' || st === 'error'));
+          r.style.display = show ? '' : 'none';
+        });
+      });
+    });
+
+    // Connector search + type filter
+    var search = document.getElementById('spConnectorSearch');
+    var typeFilter = document.getElementById('spTypeFilter');
+    var grid = document.getElementById('spConnectorGrid');
+    function applyConnectorFilter() {
+      if (!grid) return;
+      var q = (search.value || '').toLowerCase();
+      var t = typeFilter.value;
+      grid.querySelectorAll('.sp-conn-card').forEach(function (card) {
+        var name = card.getAttribute('data-name') || '';
+        var type = card.getAttribute('data-type') || '';
+        var matchQ = !q || name.indexOf(q) >= 0;
+        var matchT = !t || type === t || (t === 'excel' && (type === 'excel' || type === 'csv' || type === 'json'));
+        card.style.display = (matchQ && matchT) ? '' : 'none';
+      });
+    }
+    if (search) search.addEventListener('input', applyConnectorFilter);
+    if (typeFilter) typeFilter.addEventListener('change', applyConnectorFilter);
+
+    // View toggle (grid <-> list)
+    var viewBtns = document.querySelectorAll('.sp-view-toggle button');
+    viewBtns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        viewBtns.forEach(function (x) { x.classList.remove('active'); });
+        b.classList.add('active');
+        var view = b.getAttribute('data-view');
+        if (!grid) return;
+        if (view === 'list') {
+          grid.style.gridTemplateColumns = '1fr';
+        } else {
+          grid.style.gridTemplateColumns = '';
+        }
+      });
+    });
+  })();
+</script>

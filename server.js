@@ -175,7 +175,9 @@ const PORT = appConfig.port;
 async function start() {
   try {
     // Sync database (create tables if needed)
-    await db.sequelize.sync();
+    // alter:true keeps schema in sync with model changes during development.
+    const syncOpts = process.env.DB_SYNC_ALTER === '0' ? {} : { alter: true };
+    await db.sequelize.sync(syncOpts);
     console.log('Database synchronized.');
 
     const server = app.listen(PORT, () => {

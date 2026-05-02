@@ -1,0 +1,38 @@
+<h1>Inquiries</h1>
+<p style="color:#6b7280; margin-top:-16px; margin-bottom:24px;">Submitted contact form entries from your website.</p>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-inbox"></i><p>No inquiries yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Status</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(i) { %>
+          <tr>
+            <td><strong><%= i.name %></strong>
+              <% if (i.subject) { %><div style="color:#6b7280;font-size:13px;margin-top:4px;"><%= i.subject %></div><% } %>
+            </td>
+            <td><a href="mailto:<%= i.email %>" style="font-size:13px;"><%= i.email %></a></td>
+            <td style="max-width:300px;color:#6b7280;"><%= (i.message || '').slice(0,160) %></td>
+            <td style="color:#6b7280;font-size:13px;white-space:nowrap;"><%= new Date(i.createdAt).toLocaleString() %></td>
+            <td>
+              <form method="POST" action="/admin/inquiries/<%= i.id %>/status" style="margin:0;">
+                <select name="status" class="form-select form-select-sm" style="font-size:12px;" onchange="this.form.submit()">
+                  <% ['new','read','replied','archived'].forEach(function(s) { %>
+                    <option value="<%= s %>" <%= i.status === s ? 'selected' : '' %>><%= s %></option>
+                  <% }) %>
+                </select>
+              </form>
+            </td>
+            <td class="actions">
+              <form method="POST" action="/admin/inquiries/<%= i.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this inquiry?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

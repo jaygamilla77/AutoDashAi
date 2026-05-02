@@ -1,0 +1,84 @@
+<h1>Features</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add Feature Card</h2>
+  <form method="POST" action="/admin/features" id="featForm">
+    <input type="hidden" name="index" id="f-index" value="">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Title</label>
+        <input class="form-control" name="title" id="f-title" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Icon (Bootstrap)</label>
+        <input class="form-control" name="icon" id="f-icon" placeholder="bi-stars" value="bi-stars">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Display Order</label>
+        <input type="number" class="form-control" name="order" id="f-order" value="0">
+      </div>
+      <div class="col-md-12">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" id="f-desc" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="f-submit"><i class="bi bi-plus-lg"></i> Add Feature</button>
+      <button type="button" class="btn btn-outline-secondary" id="f-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-stars"></i><p>No features yet. Add your first one above.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>#</th><th>Icon</th><th>Title</th><th>Description</th><th>Order</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(it, i) { %>
+          <tr>
+            <td><%= i + 1 %></td>
+            <td><i class="bi <%= it.icon %>" style="font-size:18px;color:#6366f1;"></i> <code style="font-size:11px;"><%= it.icon %></code></td>
+            <td><strong><%= it.title %></strong></td>
+            <td style="color:#6b7280;"><%= it.description %></td>
+            <td><%= it.order || 0 %></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary feat-edit"
+                data-i="<%= i %>" data-title="<%= it.title %>" data-icon="<%= it.icon %>"
+                data-desc="<%= it.description || '' %>" data-order="<%= it.order || 0 %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/admin/features/<%= i %>/delete" style="display:inline;" onsubmit="return confirm('Delete this feature?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.feat-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('f-index').value = btn.dataset.i;
+      document.getElementById('f-title').value = btn.dataset.title;
+      document.getElementById('f-icon').value  = btn.dataset.icon;
+      document.getElementById('f-desc').value  = btn.dataset.desc;
+      document.getElementById('f-order').value = btn.dataset.order;
+      document.getElementById('formTitle').textContent = 'Edit Feature Card';
+      document.getElementById('f-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save Feature';
+      document.getElementById('f-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('f-cancel').addEventListener('click', function() {
+    document.getElementById('featForm').reset();
+    document.getElementById('f-index').value = '';
+    document.getElementById('formTitle').textContent = 'Add Feature Card';
+    document.getElementById('f-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add Feature';
+    this.style.display = 'none';
+  });
+</script>

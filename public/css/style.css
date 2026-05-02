@@ -1,7 +1,7 @@
 /* ===== BI-Tool Layout Styles ===== */
 
 :root {
-  --sidebar-w: 72px;
+  --sidebar-w: 80px;
   --sidebar-bg: #ffffff;
   --sidebar-hover: #f0f4ff;
   --sidebar-active-bg: #eff6ff;
@@ -53,21 +53,21 @@ body {
 }
 
 .sidebar-brand a {
-  width: 36px;
-  height: 36px;
-  background: #2563EB;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3366FF 0%, #4F46E5 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  box-shadow: 0 8px 24px rgba(37,99,235,0.25);
+  box-shadow: 0 6px 14px -6px rgba(51,102,255,0.55);
   transition: transform 0.15s;
 }
 .sidebar-brand a:hover { transform: scale(1.06); }
 .sidebar-brand a i {
   color: #fff;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   margin: 0;
 }
 
@@ -163,6 +163,38 @@ body.is-guest .main-wrapper {
   width: 100%;
 }
 
+/* ===== Unified authenticated app layout =====
+   All authenticated pages share this content frame so spacing,
+   max-width, and alignment are identical across:
+   /dashboard, /dashboard/history, /sources, /templates, /ai-builder. */
+body.is-authed .main-content {
+  padding: 24px 10px 32px 10px;
+  gap: 24px;
+}
+body.is-authed .main-content > * {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+@media (max-width: 768px) {
+  body.is-authed .main-content { padding: 16px 16px 24px 10px; gap: 16px; }
+}
+
+/* Reusable page container — opt-in for pages rendered as standalone
+   shells (e.g. home.ejs with layout: false). Same spec as above. */
+.app-page {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+@media (max-width: 768px) {
+  .app-page { padding: 16px 16px 24px; gap: 16px; }
+}
+
 /* Mode cards - fill available space when displayed */
 #aiModeCard,
 #manualModeCard {
@@ -186,17 +218,17 @@ body.is-guest .main-wrapper {
 }
 
 .page-header h1 {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   margin: 0;
   color: var(--text);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.01em;
 }
 
 .page-header p {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
 }
 
 /* ========== Prompt Panel (Home) ========== */
@@ -724,11 +756,32 @@ h2 {
   .site-footer-bottom { flex-direction: column; align-items: flex-start; }
 }
 
+/* Mini footer (authenticated app pages) */
+.site-footer-mini {
+  background: transparent;
+  color: #64748B;
+  padding: 18px 24px;
+  border-top: 1px solid #ECEEF2;
+  margin-top: 24px;
+}
+.site-footer-mini-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.site-footer-mini .site-footer-poweredby a { color: #3366FF; text-decoration: none; font-weight: 500; }
+.site-footer-mini .site-footer-poweredby a:hover { color: #2952E6; text-decoration: underline; }
+
 /* ========== Marketing / SEO landing sections ========== */
 .marketing-section {
   max-width: 1100px;
   margin: 80px auto 0;
-  padding: 0 32px;
+  padding: 0 64px;
 }
 .marketing-eyebrow {
   display: inline-block;

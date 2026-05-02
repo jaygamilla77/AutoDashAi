@@ -1,0 +1,13 @@
+<h1>About</h1>
+<form method="POST" action="/admin/about">
+  <div class="admin-card">
+    <h2>About Page Content</h2>
+    <div class="row g-3">
+      <div class="col-md-12"><label class="form-label">Page Title</label><input class="form-control" name="title" value="<%= about.title || '' %>"></div>
+      <div class="col-md-12"><label class="form-label">Mission Statement</label><textarea class="form-control" name="mission" rows="2"><%= about.mission || '' %></textarea></div>
+      <div class="col-md-12"><label class="form-label">Company Description</label><textarea class="form-control" name="description" rows="6"><%= about.description || '' %></textarea></div>
+      <div class="col-md-12"><label class="form-label">Powered by Liknaya Text</label><input class="form-control" name="poweredBy" value="<%= about.poweredBy || '' %>"></div>
+    </div>
+  </div>
+  <button type="submit" class="btn-primary-pill"><i class="bi bi-check-lg"></i> Save Changes</button>
+</form>

@@ -1,0 +1,85 @@
+<h1>Templates</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add Dashboard Template</h2>
+  <form method="POST" action="/admin/templates" id="tplForm">
+    <input type="hidden" name="id" id="tpl-id" value="">
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Template Name</label><input class="form-control" name="name" id="tpl-name" required></div>
+      <div class="col-md-6"><label class="form-label">Category</label><input class="form-control" name="category" id="tpl-category" placeholder="Sales / HR / Finance"></div>
+      <div class="col-md-12"><label class="form-label">Description</label><textarea class="form-control" name="description" id="tpl-description" rows="2"></textarea></div>
+      <div class="col-md-12">
+        <label class="form-label">Recommended KPIs (one per line)</label>
+        <textarea class="form-control" name="recommendedKpis" id="tpl-kpis" rows="4" placeholder="Revenue&#10;Conversion Rate&#10;Active Users"></textarea>
+      </div>
+      <div class="col-md-12">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="isActive" id="tpl-active" checked>
+          <label class="form-check-label" for="tpl-active">Active (visible to users)</label>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="tpl-submit"><i class="bi bi-plus-lg"></i> Add Template</button>
+      <button type="button" class="btn btn-outline-secondary" id="tpl-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-grid-3x3-gap"></i><p>No templates yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Name</th><th>Category</th><th>Description</th><th>KPIs</th><th>Status</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(t) { %>
+          <tr>
+            <td><strong><%= t.name %></strong> <% if (t.isBuiltIn) { %><span class="badge-pill badge-published" style="margin-left:6px;">Built-in</span><% } %></td>
+            <td style="color:#6b7280;"><%= t.category || '—' %></td>
+            <td style="color:#6b7280;max-width:280px;"><%= (t.description || '').slice(0,100) %></td>
+            <td><%= (t.recommendedKpis || []).length %> items</td>
+            <td><span class="badge-pill <%= t.isActive ? 'badge-active' : 'badge-inactive' %>"><%= t.isActive ? 'Active' : 'Inactive' %></span></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary tpl-edit"
+                data-id="<%= t.id %>" data-name="<%= t.name %>" data-category="<%= t.category || '' %>"
+                data-description="<%= t.description || '' %>" data-kpis="<%= (t.recommendedKpis || []).join('\n') %>"
+                data-active="<%= t.isActive ? '1' : '0' %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <% if (!t.isBuiltIn) { %>
+                <form method="POST" action="/admin/templates/<%= t.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete this template?');">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.tpl-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('tpl-id').value = btn.dataset.id;
+      document.getElementById('tpl-name').value = btn.dataset.name;
+      document.getElementById('tpl-category').value = btn.dataset.category;
+      document.getElementById('tpl-description').value = btn.dataset.description;
+      document.getElementById('tpl-kpis').value = btn.dataset.kpis;
+      document.getElementById('tpl-active').checked = btn.dataset.active === '1';
+      document.getElementById('formTitle').textContent = 'Edit Template';
+      document.getElementById('tpl-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save Template';
+      document.getElementById('tpl-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('tpl-cancel').addEventListener('click', function() {
+    document.getElementById('tplForm').reset();
+    document.getElementById('tpl-id').value = '';
+    document.getElementById('formTitle').textContent = 'Add Dashboard Template';
+    document.getElementById('tpl-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add Template';
+    this.style.display = 'none';
+  });
+</script>

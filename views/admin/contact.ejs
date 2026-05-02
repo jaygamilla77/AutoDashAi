@@ -1,0 +1,29 @@
+<h1>Contact</h1>
+<form method="POST" action="/admin/contact">
+  <div class="admin-card">
+    <h2>Contact Page Content</h2>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Page Title</label><input class="form-control" name="title" value="<%= contact.title || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Subtitle</label><input class="form-control" name="subtitle" value="<%= contact.subtitle || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Support Email</label><input class="form-control" type="email" name="supportEmail" value="<%= contact.supportEmail || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Business Email</label><input class="form-control" type="email" name="businessEmail" value="<%= contact.businessEmail || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" name="phone" value="<%= contact.phone || '' %>"></div>
+      <div class="col-md-6"><label class="form-label">Address</label><input class="form-control" name="address" value="<%= contact.address || '' %>"></div>
+    </div>
+  </div>
+
+  <div class="admin-card">
+    <h2>Contact Form Settings</h2>
+    <div class="row g-3">
+      <div class="col-md-12">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="formEnabled" id="formEnabled" <%= contact.formEnabled ? 'checked' : '' %>>
+          <label class="form-check-label" for="formEnabled">Enable contact form on public site</label>
+        </div>
+      </div>
+      <div class="col-md-12"><label class="form-label">Form Success Message</label><textarea class="form-control" name="formSuccessMessage" rows="2"><%= contact.formSuccessMessage || '' %></textarea></div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn-primary-pill"><i class="bi bi-check-lg"></i> Save Changes</button>
+</form>

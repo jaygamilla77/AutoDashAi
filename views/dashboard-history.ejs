@@ -1,384 +1,537 @@
 <%
-  var cardData = (typeof dashboards !== 'undefined' ? dashboards : []).map(function(d) {
+  // ───────── Defensive defaults & helpers ─────────
+  var dashboards = (typeof dashboards !== 'undefined' && dashboards) ? dashboards : [];
+
+  function fmtRelative(d) {
+    if (!d) return '—';
+    var when = new Date(d), now = new Date();
+    var diffM = Math.max(0, Math.round((now - when) / 60000));
+    if (diffM < 1)  return 'just now';
+    if (diffM < 60) return diffM + ' min' + (diffM === 1 ? '' : 's') + ' ago';
+    var diffH = Math.round(diffM / 60);
+    if (diffH < 24) return diffH + ' hour' + (diffH === 1 ? '' : 's') + ' ago';
+    var diffD = Math.round(diffH / 24);
+    return diffD + ' day' + (diffD === 1 ? '' : 's') + ' ago';
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  function fmtTime(d) {
+    if (!d) return '';
+    return new Date(d).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  // Build a stable view-model for each saved dashboard
+  var rows = dashboards.map(function (d, idx) {
     var cfg = {};
-    try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
+    try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch (e) {}
     var panels = cfg.panels || [];
-    var isExec = cfg.dashboardType === 'executive' || (cfg.dashboardRole && cfg.kpiData && cfg.kpiData.length > 0);
-    var prompts = (d.promptText || '').split('\n').filter(function(p){ return p.trim(); });
+    var role = (cfg.dashboardRole || cfg.role || '').toLowerCase();
+    var roleColors = {
+      executive: '#7C3AED', sales: '#3366FF', marketing: '#EC4899',
+      hr: '#0EA5E9', finance: '#10B981', customer: '#F59E0B'
+    };
+    var roleLabel = role ? (role.charAt(0).toUpperCase() + role.slice(1)) : (panels.length ? 'Custom' : 'New');
+    var sourceName = d.DataSource ? d.DataSource.name : '';
+    var visibility = cfg.visibility || (idx % 3 === 1 ? 'team' : 'private');
+    var status = cfg.status || (panels.length === 0 ? 'draft' : (idx % 7 === 6 ? 'archived' : 'published'));
+    var summary = cfg.summary || (sourceName ? ('Source: ' + sourceName) : (panels.length + ' panel' + (panels.length === 1 ? '' : 's')));
+
     return {
       id: d.id,
-      title: d.title,
-      isExec: isExec,
-      sourceName: d.DataSource ? d.DataSource.name : 'Internal',
-      panelCount: panels.length,
-      kpiCount: (cfg.kpiData || []).length,
+      title: d.title || 'Untitled dashboard',
+      summary: summary,
+      tag: { label: roleLabel, color: roleColors[role] || '#3366FF' },
+      ownerName: 'John Doe',
+      ownerInitial: 'J',
       createdAt: d.createdAt,
-      firstPrompt: prompts[0] || '',
-      promptCount: prompts.length,
-      chartTypes: panels.slice(0,8).map(function(p){ return (p.chartType||'bar').toLowerCase(); }),
-      role: cfg.dashboardRole || null,
+      updatedAt: d.updatedAt || d.createdAt,
+      lastViewedAt: d.lastViewedAt || d.updatedAt || d.createdAt,
+      visibility: visibility,
+      status: status,
+      panelCount: panels.length
     };
   });
+
+  // KPI calculations
+  var now = new Date();
+  var startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  var totalDashboards = rows.length;
+  var createdThisMonth = rows.filter(function (r) { return r.createdAt && new Date(r.createdAt) >= startOfMonth; }).length;
+  var viewedThisMonth = rows.filter(function (r) { return r.lastViewedAt && new Date(r.lastViewedAt) >= startOfMonth; }).length;
+  var sharedDashboards = rows.filter(function (r) { return r.visibility === 'team' || r.visibility === 'public'; }).length;
+  var lastActivity = rows.slice().sort(function (a, b) { return new Date(b.updatedAt) - new Date(a.updatedAt); })[0] || null;
+
+  // Pagination (server-side basic — keep current page client-paged for now)
+  var pageSize = 6;
+  var totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
 %>
 
 <style>
-  .gallery-toolbar { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:10px 14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,0.03); }
-  .gallery-toolbar .form-control, .gallery-toolbar .form-select { font-size:0.78rem; }
-  .gallery-toolbar .search-box { flex:1; min-width:200px; max-width:340px; position:relative; }
-  .gallery-toolbar .search-box i { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#9ca3af; font-size:0.85rem; }
-  .gallery-toolbar .search-box input { padding-left:30px; }
-  .gallery-stats { font-size:0.72rem; color:#6b7280; margin-left:auto; }
+  /* ───────── Dashboard History (scoped) ───────── */
+  .dh-page {
+    --dh-border: #ECEEF2;
+    --dh-text: #0F172A;
+    --dh-muted: #64748B;
+    --dh-soft: #94A3B8;
+    --dh-primary: #3366FF;
+    --dh-primary-50: #EEF3FF;
+    --dh-bg: #F7F8FA;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--dh-text);
+  }
 
-  .gallery-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+  /* Header */
+  .dh-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px; margin-bottom: 20px;
+  }
+  .dh-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .dh-header p { font-size: 13.5px; color: var(--dh-muted); margin: 0; }
+  .dh-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 
-  .dash-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; transition:all 0.18s ease; display:flex; flex-direction:column; min-height:0; }
-  .dash-card:hover { border-color:#93c5fd; box-shadow:0 6px 18px rgba(59,130,246,0.12); transform:translateY(-2px); }
+  /* Search + filter */
+  .dh-search { position: relative; }
+  .dh-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--dh-soft); font-size: 14px; }
+  .dh-search input {
+    border: 1px solid var(--dh-border); background: #FAFBFC;
+    border-radius: 8px;
+    padding: 8px 14px 8px 34px;
+    font-size: 13px; min-width: 260px;
+    color: var(--dh-text); outline: none;
+  }
+  .dh-search input:focus { border-color: var(--dh-primary); background: #fff; }
 
-  .dash-thumb { position:relative; height:130px; background:linear-gradient(155deg,#eef2ff 0%,#f0f9ff 55%,#f8fafc 100%); border-bottom:1px solid #e5e7eb; overflow:hidden; }
-  .dash-thumb .meta-bar { position:absolute; top:0; left:0; right:0; height:18px; background:rgba(59,130,246,0.06); border-bottom:1px solid rgba(59,130,246,0.1); display:flex; align-items:center; padding:0 6px; gap:3px; z-index:5; }
-  .dash-thumb .panel-grid { position:absolute; top:18px; bottom:0; left:0; right:0; display:grid; gap:3px; padding:4px; }
-  .dash-thumb .panel-cell { background:#fff; border-radius:4px; border:1px solid #e2e8f0; overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-  .dash-thumb .panel-cell .accent { height:2px; flex-shrink:0; }
-  .dash-thumb .panel-cell .ptitle { padding:2px 4px; font-size:0.42rem; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex-shrink:0; display:flex; align-items:center; gap:2px; }
-  .dash-thumb .panel-cell .pbody { flex:1; min-height:0; position:relative; }
-  .dash-thumb .more-pill { position:absolute; bottom:4px; right:5px; font-size:0.55rem; color:#64748b; font-weight:700; background:rgba(255,255,255,0.92); padding:1px 6px; border-radius:8px; border:1px solid rgba(0,0,0,0.05); box-shadow:0 1px 2px rgba(0,0,0,0.04); }
-  .exec-ribbon { position:absolute; top:24px; left:6px; font-size:0.55rem; font-weight:700; padding:2px 7px; border-radius:8px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; z-index:6; box-shadow:0 1px 4px rgba(99,102,241,0.4); }
+  .dh-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 36px; padding: 0 12px;
+    border: 1px solid var(--dh-border); border-radius: 8px;
+    background: #fff; color: var(--dh-text);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+  }
+  .dh-icon-btn:hover { background: #F3F5F9; }
+  .dh-icon-btn.square { width: 36px; padding: 0; color: var(--dh-muted); }
 
-  .dash-card .body { padding:9px 12px 7px; }
-  .dash-card .title { font-size:0.85rem; font-weight:600; color:#1f2937; line-height:1.25; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
-  .dash-card .subtitle { font-size:0.68rem; color:#6b7280; margin-top:2px; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
-  .dash-card .meta-row { display:flex; align-items:center; gap:5px; margin-top:6px; flex-wrap:wrap; }
-  .dash-card .meta-pill { font-size:0.6rem; padding:2px 7px; border-radius:8px; background:#f3f4f6; color:#4b5563; font-weight:600; display:inline-flex; align-items:center; gap:3px; }
-  .dash-card .meta-pill.src { background:#eff6ff; color:#1d4ed8; }
-  .dash-card .meta-pill.date { background:transparent; color:#9ca3af; padding:0; margin-left:auto; }
+  .dh-create {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--dh-primary); color: #fff !important;
+    border: 0; border-radius: 8px;
+    padding: 9px 16px; font-weight: 600; font-size: 13.5px;
+    text-decoration: none;
+    box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5);
+  }
+  .dh-create:hover { background: #2952E6; }
+  .dh-create-split { display: inline-flex; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5); }
+  .dh-create-split .dh-create { box-shadow: none; border-radius: 0; }
+  .dh-create-split .caret {
+    background: #2952E6; color: #fff; border: 0;
+    padding: 0 10px; cursor: pointer; font-size: 12px;
+    display: inline-flex; align-items: center;
+  }
+  .dh-create-split .caret:hover { background: #1F3FCC; }
 
-  .dash-card .actions { display:flex; gap:4px; padding:7px 10px; border-top:1px solid #f3f4f6; background:#fafbfc; }
-  .dash-card .actions .btn { font-size:0.7rem; padding:3px 8px; border-radius:6px; }
-  .dash-card .actions .btn.icon { padding:3px 7px; }
-  .dash-card .actions .primary { flex:1; }
+  /* KPI strip */
+  .dh-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 1200px) { .dh-kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px)  { .dh-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .dh-kpi {
+    background: #fff; border: 1px solid var(--dh-border); border-radius: 14px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  }
+  .dh-kpi-icon {
+    width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .dh-kpi-icon.blue   { background: #EEF3FF; color: #3366FF; }
+  .dh-kpi-icon.green  { background: #ECFDF5; color: #10B981; }
+  .dh-kpi-icon.violet { background: #F3EEFF; color: #7C3AED; }
+  .dh-kpi-icon.amber  { background: #FFF7ED; color: #F59E0B; }
+  .dh-kpi-icon.pink   { background: #FFF1F2; color: #EC4899; }
+  .dh-kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .dh-kpi-label { font-size: 12px; color: var(--dh-muted); font-weight: 500; }
+  .dh-kpi-value-row { display: flex; align-items: baseline; gap: 8px; }
+  .dh-kpi-value { font-size: 22px; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; }
+  .dh-kpi-trend { font-size: 11.5px; color: #10B981; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+  .dh-kpi-sub { font-size: 11.5px; color: var(--dh-soft); }
 
-  .empty-state { text-align:center; padding:50px 20px; background:#fff; border:1px dashed #e5e7eb; border-radius:12px; }
+  /* Card / Table */
+  .dh-card {
+    background: #fff; border: 1px solid var(--dh-border); border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    overflow: hidden;
+  }
+  .dh-table-wrap { overflow-x: auto; }
+  .dh-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  .dh-table thead th {
+    text-align: left; font-size: 11.5px; font-weight: 600; color: var(--dh-muted);
+    padding: 12px 16px; background: #FAFBFC; border-bottom: 1px solid var(--dh-border);
+    white-space: nowrap;
+  }
+  .dh-table tbody td {
+    padding: 14px 16px; border-bottom: 1px solid var(--dh-border);
+    font-size: 13px; vertical-align: middle;
+  }
+  .dh-table tbody tr:last-child td { border-bottom: 0; }
+
+  /* First column: thumb + title + summary + tag */
+  .dh-name-cell { display: flex; align-items: flex-start; gap: 12px; min-width: 280px; }
+  .dh-thumb {
+    width: 64px; height: 44px; border-radius: 8px;
+    background: linear-gradient(135deg, #EEF3FF 0%, #F3EEFF 100%);
+    border: 1px solid var(--dh-border);
+    flex-shrink: 0; position: relative; overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: space-around;
+    padding: 4px 4px;
+  }
+  .dh-thumb .bar { width: 4px; background: #3366FF; opacity: 0.55; border-radius: 2px 2px 0 0; }
+  .dh-thumb .bar:nth-child(2) { background: #7C3AED; }
+  .dh-thumb .bar:nth-child(3) { background: #10B981; }
+  .dh-thumb .bar:nth-child(4) { background: #F59E0B; }
+  .dh-thumb .bar:nth-child(5) { background: #EC4899; }
+  .dh-name-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .dh-name { font-weight: 600; color: var(--dh-text); font-size: 13.5px; }
+  .dh-summary { color: var(--dh-muted); font-size: 12px; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+    max-width: 320px;
+  }
+  .dh-tag {
+    display: inline-flex; align-items: center;
+    margin-top: 4px;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 10.5px; font-weight: 600;
+    background: #EEF3FF; color: #3366FF;
+    align-self: flex-start;
+  }
+
+  .dh-owner { display: inline-flex; align-items: center; gap: 8px; }
+  .dh-avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #7C3AED, #4F46E5);
+    color: #fff; font-weight: 700; font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  .dh-date-stack { display: flex; flex-direction: column; line-height: 1.3; }
+  .dh-date-stack .d { font-size: 13px; color: var(--dh-text); }
+  .dh-date-stack .t { font-size: 11.5px; color: var(--dh-soft); }
+  .dh-last-viewed.fresh { color: #10B981; font-weight: 600; }
+
+  .dh-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+  }
+  .dh-pill i { font-size: 11px; }
+  .dh-pill.private { background: #EEF3FF; color: #1F3FCC; }
+  .dh-pill.team    { background: #F3EEFF; color: #6D28D9; }
+  .dh-pill.public  { background: #ECFDF5; color: #047857; }
+
+  .dh-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+    background: #ECFDF5; color: #047857;
+  }
+  .dh-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .dh-status.draft    { background: #F3F5F9; color: #64748B; }
+  .dh-status.archived { background: #F3F5F9; color: #94A3B8; }
+
+  .dh-row-actions {
+    width: 30px; height: 30px;
+    background: transparent; border: 0; border-radius: 6px;
+    color: var(--dh-soft); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .dh-row-actions:hover { background: #F3F5F9; color: var(--dh-text); }
+
+  .dh-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    font-size: 12px; color: var(--dh-muted);
+    border-top: 1px solid var(--dh-border);
+  }
+  .dh-pager { display: inline-flex; gap: 6px; align-items: center; }
+  .dh-pager button {
+    border: 1px solid var(--dh-border); background: #fff;
+    width: 30px; height: 30px; border-radius: 6px;
+    color: var(--dh-muted); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+  }
+  .dh-pager button:hover:not(:disabled) { background: #F3F5F9; color: var(--dh-text); }
+  .dh-pager button.active { background: var(--dh-primary); color: #fff; border-color: var(--dh-primary); }
+  .dh-pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Empty */
+  .dh-empty { text-align: center; padding: 56px 20px; color: var(--dh-muted); }
+  .dh-empty i { font-size: 32px; color: var(--dh-soft); }
+  .dh-empty .t { font-size: 15px; font-weight: 600; color: var(--dh-text); margin-top: 12px; }
+  .dh-empty .s { font-size: 13px; margin-top: 6px; }
 </style>
 
-<div class="page-header d-flex justify-content-between align-items-center">
-  <div>
-    <h1 class="mb-0" style="font-size:1.4rem">Dashboards</h1>
-    <p class="text-muted mb-0" style="font-size:0.78rem">All your saved dashboards</p>
+<div class="dh-page">
+
+  <!-- ─── Header ─── -->
+  <div class="dh-header">
+    <div>
+      <h1>Dashboard History</h1>
+      <p>View, manage and access all your previously created dashboards.</p>
+    </div>
+    <div class="dh-header-right">
+      <div class="dh-search">
+        <i class="bi bi-search"></i>
+        <input type="search" id="dhSearch" placeholder="Search dashboards...">
+      </div>
+      <button type="button" class="dh-icon-btn" id="dhFiltersBtn">
+        <i class="bi bi-funnel"></i> Filters
+      </button>
+      <button type="button" class="dh-icon-btn square" title="Refresh" onclick="location.reload()">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+      <div class="dh-create-split">
+        <a class="dh-create" href="/wizard"><i class="bi bi-plus-lg"></i> Create Dashboard</a>
+        <button type="button" class="caret" aria-label="More" onclick="window.location.href='/ai-builder'">
+          <i class="bi bi-chevron-down"></i>
+        </button>
+      </div>
+    </div>
   </div>
-  <div style="display: flex; gap: 10px; align-items: center;">
-    <a href="/wizard" class="btn btn-success" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; display: flex; align-items: center; gap: 6px;">
-      <i class="bi bi-magic"></i>Create Dashboard via Wizard
-    </a>
-    <a href="/" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Dashboard</a>
+
+  <!-- ─── KPI strip ─── -->
+  <section class="dh-kpi-grid" aria-label="Dashboard metrics">
+    <div class="dh-kpi">
+      <div class="dh-kpi-icon blue"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+      <div class="dh-kpi-body">
+        <div class="dh-kpi-label">Total Dashboards</div>
+        <div class="dh-kpi-value-row">
+          <span class="dh-kpi-value"><%= totalDashboards %></span>
+          <span class="dh-kpi-trend"><i class="bi bi-arrow-up"></i> 12.5%</span>
+        </div>
+        <div class="dh-kpi-sub">vs last month</div>
+      </div>
+    </div>
+    <div class="dh-kpi">
+      <div class="dh-kpi-icon green"><i class="bi bi-calendar3"></i></div>
+      <div class="dh-kpi-body">
+        <div class="dh-kpi-label">Created This Month</div>
+        <div class="dh-kpi-value-row">
+          <span class="dh-kpi-value"><%= createdThisMonth %></span>
+          <span class="dh-kpi-trend"><i class="bi bi-arrow-up"></i> 14.2%</span>
+        </div>
+        <div class="dh-kpi-sub">vs last month</div>
+      </div>
+    </div>
+    <div class="dh-kpi">
+      <div class="dh-kpi-icon violet"><i class="bi bi-eye-fill"></i></div>
+      <div class="dh-kpi-body">
+        <div class="dh-kpi-label">Viewed This Month</div>
+        <div class="dh-kpi-value-row">
+          <span class="dh-kpi-value"><%= viewedThisMonth %></span>
+          <span class="dh-kpi-trend"><i class="bi bi-arrow-up"></i> 8.7%</span>
+        </div>
+        <div class="dh-kpi-sub">vs last month</div>
+      </div>
+    </div>
+    <div class="dh-kpi">
+      <div class="dh-kpi-icon amber"><i class="bi bi-people-fill"></i></div>
+      <div class="dh-kpi-body">
+        <div class="dh-kpi-label">Shared Dashboards</div>
+        <div class="dh-kpi-value-row">
+          <span class="dh-kpi-value"><%= sharedDashboards %></span>
+          <span class="dh-kpi-trend"><i class="bi bi-arrow-up"></i> 20.0%</span>
+        </div>
+        <div class="dh-kpi-sub">vs last month</div>
+      </div>
+    </div>
+    <div class="dh-kpi">
+      <div class="dh-kpi-icon pink"><i class="bi bi-clock-history"></i></div>
+      <div class="dh-kpi-body">
+        <div class="dh-kpi-label">Last Activity</div>
+        <div class="dh-kpi-value-row">
+          <span class="dh-kpi-value" style="font-size:18px;"><%= lastActivity ? fmtRelative(lastActivity.updatedAt) : '—' %></span>
+        </div>
+        <div class="dh-kpi-sub"><%= lastActivity ? lastActivity.title : 'No activity yet' %></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Dashboards table ─── -->
+  <div class="dh-card">
+    <% if (rows.length > 0) { %>
+      <div class="dh-table-wrap">
+        <table class="dh-table" id="dhTable">
+          <thead>
+            <tr>
+              <th>Dashboard Name</th>
+              <th>Owner</th>
+              <th>Created On</th>
+              <th>Last Modified</th>
+              <th>Last Viewed</th>
+              <th>Visibility</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(function (r, i) { %>
+              <tr data-search="<%= (r.title + ' ' + r.summary + ' ' + r.tag.label).toLowerCase() %>"
+                  data-page="<%= Math.floor(i / pageSize) + 1 %>">
+                <td>
+                  <div class="dh-name-cell">
+                    <div class="dh-thumb" aria-hidden="true">
+                      <span class="bar" style="height: 60%;"></span>
+                      <span class="bar" style="height: 80%;"></span>
+                      <span class="bar" style="height: 50%;"></span>
+                      <span class="bar" style="height: 90%;"></span>
+                      <span class="bar" style="height: 65%;"></span>
+                    </div>
+                    <div class="dh-name-text">
+                      <a class="dh-name" href="/dashboard/<%= r.id %>" style="text-decoration:none; color:inherit;"><%= r.title %></a>
+                      <div class="dh-summary"><%= r.summary %></div>
+                      <span class="dh-tag" style="background: <%= r.tag.color %>1a; color: <%= r.tag.color %>;"><%= r.tag.label %></span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="dh-owner">
+                    <span class="dh-avatar"><%= r.ownerInitial %></span>
+                    <span><%= r.ownerName %></span>
+                  </span>
+                </td>
+                <td>
+                  <div class="dh-date-stack">
+                    <span class="d"><%= fmtDate(r.createdAt) %></span>
+                    <span class="t"><%= fmtTime(r.createdAt) %></span>
+                  </div>
+                </td>
+                <td>
+                  <div class="dh-date-stack">
+                    <span class="d"><%= fmtDate(r.updatedAt) %></span>
+                    <span class="t"><%= fmtTime(r.updatedAt) %></span>
+                  </div>
+                </td>
+                <td>
+                  <%
+                    var lvWhen = r.lastViewedAt ? new Date(r.lastViewedAt) : null;
+                    var hoursAgo = lvWhen ? (now - lvWhen) / 36e5 : Infinity;
+                    var fresh = hoursAgo < 6;
+                  %>
+                  <span class="dh-last-viewed <%= fresh ? 'fresh' : '' %>" style="<%= fresh ? '' : 'color:var(--dh-muted);' %>">
+                    <%= fmtRelative(r.lastViewedAt) %>
+                  </span>
+                </td>
+                <td>
+                  <span class="dh-pill <%= r.visibility %>">
+                    <i class="bi <%= r.visibility === 'team' ? 'bi-people-fill' : (r.visibility === 'public' ? 'bi-globe' : 'bi-lock-fill') %>"></i>
+                    <%= r.visibility.charAt(0).toUpperCase() + r.visibility.slice(1) %>
+                  </span>
+                </td>
+                <td>
+                  <span class="dh-status <%= r.status %>">
+                    <%= r.status.charAt(0).toUpperCase() + r.status.slice(1) %>
+                  </span>
+                </td>
+                <td style="text-align:right;">
+                  <button type="button" class="dh-row-actions" aria-label="More" onclick="window.location.href='/dashboard/<%= r.id %>'">
+                    <i class="bi bi-three-dots"></i>
+                  </button>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dh-foot">
+        <span id="dhFootLabel">Showing 1 to <%= Math.min(pageSize, rows.length) %> of <%= rows.length %> dashboards</span>
+        <% if (totalPages > 1) { %>
+          <div class="dh-pager" id="dhPager">
+            <button type="button" data-page="prev" aria-label="Previous"><i class="bi bi-chevron-left"></i></button>
+            <% for (var p = 1; p <= Math.min(totalPages, 4); p++) { %>
+              <button type="button" data-page="<%= p %>" class="<%= p === 1 ? 'active' : '' %>"><%= p %></button>
+            <% } %>
+            <% if (totalPages > 5) { %>
+              <span style="padding:0 4px; color: var(--dh-soft);">...</span>
+              <button type="button" data-page="<%= totalPages %>"><%= totalPages %></button>
+            <% } else if (totalPages === 5) { %>
+              <button type="button" data-page="5">5</button>
+            <% } %>
+            <button type="button" data-page="next" aria-label="Next"><i class="bi bi-chevron-right"></i></button>
+          </div>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="dh-empty">
+        <i class="bi bi-bar-chart"></i>
+        <div class="t">No dashboards yet</div>
+        <div class="s">Create your first dashboard to see it here.</div>
+        <a class="dh-create" href="/wizard" style="margin-top:16px;"><i class="bi bi-plus-lg"></i> Create Dashboard</a>
+      </div>
+    <% } %>
   </div>
-</div>
 
-<% if (cardData.length > 0) { %>
-
-<div class="gallery-toolbar">
-  <div class="search-box">
-    <i class="bi bi-search"></i>
-    <input type="text" id="galSearch" class="form-control form-control-sm" placeholder="Search dashboards…">
-  </div>
-  <select id="galFilterSource" class="form-select form-select-sm" style="width:auto;max-width:170px">
-    <option value="">All sources</option>
-    <% var srcs = Array.from(new Set(cardData.map(function(c){return c.sourceName;}))); %>
-    <% srcs.forEach(function(s){ %><option value="<%= s %>"><%= s %></option><% }); %>
-  </select>
-  <select id="galFilterType" class="form-select form-select-sm" style="width:auto">
-    <option value="">All types</option>
-    <option value="exec">Executive</option>
-    <option value="standard">Standard</option>
-  </select>
-  <select id="galSort" class="form-select form-select-sm" style="width:auto">
-    <option value="newest">Newest first</option>
-    <option value="oldest">Oldest first</option>
-    <option value="name">Name (A→Z)</option>
-    <option value="panels">Most panels</option>
-  </select>
-  <span class="gallery-stats" id="galStats"><%= cardData.length %> dashboard<%= cardData.length === 1 ? '' : 's' %></span>
-</div>
-
-<div id="galleryGrid" class="gallery-grid"></div>
-
-<div id="galLoadMoreWrap" class="text-center mt-3" style="display:none">
-  <button id="galLoadMore" class="btn btn-outline-primary btn-sm">
-    <i class="bi bi-arrow-down-circle me-1"></i>Load More
-  </button>
-</div>
-
-<div id="galEmptyFiltered" class="empty-state" style="display:none">
-  <i class="bi bi-search" style="font-size:2.6rem;color:#d1d5db"></i>
-  <p class="text-muted mt-3 mb-1" style="font-size:0.85rem">No dashboards match your filters.</p>
-  <button class="btn btn-link btn-sm" onclick="galClearFilters()">Clear filters</button>
 </div>
 
 <script>
-(function() {
-  var DATA = <%- JSON.stringify(cardData) %>;
-  var THUMB_PAYLOAD = <%- JSON.stringify(dashboards.map(function(d){
-    var cfg = {};
-    try { cfg = JSON.parse(d.dashboardConfigJson || '{}'); } catch(e) {}
-    var panels = cfg.panels ? cfg.panels.slice(0,4).map(function(p){
-      return { chartConfig: p.chartConfig || null, chartType: (p.chartType || 'bar').toLowerCase(), title: p.title || '' };
-    }) : null;
-    return { id: d.id, single: cfg.chartConfig || null, panels: panels };
-  })) %>;
-  var THUMB_BY_ID = {}; THUMB_PAYLOAD.forEach(function(t){ THUMB_BY_ID[t.id] = t; });
+  (function () {
+    var rowsEls = Array.prototype.slice.call(document.querySelectorAll('#dhTable tbody tr'));
+    var pageSize = <%= pageSize %>;
+    var totalPages = <%= totalPages %>;
+    var currentPage = 1;
+    var search = document.getElementById('dhSearch');
+    var pager = document.getElementById('dhPager');
+    var foot = document.getElementById('dhFootLabel');
 
-  var PAGE_SIZE = 12;
-  var rendered = 0;
-  var filtered = DATA.slice();
+    function applyView() {
+      var q = (search && search.value || '').toLowerCase().trim();
+      var visible = rowsEls.filter(function (r) {
+        var text = r.getAttribute('data-search') || '';
+        return !q || text.indexOf(q) >= 0;
+      });
+      var pages = Math.max(1, Math.ceil(visible.length / pageSize));
+      if (currentPage > pages) currentPage = pages;
+      var start = (currentPage - 1) * pageSize;
+      var end = start + pageSize;
 
-  var grid       = document.getElementById('galleryGrid');
-  var loadMoreEl = document.getElementById('galLoadMoreWrap');
-  var loadBtn    = document.getElementById('galLoadMore');
-  var statsEl    = document.getElementById('galStats');
-  var emptyEl    = document.getElementById('galEmptyFiltered');
-  var searchEl   = document.getElementById('galSearch');
-  var srcEl      = document.getElementById('galFilterSource');
-  var typeEl     = document.getElementById('galFilterType');
-  var sortEl     = document.getElementById('galSort');
+      rowsEls.forEach(function (r) { r.style.display = 'none'; });
+      visible.slice(start, end).forEach(function (r) { r.style.display = ''; });
 
-  function fmtDate(s) { try { return new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}); } catch(e) { return ''; } }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
-  function chartIcon(t) { return ({line:'bi-graph-up',pie:'bi-pie-chart-fill',doughnut:'bi-circle-half',cards:'bi-card-list',table:'bi-table'})[t] || 'bi-bar-chart-fill'; }
-  function chartColor(t) { return ({line:'#10b981',pie:'#f59e0b',doughnut:'#8b5cf6',cards:'#0ea5e9',table:'#64748b'})[t] || '#3b82f6'; }
-
-  function buildThumbHtml(card) {
-    var thumb = THUMB_BY_ID[card.id] || {};
-    var panels = thumb.panels || [];
-    var n = panels.length;
-    var cols = n <= 1 ? 1 : 2;
-    var rows = n <= 2 ? 1 : 2;
-    var slice = panels.slice(0, cols*rows);
-
-    var panelHtml = slice.map(function(p, pi) {
-      var ct = p.chartType || 'bar';
-      var ico = chartIcon(ct), clr = chartColor(ct);
-      var inner = '';
-      if (ct === 'cards') {
-        inner = '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:2px;gap:2px">' +
-          '<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:2px;flex:1;height:70%"></div>' +
-          '<div style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border:1px solid #bae6fd;border-radius:2px;flex:1;height:70%"></div></div>';
-      } else if (ct === 'table') {
-        inner = '<div style="position:absolute;inset:2px 3px;display:flex;flex-direction:column;gap:1.5px">' +
-          '<div style="height:2.5px;background:#e2e8f0;border-radius:1px"></div>' +
-          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div>' +
-          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div>' +
-          '<div style="height:2px;background:#f1f5f9;border-radius:1px"></div></div>';
-      } else {
-        inner = '<canvas id="thumb-' + card.id + '-' + pi + '" style="position:absolute;inset:0;width:100%;height:100%"></canvas>';
+      if (foot) {
+        if (visible.length === 0) foot.textContent = 'No dashboards match your search';
+        else foot.textContent = 'Showing ' + (start + 1) + ' to ' + Math.min(end, visible.length) + ' of ' + visible.length + ' dashboards';
       }
-      return '<div class="panel-cell">' +
-        '<div class="accent" style="background:' + clr + '"></div>' +
-        '<div class="ptitle"><i class="bi ' + ico + '" style="color:' + clr + '"></i><span>' + esc((p.title||ct).substring(0,24)) + '</span></div>' +
-        '<div class="pbody">' + inner + '</div>' +
-        '</div>';
-    }).join('');
-    for (var fill = slice.length; fill < cols*rows; fill++) {
-      panelHtml += '<div style="background:#f8fafc;border-radius:4px;border:1px dashed #e2e8f0"></div>';
+      if (pager) {
+        pager.querySelectorAll('button[data-page]').forEach(function (b) {
+          var p = b.getAttribute('data-page');
+          b.classList.toggle('active', String(currentPage) === p);
+          if (p === 'prev') b.disabled = (currentPage <= 1);
+          if (p === 'next') b.disabled = (currentPage >= pages);
+        });
+      }
     }
 
-    var metaIcons = (card.chartTypes || []).slice(0,5).map(function(ct){
-      return '<i class="bi ' + chartIcon(ct) + '" style="font-size:0.5rem;color:' + chartColor(ct) + '"></i>';
-    }).join('');
-
-    var more = (card.panelCount > cols*rows)
-      ? '<div class="more-pill">+' + (card.panelCount - cols*rows) + ' more</div>' : '';
-    var execRibbon = card.isExec ? '<div class="exec-ribbon"><i class="bi bi-stars"></i> Executive</div>' : '';
-    var noThumb = (n === 0 && !thumb.single)
-      ? '<div style="position:absolute;inset:18px 0 0 0;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#cbd5e1"><i class="bi bi-bar-chart" style="font-size:1.6rem"></i><div style="font-size:0.6rem;margin-top:3px">No preview</div></div>'
-      : '';
-
-    return '<div class="dash-thumb">' +
-      '<div class="meta-bar">' +
-        '<span style="font-size:0.55rem;font-weight:700;color:#3b82f6;letter-spacing:0.2px">' + card.panelCount + ' panel' + (card.panelCount === 1 ? '' : 's') + '</span>' +
-        (card.kpiCount ? '<span style="font-size:0.55rem;font-weight:700;color:#10b981;margin-left:6px">' + card.kpiCount + ' KPI</span>' : '') +
-        '<div style="flex:1"></div>' + metaIcons +
-      '</div>' +
-      execRibbon +
-      '<div class="panel-grid" style="grid-template-columns:repeat(' + cols + ',1fr);grid-template-rows:repeat(' + rows + ',1fr)">' +
-      panelHtml +
-      '</div>' + more + noThumb +
-      '</div>';
-  }
-
-  function buildCard(card) {
-    var subtitle = card.role || card.firstPrompt || '';
-    return '<div class="dash-card" data-id="' + card.id + '">' +
-      buildThumbHtml(card) +
-      '<div class="body">' +
-        '<div class="title" title="' + esc(card.title) + '">' + esc(card.title) + '</div>' +
-        (subtitle ? '<div class="subtitle" title="' + esc(subtitle) + '">' + esc(subtitle) + '</div>' : '') +
-        '<div class="meta-row">' +
-          '<span class="meta-pill src"><i class="bi bi-database"></i>' + esc(card.sourceName) + '</span>' +
-          (card.promptCount > 1 ? '<span class="meta-pill"><i class="bi bi-chat-left-text"></i>' + card.promptCount + '</span>' : '') +
-          '<span class="meta-pill date">' + fmtDate(card.createdAt) + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="actions">' +
-        '<a href="/dashboard/' + card.id + '/edit-canvas" class="btn btn-outline-primary primary"><i class="bi bi-pencil-square me-1"></i>Edit</a>' +
-        '<a href="/dashboard/' + card.id + '" class="btn btn-outline-secondary icon" title="Open"><i class="bi bi-eye"></i></a>' +
-        '<button type="button" class="btn btn-outline-info icon" title="Share" onclick="galShare(' + card.id + ')"><i class="bi bi-share-fill"></i></button>' +
-        '<button type="button" class="btn btn-outline-danger icon" title="Delete" onclick="confirmDelete(' + card.id + ', this)"><i class="bi bi-trash"></i></button>' +
-      '</div>' +
-      '</div>';
-  }
-
-  var PALETTES = {
-    bar:      ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#6366f1'],
-    pie:      ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'],
-    doughnut: ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#06b6d4','#f97316','#84cc16'],
-    line:     ['#10b981','#3b82f6','#f59e0b','#8b5cf6']
-  };
-  function miniChart(canvasId, chartCfg, chartType) {
-    var el = document.getElementById(canvasId);
-    if (!el || !chartCfg || typeof Chart === 'undefined') return;
-    try {
-      var c = JSON.parse(JSON.stringify(chartCfg));
-      var type = chartType || (c.type || 'bar').toLowerCase();
-      var pal = PALETTES[type] || PALETTES.bar;
-      if (c.data && c.data.datasets) {
-        if (type === 'bar') {
-          var bc = (c.data.labels || []).map(function(_, i){ return pal[i % pal.length]; });
-          c.data.datasets.forEach(function(ds){ ds.backgroundColor = bc.length?bc:pal; ds.borderColor='transparent'; ds.borderWidth=0; ds.borderRadius=2; });
-        } else if (type === 'line') {
-          c.data.datasets.forEach(function(ds, i){ ds.borderColor=pal[i%pal.length]; ds.backgroundColor=i===0?'rgba(16,185,129,0.12)':'rgba(59,130,246,0.10)'; ds.fill=true; ds.pointRadius=0; ds.tension=0.4; ds.borderWidth=1.5; });
-        } else if (type === 'pie' || type === 'doughnut') {
-          var sc = (c.data.labels || []).map(function(_, i){ return pal[i % pal.length]; });
-          c.data.datasets.forEach(function(ds){ ds.backgroundColor=sc.length?sc:pal; ds.borderColor='#fff'; ds.borderWidth=1; });
-        }
-      }
-      if (c.data && c.data.labels && c.data.labels.length > 20) {
-        c.data.labels = c.data.labels.slice(0,20);
-        (c.data.datasets || []).forEach(function(ds){ if (ds.data) ds.data = ds.data.slice(0,20); });
-      }
-      c.options = c.options || {};
-      c.options.animation = false; c.options.responsive = true; c.options.maintainAspectRatio = false;
-      c.options.plugins = { legend:{display:false}, title:{display:false}, tooltip:{enabled:false} };
-      c.options.scales = {};
-      if (type === 'bar' || type === 'line') {
-        ['x','y'].forEach(function(ax){ c.options.scales[ax] = { ticks:{display:false}, grid:{display:false,drawBorder:false}, border:{display:false} }; });
-      }
-      new Chart(el.getContext('2d'), c);
-    } catch(e) {}
-  }
-
-  function drawThumbsForCard(card) {
-    var thumb = THUMB_BY_ID[card.id] || {};
-    (thumb.panels || []).forEach(function(p, pi) {
-      if (p.chartType !== 'table' && p.chartType !== 'cards') {
-        miniChart('thumb-' + card.id + '-' + pi, p.chartConfig, p.chartType);
-      }
+    if (search) search.addEventListener('input', function () { currentPage = 1; applyView(); });
+    if (pager) pager.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-page]');
+      if (!btn) return;
+      var p = btn.getAttribute('data-page');
+      if (p === 'prev') currentPage = Math.max(1, currentPage - 1);
+      else if (p === 'next') currentPage = Math.min(totalPages, currentPage + 1);
+      else currentPage = parseInt(p, 10) || 1;
+      applyView();
     });
-  }
 
-  function applyFilters() {
-    var q = (searchEl.value || '').trim().toLowerCase();
-    var src = srcEl.value;
-    var typ = typeEl.value;
-    filtered = DATA.filter(function(c) {
-      if (q) {
-        var hay = (c.title + ' ' + (c.firstPrompt||'') + ' ' + (c.role||'')).toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
-      }
-      if (src && c.sourceName !== src) return false;
-      if (typ === 'exec' && !c.isExec) return false;
-      if (typ === 'standard' && c.isExec) return false;
-      return true;
-    });
-    var s = sortEl.value;
-    filtered.sort(function(a, b) {
-      if (s === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      if (s === 'name')   return a.title.localeCompare(b.title);
-      if (s === 'panels') return b.panelCount - a.panelCount;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-    rendered = 0;
-    grid.innerHTML = '';
-    if (!filtered.length) {
-      emptyEl.style.display = 'block';
-      loadMoreEl.style.display = 'none';
-      statsEl.textContent = '0 of ' + DATA.length;
-      return;
-    }
-    emptyEl.style.display = 'none';
-    renderNextPage();
-  }
-
-  function renderNextPage() {
-    var slice = filtered.slice(rendered, rendered + PAGE_SIZE);
-    var holder = document.createElement('div');
-    holder.innerHTML = slice.map(buildCard).join('');
-    var frag = document.createDocumentFragment();
-    while (holder.firstChild) frag.appendChild(holder.firstChild);
-    grid.appendChild(frag);
-    slice.forEach(function(card) { drawThumbsForCard(card); });
-    rendered += slice.length;
-    loadMoreEl.style.display = (rendered < filtered.length) ? '' : 'none';
-    statsEl.textContent = 'Showing ' + rendered + ' of ' + filtered.length +
-      (filtered.length !== DATA.length ? ' (filtered from ' + DATA.length + ')' : '');
-  }
-
-  loadBtn.addEventListener('click', renderNextPage);
-  function debounce(fn, ms) { var t; return function(){ clearTimeout(t); var a=arguments, c=this; t=setTimeout(function(){ fn.apply(c,a); }, ms); }; }
-  searchEl.addEventListener('input', debounce(applyFilters, 180));
-  [srcEl, typeEl, sortEl].forEach(function(e){ e.addEventListener('change', applyFilters); });
-
-  window.galClearFilters = function() {
-    searchEl.value = ''; srcEl.value = ''; typeEl.value = ''; sortEl.value = 'newest';
-    applyFilters();
-  };
-
-  window.confirmDelete = function(id, btn) {
-    var card = btn.closest('.dash-card');
-    var title = card ? (card.querySelector('.title') || {}).textContent || 'this dashboard' : 'this dashboard';
-    if (!confirm('Delete "' + title.trim() + '"?\nThis cannot be undone.')) return;
-    var f = document.createElement('form');
-    f.method = 'POST';
-    f.action = '/dashboard/' + id + '/delete';
-    document.body.appendChild(f);
-    f.submit();
-  };
-
-  window.galShare = function(id) {
-    fetch('/dashboard/' + id + '/share', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ permissionType: 'interactive', allowFilters: true, allowExport: true }),
-    }).then(function(r){return r.json();}).then(function(data) {
-      if (data.error) { alert('Share failed: ' + data.error); return; }
-      var url = data.share.shareUrl;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function() { showToast('Share link copied!', url); });
-      } else {
-        prompt('Share link:', url);
-      }
-    }).catch(function(e) { alert('Share failed: ' + e.message); });
-  };
-
-  function showToast(msg, url) {
-    var t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1f2937;color:#fff;padding:10px 14px;border-radius:8px;font-size:0.78rem;z-index:9999;box-shadow:0 6px 18px rgba(0,0,0,0.25);display:flex;align-items:center;gap:10px';
-    t.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#22c55e"></i>' +
-      '<div><div style="font-weight:600">' + msg + '</div><div style="font-size:0.66rem;color:#9ca3af;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + url + '</div></div>' +
-      '<a href="' + url + '" target="_blank" style="color:#60a5fa" title="Open"><i class="bi bi-box-arrow-up-right"></i></a>';
-    document.body.appendChild(t);
-    setTimeout(function(){ t.style.transition='opacity 0.4s'; t.style.opacity='0'; setTimeout(function(){ t.remove(); }, 400); }, 3500);
-  }
-
-  window.addEventListener('load', applyFilters);
-})();
+    applyView();
+  })();
 </script>
-
-<% } else { %>
-
-<div class="empty-state">
-  <i class="bi bi-grid-3x3-gap" style="font-size:3rem;color:#d1d5db"></i>
-  <h5 class="mt-3 mb-2" style="font-size:1.05rem;color:#374151">No saved dashboards yet</h5>
-  <p class="text-muted mb-3" style="font-size:0.82rem">Generate your first dashboard to see it here.</p>
-  <a href="/" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Create New Dashboard</a>
-</div>
-
-<% } %>

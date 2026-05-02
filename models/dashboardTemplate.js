@@ -34,6 +34,20 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: null,
     },
+    category: {
+      type: DataTypes.STRING(80),
+      allowNull: true,
+    },
+    // JSON array of recommended KPIs, e.g. ["Revenue","Conversion Rate"]
+    recommendedKpis: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   }, {
     tableName: 'dashboard_templates',
   });

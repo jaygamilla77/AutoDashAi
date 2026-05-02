@@ -3,837 +3,508 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AutoDash AI – Intelligent AI Dashboard Builder &amp; Analytics Platform</title>
-  <meta name="description" content="AutoDash AI is an AI-powered dashboard builder that automatically generates KPI dashboards, executive reports, and interactive data visualizations from any data source. Smart analytics for modern businesses. Powered by Liknaya.com.">
-  <meta name="keywords" content="AI dashboard builder, AI analytics platform, automated dashboard creator, business intelligence software, KPI dashboard, AI reporting tool, smart analytics platform, data visualization software, dashboard automation, executive dashboard software, real-time analytics, interactive dashboards, AI-powered reporting, business dashboard platform, analytics dashboard creator">
-  <meta name="author" content="Liknaya.com">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
-  <meta name="theme-color" content="#2563EB">
-  <link rel="canonical" href="https://autodash.liknaya.com/">
+  <title>AutoDash AI – Home</title>
+  <meta name="description" content="AutoDash AI authenticated home — KPIs, recent dashboards, quick actions, and activity. Powered by Liknaya.com.">
+  <meta name="theme-color" content="#3366FF">
+  <meta name="robots" content="noindex,nofollow">
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="AutoDash AI">
-  <meta property="og:title" content="AutoDash AI – Intelligent AI Dashboard Builder">
-  <meta property="og:description" content="Generate KPI dashboards, executive reports, and interactive data visualizations automatically with AI. Powered by Liknaya.com.">
-  <meta property="og:url" content="https://autodash.liknaya.com/">
-  <meta property="og:image" content="https://autodash.liknaya.com/og-cover.png">
-  <meta property="og:locale" content="en_US">
-
-  <!-- Twitter / X Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="AutoDash AI – Intelligent AI Dashboard Builder">
-  <meta name="twitter:description" content="Generate KPI dashboards and analytics automatically with AI. Powered by Liknaya.com.">
-  <meta name="twitter:image" content="https://autodash.liknaya.com/og-cover.png">
-
-  <!-- Structured data: Organization -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "AutoDash AI",
-    "url": "https://autodash.liknaya.com",
-    "logo": "https://autodash.liknaya.com/logo.png",
-    "description": "AutoDash AI is an AI-powered dashboard builder and business intelligence platform that automatically generates KPI dashboards from any data source.",
-    "parentOrganization": { "@type": "Organization", "name": "Liknaya", "url": "https://liknaya.com" },
-    "sameAs": ["https://liknaya.com"]
-  }
-  </script>
-  <!-- Structured data: WebSite -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "AutoDash AI",
-    "url": "https://autodash.liknaya.com",
-    "publisher": { "@type": "Organization", "name": "Liknaya.com", "url": "https://liknaya.com" }
-  }
-  </script>
-  <!-- Structured data: SoftwareApplication -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "AutoDash AI",
-    "url": "https://autodash.liknaya.com",
-    "applicationCategory": "BusinessApplication",
-    "applicationSubCategory": "Business Intelligence Software",
-    "operatingSystem": "Web (Cloud-based, browser)",
-    "description": "AI dashboard builder and analytics platform that automatically generates KPI dashboards, executive reports, and interactive data visualizations from any data source.",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
-    "featureList": [
-      "AI dashboard generation",
-      "KPI recommendations",
-      "Smart chart suggestions",
-      "Multi-source data integration",
-      "Interactive dashboards",
-      "AI-powered insights and executive summaries",
-      "Real-time analytics",
-      "Dashboard sharing and collaboration"
-    ],
-    "creator": { "@type": "Organization", "name": "Liknaya", "url": "https://liknaya.com" }
-  }
-  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="/css/style.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    /* ───────────────── Modern SaaS dashboard — scoped to /dashboard home ───────────────── */
+    :root {
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --border: #ECEEF2;
+      --border-strong: #E2E5EB;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --text-soft: #94A3B8;
+      --primary: #3366FF;
+      --primary-50: #EEF3FF;
+      --primary-600: #2952E6;
+      --success: #10B981;
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 4px 14px -6px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+      --radius-sm: 10px;
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-      background: #F8FAFC;
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body.home-shell {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      color: #0F172A;
-      padding: 0;
-      margin: 0;
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
     }
 
-    .navbar {
-      background: #FFFFFF !important;
-      border-bottom: 1px solid #E2E8F0 !important;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-      padding: 0.75rem 40px !important;
-      margin-left: 72px;
-      width: calc(100% - 72px);
+    /* Sidebar — use the shared/global sidebar styles (no home-specific overrides). */
+
+    /* Main content wrapper — unified app-page spec */
+    body.home-shell .home-main {
+      margin-left: 80px;
+      max-width: calc(1600px + 80px);
+      padding: 24px 10px 32px 10px;
     }
 
-    .navbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-      padding: 0;
+    /* Top bar */
+    .home-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px;
     }
-    .navbar-brand-icon {
-      width: 38px; height: 38px;
-      background: #2563EB;
-      color: #fff;
-      border-radius: 10px;
-      display: grid; place-items: center;
-      font-size: 20px;
-      box-shadow: 0 8px 24px rgba(37,99,235,.25);
-      flex-shrink: 0;
+    .home-topbar-left h1 {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.01em;
+      margin: 0 0 4px; color: var(--text);
     }
-    .navbar-brand-text { display: flex; flex-direction: column; line-height: 1.05; }
-    .navbar-brand-name { font-weight: 800; font-size: 17px; color: #0F172A; letter-spacing: -.01em; }
-    .navbar-brand-name .ai { color: #2563EB; }
-    .navbar-brand-tag { font-size: 11px; color: #64748B; font-weight: 500; margin-top: 2px; }
+    .home-topbar-left p { margin: 0; color: var(--text-muted); font-size: 13.5px; }
 
-    .nav-link {
-      color: #64748B !important;
-      font-weight: 500;
-      font-size: 0.95rem !important;
-      transition: color 0.2s;
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    .icon-btn {
+      width: 36px; height: 36px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-muted);
+      cursor: pointer; text-decoration: none;
+      position: relative;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-
-    .nav-link:hover {
-      color: #0EA5E9 !important;
+    .icon-btn:hover { background: #F3F5F9; color: var(--text); }
+    .icon-btn .dot {
+      position: absolute; top: 8px; right: 9px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #EF4444; border: 2px solid var(--surface);
     }
 
-    .page-content {
-      padding: 40px 40px;
-      width: calc(100% - 72px);
-      margin: 0 0 0 72px;
+    .user-chip {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 4px 10px 4px 4px;
+      border: 1px solid var(--border); border-radius: 999px;
+      background: var(--surface);
     }
-
-    .site-footer { margin-left: 72px; }
-    @media (max-width: 768px) {
-      .site-footer { margin-left: 0; }
+    .user-chip .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #3366FF, #4F46E5);
+      color: #fff; font-weight: 700; font-size: 12px;
+      display: inline-flex; align-items: center; justify-content: center;
     }
+    .user-chip .meta { display: flex; flex-direction: column; line-height: 1.1; }
+    .user-chip .meta .nm { font-size: 13px; font-weight: 600; color: var(--text); }
+    .user-chip .meta .role { font-size: 11px; color: var(--text-soft); }
+    .user-chip .caret { color: var(--text-soft); margin-right: 6px; font-size: 12px; }
 
-    /* ─── Simplified welcome hero ──────────────────────────────────────── */
-    .welcome-hero {
-      max-width: 640px;
-      margin: 60px auto 80px;
-      text-align: center;
+    .btn-create {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary); color: #fff !important;
+      border: 0; border-radius: 8px;
+      padding: 9px 16px;
+      font-weight: 600; font-size: 13.5px;
+      box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5);
+      cursor: pointer; text-decoration: none;
+      transition: background 0.15s, transform 0.1s;
     }
-
-    .welcome-title {
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: #0F172A;
-      letter-spacing: -0.6px;
-      margin: 0 0 12px;
+    .btn-create:hover { background: var(--primary-600); }
+    .btn-create:active { transform: translateY(1px); }
+    .btn-create-split {
+      display: inline-flex; align-items: stretch;
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 4px 12px -4px rgba(51,102,255,0.5);
     }
-
-    .welcome-sub {
-      font-size: 1rem;
-      color: #64748B;
-      margin: 0 0 40px;
+    .btn-create-split .btn-create { box-shadow: none; border-radius: 0; }
+    .btn-create-split .caret-btn {
+      background: var(--primary-600); color: #fff;
+      border: 0; padding: 0 10px;
+      cursor: pointer; font-size: 12px;
+      display: inline-flex; align-items: center;
     }
+    .btn-create-split .caret-btn:hover { background: #1F3FCC; }
 
-    .create-card {
-      display: block;
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 16px;
-      padding: 36px 32px 32px;
-      text-decoration: none;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-    }
-
-    .create-card:hover {
-      border-color: #C7D2FE;
-      box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
-      transform: translateY(-2px);
-    }
-
-    .create-card-icon {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 18px;
-      border-radius: 50%;
-      background: #EEF2FF;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #2563EB;
-      font-size: 1.6rem;
-    }
-
-    .create-card-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 8px;
-    }
-
-    .create-card-desc {
-      font-size: 0.92rem;
-      color: #64748B;
-      line-height: 1.5;
-      margin: 0 auto 22px;
-      max-width: 340px;
-    }
-
-    .create-card-btn {
-      display: inline-block;
-      background: #2563EB;
-      color: #FFFFFF;
-      font-weight: 600;
-      font-size: 0.95rem;
-      padding: 12px 28px;
-      border-radius: 10px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-    }
-
-    .recent-heading {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 10px;
-    }
-
-    .recent-divider {
-      height: 1px;
-      background: #E2E8F0;
-      margin-bottom: 24px;
-    }
-
-    .empty-state-sub {
-      font-size: 0.86rem;
-      color: #94A3B8;
-      margin-top: 4px;
-    }
-
-    .header-section {
-      margin-bottom: 48px;
-    }
-
-    .header-greeting {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 40px;
-      margin-bottom: 40px;
-    }
-
-    .greeting-text h1 {
-      font-size: 2.25rem;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-
-    .greeting-text p {
-      font-size: 1rem;
-      color: #64748B;
-      margin: 0;
-    }
-
-    .ai-summary {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 24px;
-      max-width: 380px;
-      color: #0F172A;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
-
-    .ai-summary-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #0F172A;
-    }
-
-    .ai-summary-title i {
-      color: #0EA5E9;
-    }
-
-    /* â”€â”€â”€ KPI Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .kpi-section {
-      margin-bottom: 48px;
-    }
-
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 24px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .section-title i {
-      color: #0EA5E9;
-    }
-
+    /* KPI grid */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
     }
-
     .kpi-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 24px;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; gap: 14px;
+      transition: box-shadow 0.15s, transform 0.1s;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow-md); }
+    .kpi-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .kpi-icon.blue   { background: #EEF3FF; color: #3366FF; }
+    .kpi-icon.green  { background: #ECFDF5; color: #10B981; }
+    .kpi-icon.violet { background: #F3EEFF; color: #7C3AED; }
+    .kpi-icon.amber  { background: #FFF7ED; color: #F59E0B; }
+    .kpi-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .kpi-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+    .kpi-value-row { display: flex; align-items: baseline; gap: 8px; }
+    .kpi-value { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; line-height: 1.1; }
+    .kpi-trend { font-size: 11.5px; color: var(--success); font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+    .kpi-sub { font-size: 11.5px; color: var(--text-soft); }
+
+    /* Two-column row */
+    .home-row {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 16px;
+      margin-bottom: 22px;
     }
 
-    .kpi-card:hover {
-      border-color: #0EA5E9;
-      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
-      transform: translateY(-2px);
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 22px 22px;
     }
-
-    .kpi-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 16px;
     }
-
-    .kpi-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .kpi-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 6px;
-      background: #F0FDF4;
-      color: #16A34A;
-    }
-
-    .kpi-status.warning {
-      background: #FFFBEB;
-      color: #D97706;
-    }
-
-    .kpi-status.alert {
-      background: #FEF2F2;
-      color: #DC2626;
-    }
-
-    .kpi-value {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 12px;
-      line-height: 1;
-    }
-
-    .kpi-change {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-      color: #16A34A;
-    }
-
-    .kpi-change.negative {
-      color: #DC2626;
-    }
-
-    .sparkline-container {
-      height: 50px;
-      position: relative;
-    }
-
-    /* â”€â”€â”€ Quick Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .actions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 48px;
-    }
-
-    .action-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
+    .panel-title { font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
+    .panel-link {
+      font-size: 12.5px; color: var(--primary); font-weight: 600;
       text-decoration: none;
-      color: inherit;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    }
+    .panel-link:hover { text-decoration: underline; }
+
+    /* Wizard hero */
+    .wizard-hero {
+      background: linear-gradient(180deg, #EEF3FF 0%, #F8FAFF 100%);
+      border: 1px solid #DCE5FF;
+    }
+    .wizard-hero .hero-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--surface); color: var(--primary);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: var(--shadow-sm);
+      margin-bottom: 14px;
+    }
+    .wizard-hero h2 {
+      font-size: 19px; font-weight: 700; margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .wizard-hero p { font-size: 13.5px; color: var(--text-muted); margin: 0 0 18px; max-width: 460px; }
+
+    .btn-primary-solid {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary); color: #fff !important;
+      border: 0; border-radius: 8px;
+      padding: 10px 18px;
+      font-weight: 600; font-size: 13.5px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-primary-solid:hover { background: var(--primary-600); }
+
+    /* Quick actions grid */
+    .qa-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
-
-    .action-card:hover {
-      border-color: #0EA5E9;
-      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
-      transform: translateY(-2px);
+    .qa-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      text-decoration: none; color: inherit;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
     }
-
-    .action-icon {
-      font-size: 1.75rem;
-      color: #0EA5E9;
+    .qa-card:hover { border-color: #C7D2FE; background: #FAFBFF; transform: translateY(-1px); }
+    .qa-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
     }
+    .qa-text { display: flex; flex-direction: column; gap: 2px; }
+    .qa-text .t { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .qa-text .s { font-size: 11.5px; color: var(--text-muted); }
 
-    .action-label {
-      font-weight: 600;
-      color: #0F172A;
-      font-size: 0.9rem;
+    /* List items (recent dashboards & activity feed) */
+    .list-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 4px;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none; color: inherit;
     }
-
-    /* â”€â”€â”€ Recent Dashboards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .dashboards-section {
-      margin-bottom: 48px;
+    .list-item:last-child { border-bottom: 0; }
+    .list-icon {
+      width: 38px; height: 38px; border-radius: 9px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 17px; flex-shrink: 0;
     }
+    .list-icon.blue   { background: #EEF3FF; color: #3366FF; }
+    .list-icon.green  { background: #ECFDF5; color: #10B981; }
+    .list-icon.violet { background: #F3EEFF; color: #7C3AED; }
+    .list-icon.amber  { background: #FFF7ED; color: #F59E0B; }
+    .list-icon.pink   { background: #FFF1F2; color: #EC4899; }
+    .list-body { flex: 1; min-width: 0; }
+    .list-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin: 0 0 2px; }
+    .list-sub { font-size: 12px; color: var(--text-muted); }
 
-    .dashboards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 20px;
+    .badge-pill {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      background: #F3F5F9; color: var(--text-muted);
     }
+    .badge-pill.team { background: #ECFDF5; color: #047857; }
 
-    .dashboard-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      overflow: hidden;
-      transition: all 0.2s;
+    .row-actions-btn {
+      width: 28px; height: 28px;
+      border: 0; background: transparent;
+      border-radius: 6px; color: var(--text-soft);
       cursor: pointer;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .row-actions-btn:hover { background: #F3F5F9; color: var(--text); }
+
+    .empty {
+      text-align: center; padding: 28px 12px; color: var(--text-muted); font-size: 13px;
     }
 
-    .dashboard-card:hover {
-      border-color: #0EA5E9;
-      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
-      transform: translateY(-2px);
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .home-row { grid-template-columns: 1fr; }
     }
-
-    .dashboard-preview {
-      width: 100%;
-      height: 120px;
-      background: linear-gradient(135deg, #F0F9FF 0%, #F5FAFF 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #0EA5E9;
-      font-size: 2.5rem;
-      overflow: hidden;
-      border-bottom: 1px solid #E2E8F0;
-    }
-
-    .dashboard-content {
-      padding: 16px;
-    }
-
-    .dashboard-title {
-      font-weight: 600;
-      color: #0F172A;
-      font-size: 0.95rem;
-      margin-bottom: 8px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dashboard-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.75rem;
-      color: #94A3B8;
-      margin-bottom: 12px;
-    }
-
-    .dashboard-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .dashboard-btn {
-      flex: 1;
-      padding: 8px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 8px;
-      color: #0EA5E9;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      font-weight: 600;
-    }
-
-    .dashboard-btn:hover {
-      background: #F0F9FF;
-      border-color: #0EA5E9;
-      color: #0284C7;
-    }
-
-    /* â”€â”€â”€ AI Recommendations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .recommendations-section {
-      margin-bottom: 48px;
-    }
-
-    .recommendations-grid {
-      display: grid;
-      gap: 16px;
-    }
-
-    .recommendation-card {
-      background: #FFFFFF;
-      border: 1px solid #E2E8F0;
-      border-radius: 12px;
-      padding: 20px;
-      display: flex;
-      gap: 16px;
-      align-items: flex-start;
-      transition: all 0.2s;
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
-
-    .recommendation-card.critical {
-      border-color: #FECACA;
-      background: #FEF2F2;
-    }
-
-    .recommendation-card.warning {
-      border-color: #FED7AA;
-      background: #FFFBEB;
-    }
-
-    .recommendation-card.info {
-      border-color: #BAE6FD;
-      background: #F0F9FF;
-    }
-
-    .recommendation-card:hover {
-      border-color: #0EA5E9;
-      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
-    }
-
-    .recommendation-icon {
-      font-size: 1.5rem;
-      flex-shrink: 0;
-    }
-
-    .recommendation-icon.critical {
-      color: #DC2626;
-    }
-
-    .recommendation-icon.warning {
-      color: #D97706;
-    }
-
-    .recommendation-icon.info {
-      color: #0EA5E9;
-    }
-
-    .recommendation-body {
-      flex: 1;
-    }
-
-    .recommendation-title {
-      font-weight: 700;
-      color: #0F172A;
-      margin-bottom: 4px;
-    }
-
-    .recommendation-desc {
-      font-size: 0.9rem;
-      color: #64748B;
-      margin-bottom: 12px;
-    }
-
-    .recommendation-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .rec-btn {
-      padding: 8px 14px;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 8px;
-      color: #0EA5E9;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-weight: 600;
-    }
-
-    .rec-btn:hover {
-      background: #F0F9FF;
-      border-color: #0EA5E9;
-    }
-
-    /* â”€â”€â”€ Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #94A3B8;
-    }
-
-    .empty-state-icon {
-      font-size: 3rem;
-      margin-bottom: 16px;
-      opacity: 0.5;
-      color: #CBD5E1;
-    }
-
-    .empty-state-text {
-      font-size: 1.1rem;
-      margin-bottom: 20px;
-    }
-
-    .empty-state a {
-      color: #0EA5E9;
-    }
-
-    /* â”€â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    @media (max-width: 1200px) {
-      .navbar {
-        padding: 0.75rem 32px !important;
-      }
-
-      .page-content {
-        padding: 32px 32px;
-      }
-
-      .kpi-grid {
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      }
-
-      .dashboards-grid {
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      }
-    }
-
     @media (max-width: 768px) {
-      .navbar {
-        padding: 0.75rem 24px !important;
-      }
-
-      .page-content {
-        padding: 24px 24px;
-      }
-
-      .header-greeting {
-        flex-direction: column;
-        gap: 20px;
-      }
-
-      .greeting-text h1 {
-        font-size: 1.75rem;
-      }
-
-      .ai-summary {
-        max-width: 100%;
-      }
-
-      .kpi-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      }
-
-      .actions-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .dashboards-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      }
-    }
-
-    @media (max-width: 480px) {
-      .navbar {
-        padding: 0.75rem 16px !important;
-      }
-
-      .page-content {
-        padding: 16px 16px;
-      }
-
-      .greeting-text h1 {
-        font-size: 1.5rem;
-      }
-
-      .kpi-value {
-        font-size: 1.5rem;
-      }
-
-      .actions-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .dashboards-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .recommendation-card {
-        flex-direction: column;
-        gap: 12px;
-      }
+      body.home-shell .sidebar { display: none; }
+      body.home-shell .home-main { margin-left: 0; padding: 16px 16px 24px; }
+      .qa-grid { grid-template-columns: 1fr; }
+      .home-topbar { flex-direction: column; align-items: stretch; }
+      .topbar-actions { justify-content: flex-end; }
     }
   </style>
 </head>
-<body>
+<body class="home-shell">
+<%
+  // Defensive defaults so this template renders even if a caller forgets locals.
+  var stats = (typeof stats !== 'undefined' && stats) ? stats : { dashboards: 0, sources: 0, insights: 0, members: 1 };
+  var activity = (typeof activity !== 'undefined' && activity) ? activity : [];
+  var recentDashboards = (typeof recentDashboards !== 'undefined' && recentDashboards) ? recentDashboards : [];
+  var userDisplayName = (typeof userDisplayName !== 'undefined' && userDisplayName) ? userDisplayName : 'there';
+%>
+
   <%- include('partials/sidebar') %>
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-light">
-    <div class="container-fluid" style="padding: 0;">
-      <a class="navbar-brand" href="/" aria-label="AutoDash AI by Liknaya home">
-        <span class="navbar-brand-icon"><i class="bi bi-bar-chart-line-fill"></i></span>
-        <span class="navbar-brand-text">
-          <span class="navbar-brand-name">AutoDash <span class="ai">AI</span></span>
-          <span class="navbar-brand-tag">by Liknaya</span>
-        </span>
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="/dashboard/history">Dashboards</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/sources">Data Sources</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/ai-builder">AI Builder</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/settings">Settings</a>
-          </li>
-        </ul>
+  <main class="home-main">
+
+    <!-- ───── Top bar ───── -->
+    <div class="home-topbar">
+      <div class="home-topbar-left">
+        <h1>Welcome back, <%= userDisplayName || 'there' %>! <span aria-hidden="true">👋</span></h1>
+        <p>Create intelligent dashboards in minutes with the power of AI.</p>
+      </div>
+      <div class="topbar-actions">
+        <a href="/admin/inquiries" class="icon-btn" title="Help &amp; support" aria-label="Help">
+          <i class="bi bi-question-circle"></i>
+        </a>
+        <a href="/admin/inquiries" class="icon-btn" title="Notifications" aria-label="Notifications">
+          <i class="bi bi-bell"></i>
+          <span class="dot" aria-hidden="true"></span>
+        </a>
+        <div class="user-chip" title="<%= userDisplayName %>">
+          <span class="avatar"><%= (userDisplayName || 'U').trim().charAt(0).toUpperCase() %></span>
+          <span class="meta">
+            <span class="nm"><%= userDisplayName || 'User' %></span>
+            <span class="role">Admin</span>
+          </span>
+          <i class="bi bi-chevron-down caret"></i>
+        </div>
+        <div class="btn-create-split" role="group" aria-label="Create dashboard">
+          <a href="/wizard" class="btn-create"><i class="bi bi-plus-lg"></i> Create Dashboard</a>
+          <button class="caret-btn" type="button" aria-label="More create options" onclick="window.location.href='/ai-builder'">
+            <i class="bi bi-chevron-down"></i>
+          </button>
+        </div>
       </div>
     </div>
-  </nav>
 
-  <!-- Main Content -->
-  <div class="page-content">
-    <!-- Hero / Welcome -->
-    <div class="welcome-hero">
-      <h1 class="welcome-title">Welcome back, <%= userDisplayName || 'there' %></h1>
-      <p class="welcome-sub">Create intelligent dashboards in minutes with the power of AI.</p>
+    <!-- ───── KPI cards ───── -->
+    <section class="kpi-grid" aria-label="Key metrics">
+      <div class="kpi-card">
+        <div class="kpi-icon blue"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Total Dashboards</div>
+          <div class="kpi-value-row">
+            <span class="kpi-value"><%= stats.dashboards %></span>
+            <span class="kpi-trend"><i class="bi bi-arrow-up"></i> 12.5%</span>
+          </div>
+          <div class="kpi-sub">vs last month</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green"><i class="bi bi-database-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Total Data Sources</div>
+          <div class="kpi-value-row">
+            <span class="kpi-value"><%= stats.sources %></span>
+            <span class="kpi-trend"><i class="bi bi-arrow-up"></i> 8.3%</span>
+          </div>
+          <div class="kpi-sub">vs last month</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon violet"><i class="bi bi-stars"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">AI Insights Generated</div>
+          <div class="kpi-value-row">
+            <span class="kpi-value"><%= stats.insights %></span>
+            <span class="kpi-trend"><i class="bi bi-arrow-up"></i> 15.7%</span>
+          </div>
+          <div class="kpi-sub">vs last month</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon amber"><i class="bi bi-people-fill"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Team Members</div>
+          <div class="kpi-value-row">
+            <span class="kpi-value"><%= stats.members %></span>
+            <span class="kpi-trend"><i class="bi bi-arrow-up"></i> 14.2%</span>
+          </div>
+          <div class="kpi-sub">vs last month</div>
+        </div>
+      </div>
+    </section>
 
-      <a href="/wizard" class="create-card" aria-label="Create Dashboard via Wizard">
-        <div class="create-card-icon"><i class="bi bi-magic"></i></div>
-        <div class="create-card-title">Create Dashboard via Wizard</div>
-        <div class="create-card-desc">Answer a few questions and let AI build the perfect dashboard for your data.</div>
-        <span class="create-card-btn">Create Dashboard</span>
-      </a>
-    </div>
+    <!-- ───── Wizard hero + Quick actions ───── -->
+    <section class="home-row">
+      <div class="panel wizard-hero">
+        <div class="hero-icon"><i class="bi bi-magic"></i></div>
+        <h2>Create Dashboard via Wizard</h2>
+        <p>Answer a few questions and let AI build the perfect dashboard for your data.</p>
+        <a href="/wizard" class="btn-primary-solid">Get Started <i class="bi bi-arrow-right"></i></a>
+      </div>
 
-    <!-- Recent Dashboards -->
-    <div class="dashboards-section">
-      <div class="recent-heading">Recent Dashboards</div>
-      <div class="recent-divider"></div>
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Quick Actions</h2>
+        </div>
+        <div class="qa-grid">
+          <a href="/sources" class="qa-card">
+            <span class="qa-icon" style="background:#ECFDF5;color:#10B981;"><i class="bi bi-database-fill"></i></span>
+            <span class="qa-text">
+              <span class="t">Connect Data Source</span>
+              <span class="s">Add new data source</span>
+            </span>
+          </a>
+          <a href="/templates" class="qa-card">
+            <span class="qa-icon" style="background:#EEF3FF;color:#3366FF;"><i class="bi bi-grid-1x2-fill"></i></span>
+            <span class="qa-text">
+              <span class="t">Explore Templates</span>
+              <span class="s">Browse dashboard templates</span>
+            </span>
+          </a>
+          <a href="/ai-builder" class="qa-card">
+            <span class="qa-icon" style="background:#F3EEFF;color:#7C3AED;"><i class="bi bi-stars"></i></span>
+            <span class="qa-text">
+              <span class="t">AI Builder</span>
+              <span class="s">Build with AI assistance</span>
+            </span>
+          </a>
+          <a href="/" class="qa-card">
+            <span class="qa-icon" style="background:#FFF7ED;color:#F59E0B;"><i class="bi bi-file-earmark-text-fill"></i></span>
+            <span class="qa-text">
+              <span class="t">Documentation</span>
+              <span class="s">Learn how to use AutoDash</span>
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
 
-      <% if (recentDashboards && recentDashboards.length > 0) { %>
-        <div class="dashboards-grid">
-          <% recentDashboards.slice(0, 6).forEach(function(dashboard) { %>
-            <div class="dashboard-card">
-              <div class="dashboard-preview">
-                <i class="bi bi-graph-up"></i>
-              </div>
-              <div class="dashboard-content">
-                <div class="dashboard-title" title="<%= dashboard.title %>"><%= dashboard.title %></div>
-                <div class="dashboard-meta">
-                  <span><i class="bi bi-calendar"></i> <%= new Date(dashboard.updatedAt).toLocaleDateString() %></span>
-                </div>
-                <div class="dashboard-actions">
-                  <a href="/dashboard/<%= dashboard.id %>" class="dashboard-btn">
-                    <i class="bi bi-eye"></i> View
-                  </a>
-                  <a href="/dashboard/<%= dashboard.id %>/edit-canvas" class="dashboard-btn">
-                    <i class="bi bi-pencil"></i> Edit
-                  </a>
-                </div>
-              </div>
+    <!-- ───── Recent dashboards + Activity feed ───── -->
+    <section class="home-row">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Recent Dashboards</h2>
+          <a class="panel-link" href="/dashboard/history">View all</a>
+        </div>
+        <% if (recentDashboards && recentDashboards.length > 0) { %>
+          <% recentDashboards.slice(0, 4).forEach(function (d, idx) {
+               var tones = ['blue','green','violet','amber'];
+               var tone = tones[idx % tones.length];
+               var visibility = d.visibility || (idx % 3 === 2 ? 'team' : 'private');
+               var when = new Date(d.updatedAt || d.createdAt);
+               var now = new Date();
+               var diffH = Math.max(0, Math.round((now - when) / 36e5));
+               var sub = diffH < 1 ? 'Updated just now'
+                       : diffH < 24 ? 'Updated ' + diffH + ' hour' + (diffH === 1 ? '' : 's') + ' ago'
+                       : 'Updated ' + Math.round(diffH / 24) + ' day' + (Math.round(diffH / 24) === 1 ? '' : 's') + ' ago';
+          %>
+            <a class="list-item" href="/dashboard/<%= d.id %>">
+              <span class="list-icon <%= tone %>"><i class="bi bi-bar-chart-line-fill"></i></span>
+              <span class="list-body">
+                <div class="list-title"><%= d.title || 'Untitled dashboard' %></div>
+                <div class="list-sub"><%= sub %></div>
+              </span>
+              <span class="badge-pill <%= visibility === 'team' ? 'team' : '' %>"><%= visibility === 'team' ? 'Team' : 'Private' %></span>
+              <button type="button" class="row-actions-btn" aria-label="More" onclick="event.preventDefault(); event.stopPropagation();">
+                <i class="bi bi-three-dots-vertical"></i>
+              </button>
+            </a>
+          <% }); %>
+        <% } else { %>
+          <div class="empty">
+            <i class="bi bi-bar-chart" style="font-size:24px; color:var(--text-soft);"></i>
+            <div style="margin-top:8px;">No dashboards yet. <a href="/wizard" style="color:var(--primary); font-weight:600;">Create your first dashboard</a>.</div>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Activity Feed</h2>
+          <a class="panel-link" href="/dashboard/history">View all</a>
+        </div>
+        <% if (activity && activity.length > 0) { %>
+          <% activity.forEach(function (a) {
+               var when = new Date(a.at);
+               var now = new Date();
+               var diffH = Math.max(0, Math.round((now - when) / 36e5));
+               var sub = diffH < 1 ? 'just now'
+                       : diffH < 24 ? diffH + ' hour' + (diffH === 1 ? '' : 's') + ' ago'
+                       : Math.round(diffH / 24) + ' day' + (Math.round(diffH / 24) === 1 ? '' : 's') + ' ago';
+          %>
+            <div class="list-item">
+              <span class="list-icon <%= a.tone %>"><i class="bi <%= a.icon %>"></i></span>
+              <span class="list-body">
+                <div class="list-title"><%= a.text %></div>
+                <div class="list-sub"><%= sub %></div>
+              </span>
             </div>
           <% }); %>
-        </div>
-      <% } else { %>
-        <div class="empty-state">
-          <div class="empty-state-icon"><i class="bi bi-graph-up"></i></div>
-          <div class="empty-state-text">No dashboards yet</div>
-          <div class="empty-state-sub">Create your first dashboard to get started.</div>
-        </div>
-      <% } %>
-    </div>
-  </div>
+        <% } else { %>
+          <div class="empty">
+            <i class="bi bi-activity" style="font-size:24px; color:var(--text-soft);"></i>
+            <div style="margin-top:8px;">Activity will appear here as you create dashboards.</div>
+          </div>
+        <% } %>
+      </div>
+    </section>
 
-  <%- include('partials/footer') %>
+  </main>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

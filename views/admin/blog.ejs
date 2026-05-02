@@ -1,0 +1,82 @@
+<h1>Blog</h1>
+
+<div class="admin-card">
+  <h2 id="formTitle">Add Blog Post</h2>
+  <form method="POST" action="/admin/blog" id="bForm">
+    <input type="hidden" name="index" id="b-index" value="">
+    <div class="row g-3">
+      <div class="col-md-8"><label class="form-label">Title</label><input class="form-control" name="title" id="b-title" required></div>
+      <div class="col-md-4"><label class="form-label">Slug (optional)</label><input class="form-control" name="slug" id="b-slug" placeholder="auto-generated"></div>
+      <div class="col-md-12"><label class="form-label">Excerpt</label><textarea class="form-control" name="excerpt" id="b-excerpt" rows="2"></textarea></div>
+      <div class="col-md-12"><label class="form-label">Content</label><textarea class="form-control" name="content" id="b-content" rows="10"></textarea></div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status" id="b-status">
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
+        </select>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn-primary-pill" id="b-submit"><i class="bi bi-plus-lg"></i> Add Post</button>
+      <button type="button" class="btn btn-outline-secondary" id="b-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="admin-card" style="padding:0;">
+  <% if (!items.length) { %>
+    <div class="empty-state"><i class="bi bi-journal-text"></i><p>No blog posts yet.</p></div>
+  <% } else { %>
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Title</th><th>Slug</th><th>Status</th><th>Updated</th><th class="actions">Actions</th></tr></thead>
+      <tbody>
+        <% items.forEach(function(p, i) { %>
+          <tr>
+            <td><strong><%= p.title %></strong>
+              <% if (p.excerpt) { %><div style="color:#6b7280;font-size:13px;margin-top:4px;"><%= p.excerpt.slice(0,100) %></div><% } %>
+            </td>
+            <td><code style="font-size:12px;"><%= p.slug %></code></td>
+            <td><span class="badge-pill badge-<%= p.status %>"><%= p.status %></span></td>
+            <td style="color:#6b7280;font-size:13px;"><%= p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '' %></td>
+            <td class="actions">
+              <button class="btn btn-sm btn-outline-primary b-edit"
+                data-i="<%= i %>" data-title="<%= p.title %>" data-slug="<%= p.slug || '' %>"
+                data-excerpt="<%= p.excerpt || '' %>" data-content="<%= p.content || '' %>"
+                data-status="<%= p.status %>">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="POST" action="/admin/blog/<%= i %>/delete" style="display:inline;" onsubmit="return confirm('Delete this post?');">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<script>
+  document.querySelectorAll('.b-edit').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('b-index').value = btn.dataset.i;
+      document.getElementById('b-title').value = btn.dataset.title;
+      document.getElementById('b-slug').value = btn.dataset.slug;
+      document.getElementById('b-excerpt').value = btn.dataset.excerpt;
+      document.getElementById('b-content').value = btn.dataset.content;
+      document.getElementById('b-status').value = btn.dataset.status;
+      document.getElementById('formTitle').textContent = 'Edit Blog Post';
+      document.getElementById('b-submit').innerHTML = '<i class="bi bi-check-lg"></i> Save Post';
+      document.getElementById('b-cancel').style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+  document.getElementById('b-cancel').addEventListener('click', function() {
+    document.getElementById('bForm').reset();
+    document.getElementById('b-index').value = '';
+    document.getElementById('formTitle').textContent = 'Add Blog Post';
+    document.getElementById('b-submit').innerHTML = '<i class="bi bi-plus-lg"></i> Add Post';
+    this.style.display = 'none';
+  });
+</script>
