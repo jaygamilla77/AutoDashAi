@@ -726,6 +726,28 @@
   }
 
   // ── Export Functions ──────────────────────────────────────────────────────
+  // Pre-export pass: freeze animations, resize all charts, wait a frame so
+  // html2canvas captures the same pixels the user sees on screen.
+  function _aiPrepareForExport() {
+    return new Promise(function(resolve) {
+      var styleEl = document.createElement('style');
+      styleEl.id = '__aiExportFreeze';
+      styleEl.textContent = '#aiPanelGrid *, #aiPanelGrid *::before, #aiPanelGrid *::after {' +
+        ' animation: none !important; transition: none !important; }';
+      document.head.appendChild(styleEl);
+      try {
+        Object.values(window.__aiECharts || {}).forEach(function(ec) { try { ec.resize(); } catch (e) {} });
+        Object.values(window.__aiCharts  || {}).forEach(function(ch) { try { ch.resize(); } catch (e) {} });
+      } catch (e) {}
+      // Two RAFs ensure layout / chart resize have flushed
+      requestAnimationFrame(function() { requestAnimationFrame(function() { resolve(); }); });
+    });
+  }
+  function _aiCleanupExport() {
+    var s = document.getElementById('__aiExportFreeze');
+    if (s) s.remove();
+  }
+
   window.aiExportPNG = function() {
     // Try to find the focused/selected panel first; fall back to full canvas
     var uid = window.__selectedPanelUid;
@@ -741,26 +763,60 @@
         a2.download = 'panel-' + uid + '.png'; a2.click(); return;
       }
     }
-    // Full canvas export
+    // Full canvas export — visual parity with on-screen canvas
     var bar = document.getElementById('aiExportBar');
     if (bar) bar.style.display = 'none';
-    html2canvas(document.getElementById('aiPanelGrid'), { backgroundColor: '#e8eef5', scale: 1.5 }).then(function(c) {
+    _aiPrepareForExport().then(function() {
+      var grid = document.getElementById('aiPanelGrid');
+      return html2canvas(grid, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: grid.scrollWidth,
+        windowHeight: grid.scrollHeight,
+        width: grid.scrollWidth,
+        height: grid.scrollHeight
+      });
+    }).then(function(c) {
+      _aiCleanupExport();
       if (bar) bar.style.display = '';
       var a3 = document.createElement('a'); a3.href = c.toDataURL('image/png');
       a3.download = 'dashboard.png'; a3.click();
-    }).catch(function(e) { if (bar) bar.style.display = ''; alert('PNG export failed: ' + e.message); });
+    }).catch(function(e) {
+      _aiCleanupExport();
+      if (bar) bar.style.display = '';
+      alert('PNG export failed: ' + e.message);
+    });
   };
 
   window.aiExportPDF = function() {
     var bar = document.getElementById('aiExportBar');
     if (bar) bar.style.display = 'none';
-    html2canvas(document.getElementById('aiPanelGrid'), { backgroundColor: '#e8eef5', scale: 1.5 }).then(function(c) {
+    _aiPrepareForExport().then(function() {
+      var grid = document.getElementById('aiPanelGrid');
+      return html2canvas(grid, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: grid.scrollWidth,
+        windowHeight: grid.scrollHeight,
+        width: grid.scrollWidth,
+        height: grid.scrollHeight
+      });
+    }).then(function(c) {
+      _aiCleanupExport();
       if (bar) bar.style.display = '';
       var imgData = c.toDataURL('image/png');
       var pdf = new window.jspdf.jsPDF({ orientation: c.width > c.height ? 'landscape' : 'portrait', unit: 'px', format: [c.width, c.height] });
       pdf.addImage(imgData, 'PNG', 0, 0, c.width, c.height);
       pdf.save('dashboard.pdf');
-    }).catch(function(e) { if (bar) bar.style.display = ''; alert('PDF export failed: ' + e.message); });
+    }).catch(function(e) {
+      _aiCleanupExport();
+      if (bar) bar.style.display = '';
+      alert('PDF export failed: ' + e.message);
+    });
   };
 
   window.aiExportExcel = function() {
