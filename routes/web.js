@@ -14,6 +14,8 @@ const wizardController = require('../controllers/wizardController');
 const adminController = require('../controllers/adminController');
 const authController = require('../controllers/authController');
 const cmsService = require('../services/cmsService');
+const planService = require('../services/planService');
+const oauthService = require('../services/oauthService');
 
 // ─── Lightweight auth helpers (mock auth via cookie) ─────────────────
 function parseCookies(req) {
@@ -43,9 +45,19 @@ function requireAuth(req, res, next) {
 
 // ─── Auth routes ─────────────────────────────────────────────────────
 router.get(['/auth', '/login', '/signup'], (req, res) => {
+  const planId = planService.isValid(req.query.plan) ? String(req.query.plan).toLowerCase() : null;
+  const selectedPlan = planId && planId !== 'enterprise' ? planService.get(planId) : null;
   res.render('auth', {
     title: 'Sign in to AutoDash AI – AI Dashboard Builder',
     layout: false,
+    selectedPlan,
+    initialTab: req.query.tab === 'signup' || planId ? 'signup' : 'signin',
+    oauthEnabled: {
+      google: oauthService.isEnabled('google'),
+      microsoft: oauthService.isEnabled('microsoft'),
+    },
+    nextUrl: req.query.next || '',
+    errorMessage: req.query.error || '',
   });
 });
 
@@ -65,6 +77,39 @@ router.post('/auth/signup',  authController.signup);
 router.post('/auth/signin',  authController.signin);
 router.post('/auth/resend',  authController.resend);
 router.get('/auth/verify',   authController.verify);
+
+// ─── OAuth (Google + Microsoft) ──────────────────────────────────────
+// `state` carries the selected plan through the OAuth round-trip so we
+// can apply the right plan when the user lands back at the callback.
+router.get('/auth/google',
+  (req, res, next) => {
+    if (!oauthService.isEnabled('google')) return res.redirect('/auth?error=' + encodeURIComponent('Google sign-in is not configured.'));
+    return oauthService.start('google', { state: String(req.query.plan || 'starter') })(req, res, next);
+  });
+router.get('/auth/google/callback',
+  oauthService.callback('google', (profile, req, res) => authController.oauthHandle(profile, req, res)));
+
+router.get('/auth/microsoft',
+  (req, res, next) => {
+    if (!oauthService.isEnabled('microsoft')) return res.redirect('/auth?error=' + encodeURIComponent('Microsoft sign-in is not configured.'));
+    return oauthService.start('microsoft', { state: String(req.query.plan || 'starter') })(req, res, next);
+  });
+router.get('/auth/microsoft/callback',
+  oauthService.callback('microsoft', (profile, req, res) => authController.oauthHandle(profile, req, res)));
+
+// ─── Enterprise contact form ─────────────────────────────────────────
+router.get('/contact-sales', (req, res) => {
+  res.render('contact-sales', {
+    layout: false,
+    title: 'Talk to AutoDash AI Sales — Enterprise plans, white-glove onboarding',
+    source: req.query.source || 'direct',
+  });
+});
+router.post('/contact-sales', authController.contactSales);
+
+// ─── Onboarding wizard ───────────────────────────────────────────────
+router.get('/onboarding', requireAuth, authController.onboardingPage);
+router.post('/onboarding/complete', requireAuth, authController.onboardingComplete);
 
 // Public landing page (marketing homepage) — content from CMS
 router.get('/', async (req, res, next) => {

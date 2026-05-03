@@ -27,6 +27,9 @@
     "nodemailer": "^8.0.7",
     "openai": "^6.34.0",
     "papaparse": "^5.5.3",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-microsoft": "^2.1.0",
     "sequelize": "^6.35.0",
     "sqlite3": "^5.1.6",
     "xlsx": "^0.18.5"

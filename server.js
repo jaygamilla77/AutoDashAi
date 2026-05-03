@@ -11,6 +11,7 @@ const multer = require('multer');
 const appConfig = require('./config/app');
 const db = require('./models');
 const webRoutes = require('./routes/web');
+const oauthService = require('./services/oauthService');
 
 const app = express();
 
@@ -34,6 +35,11 @@ app.use(session({
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 },
 }));
 app.use(flash());
+
+// OAuth (Google / Microsoft) — passport runs without sessions; strategies
+// are only registered when the matching env vars are present.
+oauthService.init();
+app.use(oauthService.middleware());
 
 // Flash messages middleware
 app.use((req, res, next) => {

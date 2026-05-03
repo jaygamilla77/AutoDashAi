@@ -5,9 +5,23 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING(120), allowNull: false },
     email: { type: DataTypes.STRING(180), allowNull: false, unique: true, validate: { isEmail: true } },
-    passwordHash: { type: DataTypes.STRING(255), allowNull: false },
+    // Nullable so OAuth users without a local password can be stored.
+    passwordHash: { type: DataTypes.STRING(255), allowNull: true },
     emailVerified: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
     lastLoginAt: { type: DataTypes.DATE, allowNull: true },
+
+    // Subscription plan / trial
+    plan: { type: DataTypes.STRING(32), allowNull: false, defaultValue: 'starter' }, // starter | business | enterprise
+    planTrialEndsAt: { type: DataTypes.DATE, allowNull: true },
+
+    // OAuth provider identity
+    authProvider: { type: DataTypes.STRING(32), allowNull: false, defaultValue: 'local' }, // local | google | microsoft
+    providerUserId: { type: DataTypes.STRING(180), allowNull: true },
+    avatarUrl: { type: DataTypes.STRING(500), allowNull: true },
+
+    // Onboarding state
+    onboardingCompleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    onboardingStep: { type: DataTypes.STRING(32), allowNull: true },
   }, {
     tableName: 'users',
     timestamps: true,

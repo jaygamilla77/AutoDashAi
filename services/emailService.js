@@ -69,6 +69,63 @@ async function sendVerificationEmail({ to, name, verifyUrl }) {
   return { mode: 'console', verifyUrl };
 }
 
+/**
+ * Send a sales / enterprise-contact notification to SALES_EMAIL.
+ * Falls back to console log when SMTP is not configured.
+ */
+async function sendSalesContact({ name, email, company, employees, message, source }) {
+  if (!transporter && mode !== 'console') init();
+  const to = process.env.SALES_EMAIL || process.env.SMTP_USER || '';
+  const subject = '[AutoDash AI] Enterprise enquiry — ' + (company || name || email);
+  const safe = (s) => String(s == null ? '' : s).replace(/[<>]/g, '');
+  const text =
+    'New Enterprise / Sales enquiry\n\n' +
+    'Name:      ' + safe(name) + '\n' +
+    'Email:     ' + safe(email) + '\n' +
+    'Company:   ' + safe(company || '—') + '\n' +
+    'Employees: ' + safe(employees || '—') + '\n' +
+    'Source:    ' + safe(source || 'pricing-page') + '\n\n' +
+    'Message:\n' + safe(message || '—') + '\n';
+  const html =
+    '<div style="font-family:Inter,Arial,sans-serif;max-width:600px;color:#0f172a">' +
+      '<h2 style="color:#1e40af;margin:0 0 12px">New Enterprise enquiry</h2>' +
+      '<table style="border-collapse:collapse;width:100%;font-size:14px">' +
+        '<tr><td style="padding:6px 0;color:#64748b;width:120px">Name</td><td style="padding:6px 0"><strong>' + safe(name) + '</strong></td></tr>' +
+        '<tr><td style="padding:6px 0;color:#64748b">Email</td><td style="padding:6px 0"><a href="mailto:' + safe(email) + '">' + safe(email) + '</a></td></tr>' +
+        '<tr><td style="padding:6px 0;color:#64748b">Company</td><td style="padding:6px 0">' + safe(company || '—') + '</td></tr>' +
+        '<tr><td style="padding:6px 0;color:#64748b">Employees</td><td style="padding:6px 0">' + safe(employees || '—') + '</td></tr>' +
+        '<tr><td style="padding:6px 0;color:#64748b">Source</td><td style="padding:6px 0">' + safe(source || 'pricing-page') + '</td></tr>' +
+      '</table>' +
+      '<h3 style="margin:20px 0 8px;font-size:14px;color:#475569;text-transform:uppercase;letter-spacing:0.5px">Message</h3>' +
+      '<div style="padding:12px 14px;background:#f8fafc;border-left:3px solid #6366f1;border-radius:6px;white-space:pre-wrap;font-size:14px;color:#1e293b">' + safe(message || '—') + '</div>' +
+    '</div>';
+
+  if (!to) {
+    console.log('\n──────────────────────────────────────────────');
+    console.log('[Sales DEV] No SALES_EMAIL/SMTP_USER configured. Logging enquiry instead:');
+    console.log(text);
+    console.log('──────────────────────────────────────────────\n');
+    return { mode: 'console' };
+  }
+
+  if (mode === 'smtp') {
+    const from = process.env.SMTP_FROM || ('AutoDash AI <' + process.env.SMTP_USER + '>');
+    try {
+      const info = await transporter.sendMail({ from, to, replyTo: email, subject, text, html });
+      return { mode: 'smtp', messageId: info.messageId };
+    } catch (err) {
+      console.error('[Sales] SMTP send failed:', err.code || '', err.message);
+      return { mode: 'console', smtpError: err.message };
+    }
+  }
+
+  console.log('\n──────────────────────────────────────────────');
+  console.log('[Sales DEV] ' + subject);
+  console.log(text);
+  console.log('──────────────────────────────────────────────\n');
+  return { mode: 'console' };
+}
+
 init();
 
-module.exports = { sendVerificationEmail };
+module.exports = { sendVerificationEmail, sendSalesContact };

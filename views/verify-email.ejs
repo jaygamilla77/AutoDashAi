@@ -25,7 +25,7 @@
       <div class="icon ok"><i class="bi bi-check-lg"></i></div>
       <h1>Email verified!</h1>
       <p><%= message %><% if (typeof user !== 'undefined' && user) { %><br>Welcome, <strong><%= user.name %></strong>.<% } %></p>
-      <a class="btn" href="/dashboard">Go to dashboard</a>
+      <a class="btn" href="<%= (typeof redirectTo !== 'undefined' && redirectTo) ? redirectTo : '/dashboard' %>"><%= (typeof redirectTo !== 'undefined' && redirectTo === '/onboarding') ? 'Set up my workspace →' : 'Go to dashboard' %></a>
     <% } else { %>
       <div class="icon bad"><i class="bi bi-x-lg"></i></div>
       <h1>Verification failed</h1>

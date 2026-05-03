@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Welcome to AutoDash AI' %></title>
+  <meta name="robots" content="noindex">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --blue:#2563EB; --blue-h:#1D4ED8; --text:#0F172A; --muted:#64748B; --border:#E2E8F0; --soft:#EFF6FF; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',-apple-system,sans-serif;color:var(--text);background:linear-gradient(180deg,#F8FAFF 0%,#EEF2FF 100%);min-height:100vh;-webkit-font-smoothing:antialiased}
+    a{color:var(--blue);text-decoration:none}
+    a:hover{color:var(--blue-h)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid rgba(15,23,42,0.06);background:rgba(255,255,255,0.7);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10}
+    .brand{display:inline-flex;align-items:center;gap:10px;color:var(--text)}
+    .brand-icon{width:36px;height:36px;background:var(--blue);color:#fff;border-radius:10px;display:grid;place-items:center;font-size:16px;font-weight:700}
+    .brand-text{font-weight:700}
+    .topbar-right{display:flex;gap:12px;align-items:center;font-size:0.86rem;color:var(--muted)}
+    .skip{font-size:0.86rem;color:var(--muted)}
+    .skip:hover{color:var(--text)}
+
+    .container{max-width:1100px;margin:0 auto;padding:48px 32px}
+    .stepper{display:flex;justify-content:center;gap:0;margin-bottom:48px;flex-wrap:wrap}
+    .step{display:flex;align-items:center;gap:12px;padding:0 16px;color:var(--muted);font-size:0.88rem;font-weight:500}
+    .step .num{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:#fff;display:grid;place-items:center;font-weight:700;font-size:0.85rem;transition:all 0.2s}
+    .step.active .num,.step.done .num{border-color:var(--blue);background:var(--blue);color:#fff}
+    .step.active{color:var(--text)}
+    .step .bar{width:40px;height:2px;background:var(--border);margin-left:4px}
+    .step.done .bar{background:var(--blue)}
+
+    .hero{text-align:center;margin-bottom:40px}
+    .hero .greeting{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--border);border-radius:999px;padding:6px 16px;font-size:0.84rem;color:var(--muted);margin-bottom:18px}
+    .hero .greeting .plan-badge{font-size:0.72rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;background:linear-gradient(135deg,#2563EB,#6366F1);color:#fff;padding:3px 10px;border-radius:999px}
+    .hero h1{font-size:2.4rem;font-weight:800;letter-spacing:-0.5px;line-height:1.15;margin-bottom:12px}
+    .hero h1 span{background:linear-gradient(90deg,#2563EB,#6366F1);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p{font-size:1.05rem;color:var(--muted);max-width:580px;margin:0 auto}
+
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px}
+    .step-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:12px;transition:all 0.2s;position:relative;overflow:hidden}
+    .step-card:hover{border-color:#C7D2FE;transform:translateY(-2px);box-shadow:0 12px 28px -10px rgba(37,99,235,0.18)}
+    .step-card .badge{font-size:0.72rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.05em}
+    .step-card h3{font-size:1.1rem;font-weight:700}
+    .step-card p{font-size:0.92rem;color:var(--muted)}
+    .step-card .icon{width:42px;height:42px;border-radius:10px;background:var(--soft);color:var(--blue);display:grid;place-items:center;font-size:20px}
+    .step-card.primary{background:linear-gradient(135deg,#2563EB,#6366F1);color:#fff;border-color:transparent}
+    .step-card.primary p{color:rgba(255,255,255,0.9)}
+    .step-card.primary .icon{background:rgba(255,255,255,0.18);color:#fff}
+    .step-card.primary .badge{color:rgba(255,255,255,0.9)}
+
+    .actions{display:flex;justify-content:center;gap:14px;margin-top:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:11px;font-weight:600;font-size:0.95rem;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;transition:all 0.15s}
+    .btn:hover{border-color:var(--blue);color:var(--blue)}
+    .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .btn-primary:hover{background:var(--blue-h);color:#fff;border-color:var(--blue-h)}
+    .btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+    .btn-ghost:hover{color:var(--text);background:rgba(15,23,42,0.04)}
+
+    .trial-pill{display:inline-flex;align-items:center;gap:8px;background:#ECFDF5;border:1px solid #A7F3D0;color:#047857;font-size:0.84rem;padding:6px 12px;border-radius:999px;margin-top:8px}
+
+    @media(max-width:780px){
+      .grid{grid-template-columns:1fr}
+      .hero h1{font-size:1.8rem}
+      .step .bar{width:20px}
+    }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <a href="/" class="brand">
+    <span class="brand-icon">A</span>
+    <span class="brand-text">AutoDash AI</span>
+  </a>
+  <div class="topbar-right">
+    <span>Signed in as <strong style="color:var(--text)"><%= user.email %></strong></span>
+    <a href="/dashboard" class="skip">Skip for now →</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="stepper">
+    <div class="step active"><div class="num">1</div>Welcome<div class="bar"></div></div>
+    <div class="step"><div class="num">2</div>Connect data<div class="bar"></div></div>
+    <div class="step"><div class="num">3</div>AI analyze<div class="bar"></div></div>
+    <div class="step"><div class="num">4</div>Build dashboard</div>
+  </div>
+
+  <section class="hero">
+    <div class="greeting">
+      <span>Welcome aboard, <strong style="color:var(--text);margin-left:4px"><%= user.name %></strong></span>
+      <% if (plan && plan.id) { %><span class="plan-badge"><%= plan.name %></span><% } %>
+    </div>
+    <h1>Let's build your first<br><span>AI-powered executive dashboard</span></h1>
+    <p>In about 3 minutes, you'll connect your data, let AI analyze it, and ship a stakeholder-ready dashboard with executive summaries, anomaly detection, and recommendations.</p>
+    <% if (typeof planTrialEndsAt !== 'undefined' && planTrialEndsAt) { %>
+      <div class="trial-pill"><i class="bi bi-gift-fill"></i> Your trial runs until <strong style="margin-left:4px"><%= new Date(planTrialEndsAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) %></strong></div>
+    <% } %>
+  </section>
+
+  <div class="grid">
+    <div class="step-card">
+      <div class="icon"><i class="bi bi-database-fill"></i></div>
+      <span class="badge">Step 1</span>
+      <h3>Connect a data source</h3>
+      <p>Upload a CSV/Excel file, or connect SQL, REST APIs, and more. We support 12+ source types out of the box.</p>
+    </div>
+    <div class="step-card">
+      <div class="icon"><i class="bi bi-robot"></i></div>
+      <span class="badge">Step 2</span>
+      <h3>AI analyzes your schema</h3>
+      <p>Our AI profiles columns, detects KPIs, finds the best metrics, and proposes a dashboard layout — automatically.</p>
+    </div>
+    <div class="step-card primary">
+      <div class="icon"><i class="bi bi-stars"></i></div>
+      <span class="badge">Step 3</span>
+      <h3>Generate your dashboard</h3>
+      <p>Click one button. AutoDash AI builds a complete executive dashboard with charts, KPIs, summaries, and insights.</p>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn btn-primary" id="start-btn">
+      <i class="bi bi-rocket-takeoff-fill"></i> Start building
+    </button>
+    <a href="/sources" class="btn">
+      <i class="bi bi-database"></i> Connect a data source first
+    </a>
+    <a href="/dashboard" class="btn btn-ghost">I'll do this later</a>
+  </div>
+</main>
+
+<script>
+(function () {
+  var btn = document.getElementById('start-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Setting up your workspace…';
+    fetch('/onboarding/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      window.location.href = (res && res.redirectTo) || '/ai-builder?onboarding=1';
+    })
+    .catch(function () {
+      window.location.href = '/ai-builder?onboarding=1';
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -203,6 +203,69 @@
     }
     .auth-footer a { font-weight: 500; }
 
+    /* ─── Plan summary card (left panel, plan-aware signup) ──────── */
+    .auth-plan-card {
+      background: #fff;
+      border: 1px solid var(--auth-border);
+      border-radius: 16px;
+      padding: 22px 22px 18px;
+      box-shadow: 0 12px 32px -10px rgba(37,99,235,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-plan-card[data-plan="business"] {
+      border-color: #C7D2FE;
+      background: linear-gradient(135deg, #ffffff 0%, #F0F4FF 100%);
+    }
+    .auth-plan-card[data-plan="business"]::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(600px 100px at 90% -10%, rgba(99,102,241,0.18), transparent 70%);
+    }
+    .auth-plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .auth-plan-eyebrow { font-size: 0.72rem; font-weight: 600; color: var(--auth-muted); letter-spacing: 0.06em; text-transform: uppercase; display: block; }
+    .auth-plan-card h3 { font-size: 1.15rem; font-weight: 700; color: var(--auth-text); margin-top: 4px; }
+    .auth-plan-badge {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      background: linear-gradient(135deg, #2563EB 0%, #6366F1 100%);
+      color: #fff; font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    }
+    .auth-plan-price { font-size: 1.85rem; font-weight: 800; color: var(--auth-text); margin: 14px 0 4px; letter-spacing: -0.5px; }
+    .auth-plan-price small { font-size: 0.85rem; font-weight: 500; color: var(--auth-muted); margin-left: 4px; }
+    .auth-plan-trial {
+      font-size: 0.82rem; color: #047857; background: #ECFDF5;
+      border: 1px solid #A7F3D0; border-radius: 10px;
+      padding: 8px 10px; margin: 8px 0 14px;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .auth-plan-features { list-style: none; padding: 0; margin: 6px 0 12px; display: flex; flex-direction: column; gap: 8px; }
+    .auth-plan-features li { font-size: 0.88rem; color: #334155; display: flex; gap: 8px; align-items: flex-start; }
+    .auth-plan-features i { color: var(--auth-blue); font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+    .auth-plan-change { font-size: 0.82rem; font-weight: 500; }
+
+    /* ─── Trust pills ─────────────────────────────────────────────── */
+    .auth-trust {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin-top: 18px;
+    }
+    .auth-trust-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.74rem; font-weight: 500; color: #475569;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid var(--auth-border);
+      padding: 5px 10px; border-radius: 999px;
+      backdrop-filter: blur(4px);
+    }
+    .auth-trust-pill i { color: var(--auth-blue); font-size: 0.85rem; }
+
+    /* Inline error alert (e.g. OAuth cancelled) */
+    .auth-alert {
+      background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C;
+      border-radius: 10px; padding: 10px 12px; font-size: 0.86rem;
+      margin: 0 0 14px; display: flex; gap: 8px; align-items: flex-start;
+    }
+    .auth-alert i { color: #DC2626; flex-shrink: 0; margin-top: 2px; }
+
     /* ─── Right panel ────────────────────────────────────────────── */
     .auth-right {
       display: flex;
@@ -479,39 +542,72 @@
 
     <div class="auth-left-mid">
       <div class="auth-headline">
-        <h1>Intelligent Dashboards,<br>Powered by <span>AI</span></h1>
-        <p>Transform your data into meaningful insights.<br>Create, customize, and share dashboards in minutes.</p>
+        <h1>Turn Business Data Into<br><span>Executive Intelligence</span></h1>
+        <p>AI-powered dashboards, executive summaries, anomaly detection,<br>and business recommendations — in minutes, not weeks.</p>
       </div>
 
-      <div class="auth-benefits" aria-label="Product highlights">
-        <div class="auth-benefit">
-          <div class="auth-benefit-icon"><i class="bi bi-stars"></i></div>
-          <div class="auth-benefit-text">
-            <h3>AI-Powered Insights</h3>
-            <p>Let AI analyze your data and recommend the best KPIs and visualizations.</p>
+      <% if (typeof selectedPlan !== 'undefined' && selectedPlan) { %>
+        <div class="auth-plan-card" data-plan="<%= selectedPlan.id %>">
+          <div class="auth-plan-head">
+            <div>
+              <span class="auth-plan-eyebrow">You're signing up for</span>
+              <h3><%= selectedPlan.name %> plan</h3>
+            </div>
+            <% if (selectedPlan.badge) { %>
+              <span class="auth-plan-badge"><%= selectedPlan.badge %></span>
+            <% } %>
+          </div>
+          <div class="auth-plan-price">
+            <%= selectedPlan.price %><% if (selectedPlan.priceSuffix) { %><small><%= selectedPlan.priceSuffix %></small><% } %>
+          </div>
+          <% if (selectedPlan.trialDays && selectedPlan.trialDays > 0) { %>
+            <div class="auth-plan-trial"><i class="bi bi-gift-fill"></i> <%= selectedPlan.trialDays %>-day free trial · No credit card required</div>
+          <% } %>
+          <ul class="auth-plan-features">
+            <% (selectedPlan.features || []).forEach(function(f){ %>
+              <li><i class="bi bi-check2-circle"></i> <%= f %></li>
+            <% }); %>
+          </ul>
+          <a href="/pricing" class="auth-plan-change">Compare plans →</a>
+        </div>
+      <% } else { %>
+        <div class="auth-benefits" aria-label="Product highlights">
+          <div class="auth-benefit">
+            <div class="auth-benefit-icon"><i class="bi bi-stars"></i></div>
+            <div class="auth-benefit-text">
+              <h3>AI Executive Summaries</h3>
+              <p>Plain-English narratives that explain what your data really means.</p>
+            </div>
+          </div>
+          <div class="auth-benefit">
+            <div class="auth-benefit-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="auth-benefit-text">
+              <h3>Anomaly &amp; Trend Detection</h3>
+              <p>AI flags spikes, drops, and outliers before they become surprises.</p>
+            </div>
+          </div>
+          <div class="auth-benefit">
+            <div class="auth-benefit-icon"><i class="bi bi-database-fill"></i></div>
+            <div class="auth-benefit-text">
+              <h3>Connect Any Data Source</h3>
+              <p>SQL, Excel, CSV, REST APIs — plug in and go.</p>
+            </div>
+          </div>
+          <div class="auth-benefit">
+            <div class="auth-benefit-icon"><i class="bi bi-shield-lock-fill"></i></div>
+            <div class="auth-benefit-text">
+              <h3>Enterprise-Grade Security</h3>
+              <p>SOC 2-ready posture, encrypted at rest &amp; in transit.</p>
+            </div>
           </div>
         </div>
-        <div class="auth-benefit">
-          <div class="auth-benefit-icon"><i class="bi bi-pie-chart-fill"></i></div>
-          <div class="auth-benefit-text">
-            <h3>Smart Dashboard Builder</h3>
-            <p>Generate professional dashboards instantly using natural language.</p>
-          </div>
-        </div>
-        <div class="auth-benefit">
-          <div class="auth-benefit-icon"><i class="bi bi-database-fill"></i></div>
-          <div class="auth-benefit-text">
-            <h3>Connect Any Data Source</h3>
-            <p>Integrate with databases, Excel, CSV, APIs and more.</p>
-          </div>
-        </div>
-        <div class="auth-benefit">
-          <div class="auth-benefit-icon"><i class="bi bi-people-fill"></i></div>
-          <div class="auth-benefit-text">
-            <h3>Share &amp; Collaborate</h3>
-            <p>Easily share dashboards and collaborate with your team.</p>
-          </div>
-        </div>
+      <% } %>
+
+      <div class="auth-trust">
+        <span class="auth-trust-pill"><i class="bi bi-shield-check"></i> SOC 2 Ready</span>
+        <span class="auth-trust-pill"><i class="bi bi-lock-fill"></i> 256-bit encryption</span>
+        <span class="auth-trust-pill"><i class="bi bi-cpu"></i> Azure OpenAI GPT</span>
+        <span class="auth-trust-pill"><i class="bi bi-globe2"></i> 99.9% uptime</span>
       </div>
     </div>
 
@@ -542,6 +638,10 @@
       <form class="auth-form active" id="form-signin" novalidate role="tabpanel" aria-labelledby="tab-signin">
         <h2>Welcome back!</h2>
         <p class="auth-subtitle">Sign in to your account to continue</p>
+
+        <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+          <div class="auth-alert" role="alert"><i class="bi bi-exclamation-triangle-fill"></i> <%= errorMessage %></div>
+        <% } %>
 
         <div class="auth-field" data-field="email">
           <label class="auth-label" for="signin-email">Email address</label>
@@ -577,16 +677,21 @@
           <span class="label">Sign In</span>
         </button>
 
-        <div class="auth-divider">or continue with</div>
-
-        <button type="button" class="social-btn" data-social="google">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
-          Continue with Google
-        </button>
-        <button type="button" class="social-btn" data-social="microsoft">
-          <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
-          Continue with Microsoft
-        </button>
+        <% if (oauthEnabled && (oauthEnabled.google || oauthEnabled.microsoft)) { %>
+          <div class="auth-divider">or continue with</div>
+          <% if (oauthEnabled.google) { %>
+            <button type="button" class="social-btn" data-social="google">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+              Continue with Google
+            </button>
+          <% } %>
+          <% if (oauthEnabled.microsoft) { %>
+            <button type="button" class="social-btn" data-social="microsoft">
+              <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
+              Continue with Microsoft
+            </button>
+          <% } %>
+        <% } %>
 
         <div class="auth-switch-link">
           Don't have an account? <a href="#" data-switch="signup">Sign up</a>
@@ -595,8 +700,10 @@
 
       <!-- ─── Sign Up form ──────────────────────────────────────── -->
       <form class="auth-form" id="form-signup" novalidate role="tabpanel" aria-labelledby="tab-signup">
-        <h2>Create your account</h2>
-        <p class="auth-subtitle">Start building AI-powered dashboards in minutes</p>
+        <h2><% if (typeof selectedPlan !== 'undefined' && selectedPlan) { %>Start your <%= selectedPlan.name %> plan<% } else { %>Create your account<% } %></h2>
+        <p class="auth-subtitle"><% if (typeof selectedPlan !== 'undefined' && selectedPlan && selectedPlan.trialDays > 0) { %>Free for <%= selectedPlan.trialDays %> days. No credit card required.<% } else { %>Start building AI-powered dashboards in minutes<% } %></p>
+
+        <input type="hidden" name="selectedPlan" id="selected-plan" value="<%= (typeof selectedPlan !== 'undefined' && selectedPlan) ? selectedPlan.id : 'starter' %>">
 
         <div class="auth-field" data-field="name">
           <label class="auth-label" for="signup-name">Full name</label>
@@ -650,16 +757,21 @@
           <span class="label">Sign Up</span>
         </button>
 
-        <div class="auth-divider">or continue with</div>
-
-        <button type="button" class="social-btn" data-social="google">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
-          Continue with Google
-        </button>
-        <button type="button" class="social-btn" data-social="microsoft">
-          <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
-          Continue with Microsoft
-        </button>
+        <% if (oauthEnabled && (oauthEnabled.google || oauthEnabled.microsoft)) { %>
+          <div class="auth-divider">or continue with</div>
+          <% if (oauthEnabled.google) { %>
+            <button type="button" class="social-btn" data-social="google">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+              Continue with Google
+            </button>
+          <% } %>
+          <% if (oauthEnabled.microsoft) { %>
+            <button type="button" class="social-btn" data-social="microsoft">
+              <img src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_mssymbol_19.svg" alt="" onerror="this.style.display='none'">
+              Continue with Microsoft
+            </button>
+          <% } %>
+        <% } %>
 
         <div class="auth-switch-link">
           Already have an account? <a href="#" data-switch="signin">Sign in</a>
@@ -692,9 +804,9 @@
     el.addEventListener('click', function (e) { e.preventDefault(); switchTo(el.dataset.switch); });
   });
 
-  // Allow ?tab=signup deep link
+  // Allow ?tab=signup deep link OR auto-switch when ?plan= is present
   var params = new URLSearchParams(window.location.search);
-  if (params.get('tab') === 'signup') switchTo('signup');
+  if (params.get('tab') === 'signup' || params.get('plan')) switchTo('signup');
 
   // ─── Show / hide password ─────────────────────────────────────
   document.querySelectorAll('.toggle-pwd').forEach(function (btn) {
@@ -781,9 +893,9 @@
     }
   }
 
-  function redirectAfterAuth() {
+  function redirectAfterAuth(serverRedirect) {
     var params = new URLSearchParams(window.location.search);
-    var next = params.get('next') || '/dashboard';
+    var next = serverRedirect || params.get('next') || '/dashboard';
     if (!/^\//.test(next)) next = '/dashboard'; // only allow same-origin paths
     setTimeout(function () { window.location.href = next; }, 600);
   }
@@ -815,7 +927,7 @@
       }
       try { localStorage.setItem('autodash_user', JSON.stringify(res.body.user || {})); } catch (_) {}
       showToast('Welcome back! Redirecting…', 'success');
-      redirectAfterAuth();
+      redirectAfterAuth(res.body.redirectTo);
     })
     .catch(function () {
       setLoading(formSignIn, false);
@@ -850,10 +962,12 @@
     if (!ok) return;
 
     setLoading(formSignUp, true);
+    var planEl = document.getElementById('selected-plan');
+    var planVal = planEl ? planEl.value : 'starter';
     fetch('/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ name: name, email: email, password: pwd })
+      body: JSON.stringify({ name: name, email: email, password: pwd, plan: planVal })
     })
     .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
     .then(function (res) {
@@ -890,18 +1004,15 @@
     });
   });
 
-  // ─── Mock social auth ─────────────────────────────────────────
+  // ─── Real OAuth (Google / Microsoft) ──────────────────────────
   document.querySelectorAll('[data-social]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var provider = btn.dataset.social;
+      var planEl = document.getElementById('selected-plan');
+      var plan = planEl ? planEl.value : 'starter';
       btn.disabled = true;
-      var label = btn.textContent.trim();
-      btn.innerHTML = '<span class="spinner" style="display:inline-block;border-color:rgba(15,23,42,0.15);border-top-color:#2563EB"></span> Connecting to ' + provider + '…';
-      setTimeout(function () {
-        setSession({ name: provider === 'google' ? 'Google User' : 'Microsoft User', email: 'demo@' + provider + '.com', provider: provider });
-        showToast('Signed in with ' + (provider === 'google' ? 'Google' : 'Microsoft') + '.', 'success');
-        redirectAfterAuth();
-      }, 700);
+      btn.innerHTML = '<span class="spinner" style="display:inline-block;border-color:rgba(15,23,42,0.15);border-top-color:#2563EB"></span> Redirecting to ' + (provider === 'google' ? 'Google' : 'Microsoft') + '…';
+      window.location.href = '/auth/' + provider + '?plan=' + encodeURIComponent(plan);
     });
   });
 })();

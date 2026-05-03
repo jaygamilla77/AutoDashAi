@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title : 'Talk to Sales — AutoDash AI' %></title>
+  <meta name="description" content="Talk to AutoDash AI sales about Enterprise plans — SSO, dedicated AI capacity, custom integrations, and white-glove onboarding.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://autodash.liknaya.com/contact-sales">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --blue:#2563EB; --blue-h:#1D4ED8; --text:#0F172A; --muted:#64748B; --border:#E2E8F0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',-apple-system,sans-serif; color:var(--text); background:#F8FAFC; line-height:1.5; -webkit-font-smoothing:antialiased; }
+    a { color:var(--blue); text-decoration:none; }
+    a:hover { color:var(--blue-h); }
+    .page { display:grid; grid-template-columns:1fr 1fr; min-height:100vh; }
+    .left {
+      background:linear-gradient(180deg,#0F172A 0%,#1E293B 100%);
+      color:#fff; padding:40px 56px; display:flex; flex-direction:column; gap:24px; position:relative; overflow:hidden;
+    }
+    .left::before { content:""; position:absolute; inset:auto -100px -150px auto; width:480px; height:480px;
+      background:radial-gradient(circle,rgba(99,102,241,0.30) 0%,rgba(99,102,241,0) 70%); pointer-events:none; }
+    .brand { display:inline-flex; align-items:center; gap:12px; color:#fff; }
+    .brand-icon { width:38px; height:38px; background:var(--blue); color:#fff; border-radius:10px; display:grid; place-items:center; font-size:18px; font-weight:700; }
+    .brand-text { font-weight:700; font-size:1.05rem; }
+    .left h1 { font-size:2rem; font-weight:800; line-height:1.2; letter-spacing:-0.5px; }
+    .left h1 span { background:linear-gradient(90deg,#60A5FA,#A78BFA); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .left p.lede { font-size:1.05rem; color:#CBD5E1; max-width:460px; }
+    .feature-list { list-style:none; padding:0; display:flex; flex-direction:column; gap:14px; margin-top:8px; }
+    .feature-list li { display:flex; gap:12px; color:#E2E8F0; font-size:0.95rem; }
+    .feature-list i { color:#60A5FA; font-size:1.1rem; flex-shrink:0; margin-top:2px; }
+    .testimonial {
+      margin-top:auto; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px; padding:18px 20px; color:#E2E8F0; font-size:0.92rem; line-height:1.6;
+    }
+    .testimonial-author { margin-top:10px; font-size:0.82rem; color:#94A3B8; }
+    .right { display:flex; align-items:center; justify-content:center; padding:40px 56px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius:18px;
+      box-shadow:0 24px 48px -16px rgba(15,23,42,0.10); width:100%; max-width:520px; padding:32px 36px; }
+    .card h2 { font-size:1.4rem; font-weight:700; margin-bottom:6px; }
+    .card .sub { color:var(--muted); font-size:0.92rem; margin-bottom:24px; }
+    .field { margin-bottom:16px; }
+    .label { font-size:0.85rem; font-weight:500; color:#334155; display:block; margin-bottom:6px; }
+    .input, .select, .textarea {
+      width:100%; padding:11px 14px; font-size:0.95rem; font-family:inherit; color:var(--text);
+      border:1px solid var(--border); border-radius:10px; background:#fff; transition:border-color 0.15s;
+    }
+    .input:focus, .select:focus, .textarea:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.10); }
+    .textarea { min-height:120px; resize:vertical; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .submit {
+      width:100%; padding:13px; background:var(--blue); color:#fff; border:none; border-radius:10px;
+      font-size:0.98rem; font-weight:600; cursor:pointer; transition:background 0.15s;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .submit:hover { background:var(--blue-h); }
+    .submit:disabled { opacity:0.7; cursor:not-allowed; }
+    .spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; border-radius:50%; animation:spin 0.6s linear infinite; display:none; }
+    .submit.loading .spinner { display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .success-card { text-align:center; padding:40px 20px; }
+    .success-card .icon {
+      width:72px; height:72px; border-radius:50%; background:#ECFDF5; color:#10B981;
+      display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:16px;
+    }
+    .success-card h3 { font-size:1.3rem; margin-bottom:8px; }
+    .success-card p { color:var(--muted); margin-bottom:20px; }
+    .footer-note { font-size:0.78rem; color:var(--muted); margin-top:14px; text-align:center; }
+    .top-link { position:absolute; top:24px; right:32px; color:#94A3B8; font-size:0.85rem; }
+    .top-link:hover { color:#fff; }
+    .alert { background:#FEF2F2; border:1px solid #FECACA; color:#B91C1C; border-radius:10px; padding:10px 12px; font-size:0.86rem; margin-bottom:14px; }
+    @media (max-width:900px) {
+      .page { grid-template-columns:1fr; }
+      .left { padding:32px 24px; min-height:auto; }
+      .right { padding:32px 24px; }
+      .card { padding:24px 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <a href="/auth" class="top-link">← Back to sign in</a>
+
+  <section class="left">
+    <a href="/" class="brand">
+      <span class="brand-icon">A</span>
+      <span class="brand-text">AutoDash AI</span>
+    </a>
+    <h1>Built for teams that need <span>more than dashboards</span></h1>
+    <p class="lede">
+      Enterprise customers get dedicated AI capacity, SSO, custom integrations,
+      and white-glove onboarding from our solutions team.
+    </p>
+    <ul class="feature-list">
+      <li><i class="bi bi-shield-lock-fill"></i> SSO (SAML / OIDC) &amp; role-based access control</li>
+      <li><i class="bi bi-cpu-fill"></i> Dedicated Azure OpenAI capacity for predictable performance</li>
+      <li><i class="bi bi-diagram-3-fill"></i> Custom integrations &amp; private data connectors</li>
+      <li><i class="bi bi-headset"></i> Premium SLA, dedicated CSM, white-glove onboarding</li>
+      <li><i class="bi bi-file-earmark-medical"></i> SOC 2 documentation &amp; security questionnaires</li>
+    </ul>
+    <div class="testimonial">
+      "AutoDash AI's executive summaries replaced two analysts on our weekly leadership pack.
+      The white-glove onboarding had us live in five days."
+      <div class="testimonial-author">— VP Operations, Fortune 500 manufacturer</div>
+    </div>
+  </section>
+
+  <section class="right">
+    <div class="card" id="contact-card">
+      <h2>Talk to our enterprise team</h2>
+      <p class="sub">Tell us about your needs — we'll respond within 1 business day with next steps and a tailored demo.</p>
+
+      <form id="contact-form" novalidate>
+        <input type="hidden" name="source" value="<%= typeof source !== 'undefined' ? source : 'direct' %>">
+        <div id="form-error" class="alert" style="display:none"></div>
+
+        <div class="row">
+          <div class="field">
+            <label class="label" for="c-name">Full name *</label>
+            <input class="input" type="text" id="c-name" name="name" autocomplete="name" required>
+          </div>
+          <div class="field">
+            <label class="label" for="c-email">Work email *</label>
+            <input class="input" type="email" id="c-email" name="email" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label class="label" for="c-company">Company *</label>
+            <input class="input" type="text" id="c-company" name="company" autocomplete="organization" required>
+          </div>
+          <div class="field">
+            <label class="label" for="c-employees">Company size</label>
+            <select class="select" id="c-employees" name="employees">
+              <option value="">Select…</option>
+              <option>1–10</option>
+              <option>11–50</option>
+              <option>51–200</option>
+              <option>201–1,000</option>
+              <option>1,000+</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="c-message">What are you trying to solve? *</label>
+          <textarea class="textarea" id="c-message" name="message" placeholder="e.g. We have 12 data sources across SAP, Salesforce, and Snowflake and need a single executive dashboard with AI summaries for leadership reviews." required></textarea>
+        </div>
+
+        <button type="submit" class="submit" id="c-submit">
+          <span class="spinner"></span>
+          <span class="label">Request a tailored demo</span>
+        </button>
+        <p class="footer-note">By submitting this form, you agree to be contacted by our sales team. We'll never share your information.</p>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('contact-form');
+  var btn = document.getElementById('c-submit');
+  var card = document.getElementById('contact-card');
+  var errEl = document.getElementById('form-error');
+  function showError(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  function hideError() { errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    hideError();
+    var data = {
+      name:      form.querySelector('#c-name').value.trim(),
+      email:     form.querySelector('#c-email').value.trim(),
+      company:   form.querySelector('#c-company').value.trim(),
+      employees: form.querySelector('#c-employees').value,
+      message:   form.querySelector('#c-message').value.trim(),
+      source:    form.querySelector('input[name="source"]').value,
+    };
+    if (!data.name || !data.email || !data.company || !data.message) {
+      showError('Please fill in name, email, company, and a short message.'); return;
+    }
+    btn.classList.add('loading'); btn.disabled = true;
+    fetch('/contact-sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
+    .then(function (res) {
+      btn.classList.remove('loading'); btn.disabled = false;
+      if (!res.body.success) { showError(res.body.error || 'Could not send your enquiry.'); return; }
+      card.innerHTML =
+        '<div class="success-card">' +
+          '<div class="icon"><i class="bi bi-envelope-check-fill"></i></div>' +
+          '<h3>Thanks, ' + (data.name.split(' ')[0]) + '!</h3>' +
+          '<p>' + (res.body.message || 'Our enterprise team will reach out within 1 business day.') + '</p>' +
+          '<p style="font-size:0.86rem">In the meantime, you can <a href="/auth?plan=business&tab=signup">try the Business plan free for 14 days</a> while we set things up.</p>' +
+        '</div>';
+    })
+    .catch(function () {
+      btn.classList.remove('loading'); btn.disabled = false;
+      showError('Network error. Please try again.');
+    });
+  });
+})();
+</script>
+</body>
+</html>
