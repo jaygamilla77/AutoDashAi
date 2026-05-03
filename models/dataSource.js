@@ -44,6 +44,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // Semantic model: business-friendly metadata used by the LLM prompt parser
+    // and surfaced in source-detail. See migrations/20260101000001-* for shape.
+    semanticModelJson: {
+      type: DataTypes.TEXT('long'),
+      allowNull: true,
+    },
   }, {
     tableName: 'data_sources',
   });

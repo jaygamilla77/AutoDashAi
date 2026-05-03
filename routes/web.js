@@ -258,6 +258,11 @@ router.post('/sources/:id/test', sourceController.test);
 router.post('/sources/:id/analyze', sourceController.analyze);
 router.post('/sources/:id/delete', sourceController.destroy);
 
+// Semantic model — read/edit/rebuild
+router.get ('/sources/:id/semantic-model',         requireAuth, sourceController.semanticModelGet);
+router.put ('/sources/:id/semantic-model',         requireAuth, sourceController.semanticModelUpdate);
+router.post('/sources/:id/semantic-model/rebuild', requireAuth, sourceController.semanticModelRebuild);
+
 // Dashboard
 router.post('/dashboard/generate-multi', dashboardController.generateMulti);
 router.post('/dashboard/generate', dashboardController.generate);

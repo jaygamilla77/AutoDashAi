@@ -9,7 +9,9 @@
 const db = require('../models');
 const fileParserService = require('./fileParserService');
 const apiIngestionService = require('./apiIngestionService');
-const schemaProfilerService = require('./schemaProfilerService');const { safeJsonParse } = require('../utils/helpers');
+const schemaProfilerService = require('./schemaProfilerService');
+const semanticModelService = require('./semanticModelService');
+const { safeJsonParse } = require('../utils/helpers');
 
 /**
  * Ingest a data source: parse, profile, and store schema/preview.
@@ -69,11 +71,13 @@ async function ingest(source) {
     const unified = fileParserService.buildUnifiedTable(sheets);
 
     // Also store unified as a special DataSourceSchema entry
+    let unifiedProfile = null;
     if (unified.columns.length > 0) {
       const { schema: uSchema, profile: uProfile } = schemaProfilerService.profileData(
         unified.columns,
         unified.rows
       );
+      unifiedProfile = uProfile;
       await db.DataSourceSchema.create({
         dataSourceId: source.id,
         datasetName: '__unified__',
@@ -90,6 +94,15 @@ async function ingest(source) {
     await source.update({
       analysisJson: JSON.stringify({ relationships, suggestedPrompts, unifiedColumns: unified.columns, unifiedTotalRows: unified.totalRows }),
     });
+
+    // Auto-build semantic model from the unified profile.
+    if (unifiedProfile) {
+      try {
+        await semanticModelService.ensureForSource(source.id, unifiedProfile, { sourceName: source.name });
+      } catch (err) {
+        console.warn('[ingest] semantic model build skipped:', err.message);
+      }
+    }
 
     return { multiSheet: true, sheets: results };
   }
@@ -114,6 +127,13 @@ async function ingest(source) {
     await existing.update(schemaPayload);
   } else {
     await db.DataSourceSchema.create(schemaPayload);
+  }
+
+  // Auto-build semantic model on first ingest (preserves hand-edits on re-ingest).
+  try {
+    await semanticModelService.ensureForSource(source.id, profile, { sourceName: source.name });
+  } catch (err) {
+    console.warn('[ingest] semantic model build skipped:', err.message);
   }
 
   return { schema, profile, preview: rows.slice(0, 50) };

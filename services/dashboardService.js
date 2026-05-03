@@ -18,6 +18,7 @@ const kpiService = require('./kpiService');
 const chartService = require('./chartService');
 const aiInsightService = require('./aiInsightService');
 const aiService = require('./aiService');
+const semanticModelService = require('./semanticModelService');
 
 /**
  * Smartly pick a chart type from the structuredRequest context when chartPreference is 'auto'.
@@ -89,6 +90,12 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
             return `Table "${s.datasetName}": ${cols.map(c => c.name + ' (' + c.type + ')').join(', ')}`;
           }).join('\n');
         }
+        // Enrich with semantic model — display names, units, default aggs, synonyms.
+        try {
+          const semanticModel = await semanticModelService.getById(dataSourceId);
+          const sem = semanticModel ? semanticModelService.toPromptContext(semanticModel) : '';
+          if (sem) schemaCtx = (schemaCtx ? schemaCtx + '\n\n' : '') + sem;
+        } catch (_) { /* noop */ }
       }
       structuredRequest = await promptParserService.parseWithAI(prompt, chartType, schemaCtx);
       if (structuredRequest) parsedByAI = true;

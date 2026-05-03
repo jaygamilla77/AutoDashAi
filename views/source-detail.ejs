@@ -311,6 +311,144 @@
 </div>
 <% } %>
 
+<!-- Semantic Model Card (always shown) -->
+<div class="card mb-4" id="semanticModelCard">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-diagram-3 me-1"></i>Semantic Model
+      <small class="text-muted ms-2" style="font-size:0.72rem">Business glossary the AI uses when interpreting your prompts</small>
+    </span>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="smRebuildBtn">
+        <i class="bi bi-arrow-clockwise me-1"></i>Rebuild
+      </button>
+      <button type="button" class="btn btn-sm btn-primary" id="smSaveBtn" disabled>
+        <i class="bi bi-save me-1"></i>Save changes
+      </button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div id="smStatus" class="text-muted" style="font-size:0.85rem">Loading semantic model…</div>
+    <div id="smContainer" style="display:none">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted" id="smMeta"></small>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle" id="smTable">
+          <thead style="background:#f8fafc">
+            <tr>
+              <th style="width:18%">Column</th>
+              <th style="width:18%">Display name</th>
+              <th style="width:11%">Role</th>
+              <th style="width:10%">Type</th>
+              <th style="width:8%">Unit</th>
+              <th style="width:11%">Default agg</th>
+              <th>Synonyms (comma-separated)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var sourceId = <%= source.id %>;
+  var statusEl = document.getElementById('smStatus');
+  var containerEl = document.getElementById('smContainer');
+  var metaEl = document.getElementById('smMeta');
+  var tbodyEl = document.querySelector('#smTable tbody');
+  var saveBtn = document.getElementById('smSaveBtn');
+  var rebuildBtn = document.getElementById('smRebuildBtn');
+  var currentModel = null;
+
+  function setDirty(v){ saveBtn.disabled = !v; }
+  function escapeHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]; }); }
+  var ROLES = ['measure','dimension','time','identifier'];
+  var AGGS  = ['','sum','avg','count','max','min','distinct'];
+  var UNITS = ['','$','%','count','days','hours'];
+
+  function selectHtml(field, val, opts){
+    return '<select class="form-select form-select-sm" data-field="'+field+'">' +
+      opts.map(function(o){ return '<option value="'+escapeHtml(o)+'"'+(String(val||'')===String(o)?' selected':'')+'>'+(o||'—')+'</option>'; }).join('') +
+      '</select>';
+  }
+  function render(model) {
+    tbodyEl.innerHTML = '';
+    var table = (model.tables && model.tables[0]) || { columns: [] };
+    metaEl.textContent = 'Table: ' + (table.displayName || table.name || '(unnamed)') +
+      ' · ' + (table.columns ? table.columns.length : 0) + ' columns · grain ' + (table.grain || 'row') +
+      (model.editedAt ? ' · edited ' + new Date(model.editedAt).toLocaleString() : ' · auto-generated');
+    (table.columns || []).forEach(function(col, idx){
+      var tr = document.createElement('tr');
+      tr.dataset.idx = idx;
+      tr.innerHTML =
+        '<td><code style="font-size:0.78rem">'+escapeHtml(col.name)+'</code></td>'+
+        '<td><input type="text" class="form-control form-control-sm" data-field="displayName" value="'+escapeHtml(col.displayName||'')+'"></td>'+
+        '<td>'+selectHtml('role', col.role, ROLES)+'</td>'+
+        '<td><input type="text" class="form-control form-control-sm" data-field="dataType" value="'+escapeHtml(col.dataType||'')+'" readonly style="background:#f9fafb"></td>'+
+        '<td>'+selectHtml('unit', col.unit, UNITS)+'</td>'+
+        '<td>'+selectHtml('defaultAggregation', col.defaultAggregation, AGGS)+'</td>'+
+        '<td><input type="text" class="form-control form-control-sm" data-field="synonyms" value="'+escapeHtml((col.synonyms||[]).join(', '))+'"></td>';
+      tbodyEl.appendChild(tr);
+    });
+    tbodyEl.querySelectorAll('input,select').forEach(function(el){
+      el.addEventListener('change', function(){ commit(); setDirty(true); });
+      el.addEventListener('input',  function(){ setDirty(true); });
+    });
+  }
+  function commit(){
+    if (!currentModel || !currentModel.tables || !currentModel.tables[0]) return;
+    var cols = currentModel.tables[0].columns || [];
+    tbodyEl.querySelectorAll('tr').forEach(function(tr){
+      var idx = Number(tr.dataset.idx);
+      var col = cols[idx]; if (!col) return;
+      tr.querySelectorAll('[data-field]').forEach(function(el){
+        var f = el.dataset.field, v = el.value;
+        if (f === 'synonyms') col.synonyms = v.split(',').map(function(s){return s.trim();}).filter(Boolean);
+        else col[f] = v || null;
+      });
+    });
+  }
+  function load(){
+    statusEl.textContent = 'Loading semantic model…';
+    containerEl.style.display = 'none';
+    fetch('/sources/'+sourceId+'/semantic-model').then(function(r){ return r.json(); }).then(function(j){
+      if (!j.ok) { statusEl.textContent = 'Failed to load: ' + (j.error||'unknown'); return; }
+      currentModel = j.model;
+      statusEl.style.display = 'none';
+      containerEl.style.display = '';
+      render(currentModel);
+      setDirty(false);
+    }).catch(function(e){ statusEl.textContent = 'Failed to load: ' + e.message; });
+  }
+  saveBtn.addEventListener('click', function(){
+    commit();
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    fetch('/sources/'+sourceId+'/semantic-model', {
+      method: 'PUT', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ model: currentModel })
+    }).then(function(r){ return r.json(); }).then(function(j){
+      saveBtn.innerHTML = '<i class="bi bi-save me-1"></i>Save changes';
+      if (!j.ok) { alert('Save failed: ' + (j.error||'unknown')); saveBtn.disabled = false; return; }
+      currentModel = j.model; setDirty(false);
+    }).catch(function(e){ alert('Save failed: '+e.message); saveBtn.disabled = false; });
+  });
+  rebuildBtn.addEventListener('click', function(){
+    if (!confirm('Rebuild from raw schema? This will overwrite any custom edits.')) return;
+    rebuildBtn.disabled = true;
+    fetch('/sources/'+sourceId+'/semantic-model/rebuild', { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        rebuildBtn.disabled = false;
+        if (!j.ok) { alert('Rebuild failed: '+(j.error||'unknown')); return; }
+        currentModel = j.model; render(currentModel); setDirty(false);
+      }).catch(function(e){ rebuildBtn.disabled = false; alert('Rebuild failed: '+e.message); });
+  });
+  load();
+})();
+</script>
+
 <!-- Analysis & Prompts Panel -->
 <% if (analysis) { %>
 <div class="tab-pane fade" id="panel-analysis" role="tabpanel">

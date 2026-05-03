@@ -1,5 +1,6 @@
 const db = require('../models');
 const sourceIngestionService = require('../services/sourceIngestionService');
+const semanticModelService = require('../services/semanticModelService');
 const { safeJsonParse } = require('../utils/helpers');
 const { SOURCE_TYPES } = require('../utils/constants');
 
@@ -244,6 +245,68 @@ exports.analyze = async (req, res) => {
     console.error('Source analyze error:', err);
     req.flash('error', `Analysis failed: ${err.message}`);
     res.redirect(`/sources/${req.params.id}`);
+  }
+};
+
+// ── Semantic model endpoints ────────────────────────────────────────────────
+
+exports.semanticModelGet = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const ds = await db.DataSource.findByPk(id);
+    if (!ds) return res.status(404).json({ ok: false, error: 'Data source not found.' });
+    let model = await semanticModelService.getById(id);
+    if (!model) {
+      const schemas = await db.DataSourceSchema.findAll({ where: { dataSourceId: id }, raw: true });
+      const unified = schemas.find(s => s.datasetName === '__unified__') || schemas[0];
+      if (unified) {
+        const profile = JSON.parse(unified.profileJson || '{}');
+        model = semanticModelService.buildFromProfile(profile, { dataSourceId: id, sourceName: ds.name });
+        await semanticModelService.save(id, model);
+      } else {
+        model = { version: 1, dataSourceId: id, generatedAt: new Date().toISOString(), tables: [], relationships: [], facts: {} };
+      }
+    }
+    res.json({ ok: true, model });
+  } catch (err) {
+    console.error('semanticModelGet error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+exports.semanticModelUpdate = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const incoming = req.body && req.body.model;
+    if (!incoming || typeof incoming !== 'object') {
+      return res.status(400).json({ ok: false, error: 'Missing model payload.' });
+    }
+    if (!Array.isArray(incoming.tables)) {
+      return res.status(400).json({ ok: false, error: 'model.tables[] is required.' });
+    }
+    const saved = await semanticModelService.save(id, incoming);
+    res.json({ ok: true, model: saved });
+  } catch (err) {
+    console.error('semanticModelUpdate error:', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+};
+
+exports.semanticModelRebuild = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const ds = await db.DataSource.findByPk(id);
+    if (!ds) return res.status(404).json({ ok: false, error: 'Data source not found.' });
+    const schemas = await db.DataSourceSchema.findAll({ where: { dataSourceId: id }, raw: true });
+    const unified = schemas.find(s => s.datasetName === '__unified__') || schemas[0];
+    if (!unified) return res.status(400).json({ ok: false, error: 'No schema available — re-ingest first.' });
+    const profile = JSON.parse(unified.profileJson || '{}');
+    const model = semanticModelService.buildFromProfile(profile, { dataSourceId: id, sourceName: ds.name });
+    const saved = await semanticModelService.save(id, model);
+    res.json({ ok: true, model: saved });
+  } catch (err) {
+    console.error('semanticModelRebuild error:', err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 };
 
