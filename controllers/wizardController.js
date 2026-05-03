@@ -316,6 +316,12 @@ exports.generateDashboard = async (req, res) => {
       templateId: templateId || (dashboardType ? `${dashboardType}-dashboard` : null),
       colorTheme: colorTheme || theme || null,
       title:      title.trim(),
+      // ⚠ Hostinger's proxy was 503-ing this endpoint at ~30s. Skip the
+      // per-panel + executive-summary AI calls inside the unified
+      // pipeline; rule-based insights still fire and the dashboard
+      // generates in <8s. Users can regenerate AI insights from the
+      // canvas after save if desired.
+      skipAiNarrative: true,
     });
 
     return res.json({
