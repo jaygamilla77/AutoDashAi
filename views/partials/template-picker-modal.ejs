@@ -513,6 +513,9 @@ function displayFullDashboard(dashboard) {
   // Update empty-state flag
   if (typeof aiUpdateEmptyState === 'function') aiUpdateEmptyState();
 
+  // Enable the Generate & Save / Save Changes buttons now that panels exist
+  if (typeof aiUpdateToolbar === 'function') aiUpdateToolbar();
+
   // Make sure Properties drawer is reset
   const propContent = document.getElementById('aiPropertiesContent');
   if (propContent) {

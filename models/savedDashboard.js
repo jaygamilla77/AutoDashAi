@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     dashboardConfigJson: {
-      type: DataTypes.TEXT,
+      type: DataTypes.TEXT('long'),
       allowNull: true,
     },
     dataSourceId: {

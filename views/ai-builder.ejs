@@ -486,6 +486,7 @@
     if (saveBtn) saveBtn.disabled = n === 0;
     if (saveChangesBtn) saveChangesBtn.disabled = n === 0;
   }
+  window.aiUpdateToolbar = aiUpdateToolbar;
 
   function aiRenderQueueList() {
     var listEl = document.getElementById('aiQueueList'); if (!listEl) return;
