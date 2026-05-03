@@ -738,6 +738,13 @@ function injectGeneratedHeader(dashboard) {
 
 // Render structured executive insight cards with Observation / Business Impact /
 // Risk Level / Recommendation / Confidence sections.
+//
+// Executive presentation rules (calm-first design):
+//  • Show only the TOP 2 priority insights by default.
+//  • Sort by severity (CRITICAL > HIGH > MEDIUM > LOW) then confidence.
+//  • Only CRITICAL gets strong red. HIGH/MEDIUM use muted amber/blue
+//    instead of warning yellows so the dashboard reads premium, not noisy.
+//  • Remaining insights collapse behind "Show all N insights".
 function injectInsightsStrip(insights) {
   const old = document.getElementById('aiInsightsStrip');
   if (old) old.remove();
@@ -746,95 +753,117 @@ function injectInsightsStrip(insights) {
   const grid = document.getElementById('aiPanelGrid');
   if (!grid) return;
 
+  // Prioritise: rank by severity then confidence.
+  const RISK_RANK = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  const sorted = insights.slice().sort(function(a, b) {
+    const r = (RISK_RANK[b.riskLevel] || 0) - (RISK_RANK[a.riskLevel] || 0);
+    if (r !== 0) return r;
+    return (Number(b.confidence) || 0) - (Number(a.confidence) || 0);
+  });
+
+  // Soft enterprise palette. Only CRITICAL pops; everything else stays calm.
   const palette = {
-    success: { bg:'#ecfdf5', border:'#a7f3d0', text:'#065f46', accent:'#10b981', riskBg:'#d1fae5', riskText:'#065f46', label:'Positive Trend' },
-    warning: { bg:'#fffbeb', border:'#fcd34d', text:'#92400e', accent:'#f59e0b', riskBg:'#fef3c7', riskText:'#92400e', label:'Needs Attention' },
-    danger:  { bg:'#fef2f2', border:'#fecaca', text:'#991b1b', accent:'#ef4444', riskBg:'#fee2e2', riskText:'#991b1b', label:'Critical Risk' },
-    info:    { bg:'#eff6ff', border:'#bfdbfe', text:'#1e40af', accent:'#3b82f6', riskBg:'#dbeafe', riskText:'#1e40af', label:'Recommendation' },
+    critical: { bg:'#fef2f2', border:'#fecaca', text:'#991b1b', accent:'#ef4444', label:'Strategic Risk' },
+    high:     { bg:'#fff7ed', border:'#fed7aa', text:'#9a3412', accent:'#f97316', label:'Needs Attention' },
+    medium:   { bg:'#f8fafc', border:'#e2e8f0', text:'#334155', accent:'#64748b', label:'Observation' },
+    low:      { bg:'#f0f9ff', border:'#bae6fd', text:'#0c4a6e', accent:'#0ea5e9', label:'Recommendation' },
+    success:  { bg:'#f0fdf4', border:'#bbf7d0', text:'#14532d', accent:'#22c55e', label:'Positive Trend' },
   };
-
-  const riskBadgeColor = (risk) => {
+  function paletteFor(ins) {
+    if (ins.riskLevel === 'CRITICAL') return palette.critical;
+    if (ins.riskLevel === 'HIGH')     return palette.high;
+    if (ins.level === 'success')      return palette.success;
+    if (ins.riskLevel === 'MEDIUM')   return palette.medium;
+    return palette.low;
+  }
+  const riskBadge = (risk) => {
     if (risk === 'CRITICAL') return { bg:'#fee2e2', fg:'#991b1b' };
-    if (risk === 'HIGH')     return { bg:'#fef3c7', fg:'#92400e' };
-    if (risk === 'MEDIUM')   return { bg:'#fef9c3', fg:'#854d0e' };
-    return { bg:'#dcfce7', fg:'#166534' }; // LOW
+    if (risk === 'HIGH')     return { bg:'#ffedd5', fg:'#9a3412' };
+    if (risk === 'MEDIUM')   return { bg:'#f1f5f9', fg:'#475569' };
+    return { bg:'#e0f2fe', fg:'#075985' };
   };
 
-  const cards = insights.slice(0, 6).map(function(ins) {
-    const p = palette[ins.level] || palette.info;
+  function renderCard(ins) {
+    const p = paletteFor(ins);
     const risk = ins.riskLevel || 'LOW';
-    const rb = riskBadgeColor(risk);
+    const rb = riskBadge(risk);
     const conf = Number.isFinite(Number(ins.confidence)) ? Math.round(Number(ins.confidence)) : null;
-
-    // Backwards-compat: fall back to legacy `text` if observation missing.
     const observation = ins.observation || ins.text || '';
     const impact      = ins.businessImpact || '';
     const rec         = ins.recommendation || '';
 
     return '' +
-      '<div style="flex:1 1 320px;min-width:300px;max-width:520px;background:' + p.bg + ';border:1px solid ' + p.border + ';' +
-        'border-left:4px solid ' + p.accent + ';border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:7px">' +
-
-        // Header row: icon + title + risk badge
-        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-          '<span style="font-size:1.05rem;line-height:1">' + (ins.icon || '💡') + '</span>' +
-          '<span style="font-size:0.86rem;font-weight:800;color:' + p.text + ';flex:1">' + escapeHtmlSafe(ins.title || p.label) + '</span>' +
-          '<span style="background:' + rb.bg + ';color:' + rb.fg + ';font-size:0.62rem;font-weight:800;letter-spacing:0.5px;' +
-            'padding:2px 8px;border-radius:999px;text-transform:uppercase">' + escapeHtmlSafe(risk) + '</span>' +
+      '<div style="flex:1 1 360px;min-width:320px;max-width:560px;background:' + p.bg + ';border:1px solid ' + p.border + ';' +
+        'border-left:3px solid ' + p.accent + ';border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(15,23,42,0.03)">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span style="font-size:1.05rem;line-height:1;opacity:0.85">' + (ins.icon || '◆') + '</span>' +
+          '<span style="font-size:0.92rem;font-weight:700;color:' + p.text + ';flex:1;letter-spacing:-0.01em">' + escapeHtmlSafe(ins.title || p.label) + '</span>' +
+          '<span style="background:' + rb.bg + ';color:' + rb.fg + ';font-size:0.6rem;font-weight:700;letter-spacing:0.6px;padding:2px 8px;border-radius:999px;text-transform:uppercase">' + escapeHtmlSafe(risk) + '</span>' +
         '</div>' +
-
-        // Observation
         (observation ? (
-          '<div>' +
-            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#475569;margin-bottom:1px">Observation</div>' +
-            '<div style="font-size:0.78rem;color:#1e293b;line-height:1.4">' + escapeHtmlSafe(observation) + '</div>' +
-          '</div>'
+          '<div style="font-size:0.85rem;color:#1e293b;line-height:1.55">' + escapeHtmlSafe(observation) + '</div>'
         ) : '') +
-
-        // Business impact
         (impact ? (
           '<div>' +
-            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#475569;margin-bottom:1px">Business Impact</div>' +
-            '<div style="font-size:0.74rem;color:#475569;line-height:1.4">' + escapeHtmlSafe(impact) + '</div>' +
+            '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;color:#64748b;margin-bottom:2px">Business Impact</div>' +
+            '<div style="font-size:0.78rem;color:#475569;line-height:1.5">' + escapeHtmlSafe(impact) + '</div>' +
           '</div>'
         ) : '') +
-
-        // Recommendation
         (rec ? (
-          '<div style="background:rgba(255,255,255,0.6);border:1px dashed ' + p.border + ';border-radius:6px;padding:6px 8px">' +
-            '<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:' + p.text + ';margin-bottom:1px">' +
-              '💡 Recommended Action' +
-            '</div>' +
-            '<div style="font-size:0.74rem;color:#1e293b;line-height:1.4">' + escapeHtmlSafe(rec) + '</div>' +
+          '<div style="border-top:1px solid ' + p.border + ';padding-top:8px">' +
+            '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:700;color:' + p.text + ';margin-bottom:2px">Recommendation</div>' +
+            '<div style="font-size:0.8rem;color:#1e293b;line-height:1.55;font-weight:500">' + escapeHtmlSafe(rec) + '</div>' +
           '</div>'
         ) : '') +
-
-        // Confidence bar
         (conf != null ? (
-          '<div style="display:flex;align-items:center;gap:8px;margin-top:2px">' +
-            '<span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#64748b">Confidence</span>' +
-            '<div style="flex:1;height:6px;background:#e5e7eb;border-radius:999px;overflow:hidden">' +
-              '<div style="width:' + conf + '%;height:100%;background:' + p.accent + '"></div>' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-top:2px">' +
+            '<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;color:#94a3b8">Confidence</span>' +
+            '<div style="flex:1;height:4px;background:#e5e7eb;border-radius:999px;overflow:hidden">' +
+              '<div style="width:' + conf + '%;height:100%;background:' + p.accent + ';opacity:0.85"></div>' +
             '</div>' +
             '<span style="font-size:0.72rem;font-weight:700;color:' + p.text + '">' + conf + '%</span>' +
           '</div>'
         ) : '') +
-
       '</div>';
-  }).join('');
+  }
+
+  const TOP_N = 2;
+  const top = sorted.slice(0, TOP_N);
+  const more = sorted.slice(TOP_N);
+  const topCards = top.map(renderCard).join('');
+  const moreCards = more.map(renderCard).join('');
 
   const strip = document.createElement('div');
   strip.id = 'aiInsightsStrip';
-  strip.style.cssText = 'position:relative;z-index:1;padding:14px 18px 8px;display:flex;flex-wrap:wrap;gap:12px;background:#ffffff;border-bottom:1px solid #f1f5f9';
+  strip.style.cssText = 'position:relative;z-index:1;padding:20px 24px 18px;background:#ffffff;border-bottom:1px solid #f1f5f9';
   strip.innerHTML =
-    '<div style="flex:0 0 100%;display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
-      '<i class="bi bi-lightning-charge-fill" style="color:#6366f1;font-size:1rem"></i>' +
-      '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:800;color:#475569">' +
-        'AI Insights & Recommendations' +
-      '</span>' +
-      '<span style="font-size:0.66rem;color:#94a3b8;margin-left:4px">' + insights.length + ' insight' + (insights.length === 1 ? '' : 's') + ' detected</span>' +
-    '</div>' + cards;
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
+      '<i class="bi bi-lightbulb" style="color:#0ea5e9;font-size:0.95rem"></i>' +
+      '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.8px;font-weight:700;color:#0f172a">Key Insights</span>' +
+      '<span style="font-size:0.7rem;color:#94a3b8">' + insights.length + ' detected · showing top ' + Math.min(TOP_N, insights.length) + '</span>' +
+    '</div>' +
+    '<div id="aiInsightsTop" style="display:flex;flex-wrap:wrap;gap:14px">' + topCards + '</div>' +
+    (more.length ? (
+      '<div id="aiInsightsMoreWrap" style="display:none;flex-wrap:wrap;gap:14px;margin-top:14px">' + moreCards + '</div>' +
+      '<button type="button" id="aiInsightsToggle" style="margin-top:14px;background:transparent;border:1px solid #e2e8f0;color:#475569;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;transition:all 0.15s">' +
+        '<i class="bi bi-chevron-down me-1"></i>Show all ' + insights.length + ' insights' +
+      '</button>'
+    ) : '');
   grid.parentNode.insertBefore(strip, grid);
+
+  if (more.length) {
+    const btn = document.getElementById('aiInsightsToggle');
+    const moreWrap = document.getElementById('aiInsightsMoreWrap');
+    btn.addEventListener('mouseover', function() { btn.style.borderColor = '#cbd5e1'; btn.style.color = '#0f172a'; });
+    btn.addEventListener('mouseout',  function() { btn.style.borderColor = '#e2e8f0'; btn.style.color = '#475569'; });
+    btn.addEventListener('click', function() {
+      const open = moreWrap.style.display !== 'none';
+      moreWrap.style.display = open ? 'none' : 'flex';
+      btn.innerHTML = (open
+        ? '<i class="bi bi-chevron-down me-1"></i>Show all ' + insights.length + ' insights'
+        : '<i class="bi bi-chevron-up me-1"></i>Show fewer');
+    });
+  }
 }
 
 // Expose so ai-builder.ejs can reuse the same renderer for save / restore.
