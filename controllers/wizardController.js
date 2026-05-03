@@ -166,8 +166,11 @@ exports.analyzeDataSource = async (req, res) => {
     }
 
     // Get AI recommendations
-    console.log('[Wizard Controller] Getting AI recommendations...');
-    const recommendations = await dataAnalysisService.getAiRecommendations(analysis);
+    // ⚠ Skip Azure OpenAI here — the wizard's Step 3 calls
+    // /wizard/recommendations separately. Doing the AI round-trip inside
+    // /wizard/analyze regularly exceeded Hostinger's 30s proxy timeout
+    // and surfaced as 503 Service Unavailable to the user.
+    const recommendations = [];
 
     console.log('[Wizard Controller] Returning success response');
     return res.json({
