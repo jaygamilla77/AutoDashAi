@@ -225,16 +225,6 @@ exports.analyzeSheet = async (req, res) => {
 /**
  * Step 3: Get AI recommendations for dashboard
  */
-// Race a promise against a timeout so a slow Azure OpenAI call can't
-// block the whole /wizard/recommendations response past Hostinger's
-// ~30s proxy limit. Returns `fallback` on timeout / failure.
-function withTimeout(promise, ms, fallback) {
-  return Promise.race([
-    Promise.resolve(promise).catch(() => fallback),
-    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
-}
-
 exports.getRecommendations = async (req, res) => {
   try {
     const { analysis } = req.body;
@@ -243,21 +233,20 @@ exports.getRecommendations = async (req, res) => {
       throw new Error('Analysis data required');
     }
 
-    // ⚠ Hostinger's LiteSpeed proxy aggressively kills slow upstream
-    // responses (observed ~5s 503s in production). Each helper below
-    // already has a strong rule-based fallback, so run them with very
-    // short AI timeouts and gracefully degrade to canned results.
-    const dashboardType = await withTimeout(
-      wizardRecommendationService.recommendDashboardType(analysis),
-      3000,
-      { type: 'general', confidence: 50, reason: 'AI timeout — using fallback' }
-    );
+    // ⚠ Production note: Hostinger's LiteSpeed/Passenger proxy was killing
+    // this endpoint with a 503 in ~3s — apparently before our AI timeouts
+    // could fire. Remove all Azure OpenAI calls from this path; the
+    // rule-based helpers below give excellent recommendations and respond
+    // in <100ms. Title/template enrichment can be done lazily later.
+    const dashboardType = await wizardRecommendationService
+      .recommendDashboardType(analysis)
+      .catch(() => ({ type: 'general', confidence: 50, reason: 'fallback' }));
 
-    const kpis = wizardRecommendationService.recommendKpis(analysis);
-    const charts = wizardRecommendationService.recommendCharts(analysis);
+    const kpis      = wizardRecommendationService.recommendKpis(analysis);
+    const charts    = wizardRecommendationService.recommendCharts(analysis);
     const anomalies = wizardRecommendationService.getAnomalyDetectionOpportunities(analysis);
 
-    const fallbackTemplates = [
+    const templates = [
       { name: 'Balanced Overview', description: 'Mix of KPIs, trends, and details',
         sections: ['Executive Summary', 'Key Metrics', 'Trends', 'Performance Details'], priority: 1 },
       { name: 'Executive Focus', description: 'Top-level insights and key indicators',
@@ -266,18 +255,7 @@ exports.getRecommendations = async (req, res) => {
         sections: ['Overview', 'Detailed Metrics', 'Drill-down Analysis', 'Data Table'], priority: 3 },
     ];
 
-    const [templates, suggestedTitle] = await Promise.all([
-      withTimeout(
-        wizardRecommendationService.getTemplateSuggestions(analysis, dashboardType.type),
-        4000,
-        fallbackTemplates
-      ),
-      withTimeout(
-        wizardRecommendationService.recommendDashboardTitle(analysis, dashboardType.type),
-        3000,
-        `${dashboardType.type} Report`
-      ),
-    ]);
+    const suggestedTitle = `${dashboardType.type || 'AI'} Dashboard`;
 
     return res.json({
       success: true,
