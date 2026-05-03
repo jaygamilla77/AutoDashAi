@@ -504,7 +504,18 @@ function displayFullDashboard(dashboard) {
     templateId:        dashboard.templateId || null,
     sourceId:          dashboard.sourceId   || null,
     sourceName:        dashboard.sourceName || null,
+    // ── AI intelligence — persisted with the dashboard so they survive save/load.
+    insights:          dashboard.insights        || [],
+    recommendations:   dashboard.recommendations || [],
+    anomalyAlert:      dashboard.anomalyAlert    || null,
+    executiveSummary:  dashboard.executiveSummary || '',
   };
+  // Mirror to the canvas-save globals so submitAiDashboard picks them up.
+  if (typeof window !== 'undefined') {
+    window.__aiExecSummaryStash    = dashboard.executiveSummary || '';
+    window.__aiInsightsStash       = dashboard.insights         || [];
+    window.__aiRecommendationsStash = dashboard.recommendations  || [];
+  }
 
   // Lock the SOURCE selector so the user can't change the database after
   // a dashboard was generated against it. They can still edit chart-type/prompt.
@@ -825,6 +836,9 @@ function injectInsightsStrip(insights) {
     '</div>' + cards;
   grid.parentNode.insertBefore(strip, grid);
 }
+
+// Expose so ai-builder.ejs can reuse the same renderer for save / restore.
+if (typeof window !== 'undefined') window.injectInsightsStrip = injectInsightsStrip;
 
 function escapeHtmlSafe(s) {
   return String(s == null ? '' : s)

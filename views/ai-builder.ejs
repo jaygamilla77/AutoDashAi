@@ -1862,7 +1862,7 @@
       var fullConfig = {
         panels: __aiQueue,
         kpiData: __aiKpiData,
-        executiveSummary: __aiExecSummary,
+        executiveSummary: __aiExecSummary || meta.executiveSummary || window.__aiExecSummaryStash || '',
         palette: aiGetTemplatePalette() || [],
         templateId: (document.getElementById('aiTemplateSel') || {}).value || null,
         dashboardType:     meta.dashboardType     || 'executive',
@@ -1871,6 +1871,10 @@
         anomalyAlert:      meta.anomalyAlert      || null,
         layoutHint:        meta.layoutHint        || null,
         sections:          meta.sections          || [],
+        // ── AI intelligence is first-class dashboard content. Persist it
+        //    alongside panels so save → reopen renders pixel-identical.
+        insights:          meta.insights          || window.__aiInsightsStash       || [],
+        recommendations:   meta.recommendations   || window.__aiRecommendationsStash || [],
         renderMode:        'executive-layout',
         dashboardVersion:  'v2',
         schemaVersion:     meta.schemaVersion     || 'executive-dashboard-v1',
@@ -1940,7 +1944,7 @@
     var configObj = {
       panels: __aiQueue,
       kpiData: __aiKpiData,
-      executiveSummary: __aiExecSummary,
+      executiveSummary: __aiExecSummary || meta.executiveSummary || '',
       palette: aiGetTemplatePalette() || [],
       dashboardType: meta.dashboardType || null,
       dashboardRole: meta.dashboardRole || null,
@@ -1948,6 +1952,9 @@
       anomalyAlert: meta.anomalyAlert || null,
       layoutHint: meta.layoutHint || null,
       sections: meta.sections || [],
+      // ── AI intelligence — first-class, persisted with the dashboard.
+      insights:        meta.insights        || window.__aiInsightsStash       || [],
+      recommendations: meta.recommendations || window.__aiRecommendationsStash || [],
       schemaVersion: meta.schemaVersion || null,
     };
     
@@ -2289,6 +2296,19 @@
         gridEl.appendChild(tableWrap);
       }
 
+      // 5b. AI Insights & Recommendations strip — first-class dashboard content,
+      // persisted on save and restored on reload.
+      try {
+        var insightsArr = data.insights || [];
+        if (insightsArr.length && typeof window.injectInsightsStrip === 'function') {
+          // injectInsightsStrip looks for #aiPanelGrid and inserts the strip
+          // before it; remove any prior strip first to avoid duplicates.
+          var oldStrip = document.getElementById('aiInsightsStrip');
+          if (oldStrip) oldStrip.remove();
+          window.injectInsightsStrip(insightsArr);
+        }
+      } catch(e) { console.warn('insights render failed', e); }
+
       // 6. Executive summary
       var summary = data.executiveSummary || '';
       if (summary && summary.length > 20) {
@@ -2337,6 +2357,8 @@
       executiveSummary: preload.executiveSummary || '',
       sections: preload.sections || [],
       layoutHint: preload.layoutHint || null,
+      insights: preload.insights || [],
+      recommendations: preload.recommendations || [],
     };
 
     window.__aiExecutiveMeta = {
@@ -2347,6 +2369,9 @@
       layoutHint: data.layoutHint,
       sections: data.sections,
       schemaVersion: preload.schemaVersion || 'executive-dashboard-v1',
+      insights: data.insights,
+      recommendations: data.recommendations,
+      executiveSummary: data.executiveSummary,
     };
     __aiKpiData = data.kpiData;
     __aiExecSummary = data.executiveSummary;

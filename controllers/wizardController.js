@@ -9,6 +9,8 @@ const wizardRecommendationService = require('../services/wizardRecommendationSer
 const dashboardService = require('../services/dashboardService');
 const builderService = require('../services/fullDashboardService');
 const sourceIngestionService = require('../services/sourceIngestionService');
+const intelligentDashboardService = require('../services/intelligentDashboardService');
+const fullDashboardGeneratorService = require('../services/fullDashboardGeneratorService');
 const { safeJsonParse } = require('../utils/helpers');
 
 /**
@@ -263,48 +265,45 @@ exports.getRecommendations = async (req, res) => {
 };
 
 /**
- * Step 5: Generate full dashboard
+ * Step 5: Generate full dashboard (Wizard path)
+ *
+ * Routes through the unified intelligent dashboard pipeline so the wizard
+ * produces the SAME executive-quality output as the AI-canvas template
+ * picker and /dashboard/full.
  */
 exports.generateDashboard = async (req, res) => {
   try {
     const {
       title,
       dataSourceId,
-      fileData,
-      dashboardType,
-      selectedKpis,
-      selectedCharts,
-      theme,
-      layout,
+      dashboardType,    // reserved (template hint)
       templateId,
+      colorTheme,
+      theme,            // legacy alias
     } = req.body;
 
     if (!title || !title.trim()) {
       throw new Error('Dashboard title is required');
     }
 
-    // Prepare prompt for dashboard generation
-    const kpiLabels = selectedKpis ? (Array.isArray(selectedKpis) ? selectedKpis : [selectedKpis]) : [];
-    const chartTypes = selectedCharts ? (Array.isArray(selectedCharts) ? selectedCharts : [selectedCharts]) : [];
-
-    const prompt = `Create a professional ${dashboardType} dashboard with the following requirements:
-- Title: ${title}
-- KPIs to highlight: ${kpiLabels.join(', ')}
-- Chart types: ${chartTypes.join(', ')}
-- Theme: ${theme}
-- Layout: ${layout}
-- Include executive summary and insights`;
-
-    // Generate using full dashboard service.
-    // NOTE: generateFullDashboard expects a numeric sourceId (or null for internal data),
-    // NOT an options object — passing an object would always fall through to internal data.
     const sid = dataSourceId ? parseInt(dataSourceId, 10) : null;
-    const result = await builderService.generateFullDashboard(sid);
 
-    // Override the auto-generated title with the user's chosen one
-    if (title && title.trim()) {
-      result.title = title.trim();
+    // Look up source name (for header) — best-effort.
+    let sourceName = null;
+    if (sid) {
+      try {
+        const ds = await db.DataSource.findByPk(sid);
+        if (ds) sourceName = ds.name;
+      } catch { /* ignore */ }
     }
+
+    const result = await intelligentDashboardService.generateIntelligentDashboardFromDatasource({
+      sourceId:   sid,
+      sourceName,
+      templateId: templateId || (dashboardType ? `${dashboardType}-dashboard` : null),
+      colorTheme: colorTheme || theme || null,
+      title:      title.trim(),
+    });
 
     return res.json({
       success: true,
@@ -669,27 +668,27 @@ exports.saveGeneratedDashboard = async (req, res) => {
 
 /**
  * NEW: Generate full multi-panel dashboard from template
- * This generates 8-15 panels automatically instead of single charts
+ *
+ * Used by the AI-canvas Template Picker / "Create Dashboard" flow.
+ * Routes through the unified intelligent pipeline so AI Canvas + Wizard +
+ * /dashboard/full all produce identical executive-quality output.
  */
 exports.generateFullDashboard = async (req, res) => {
   try {
-    const { templateId, colorTheme, sourceId, sourceName, prompt } = req.body;
+    const { templateId, colorTheme, sourceId, sourceName, prompt, title } = req.body;
 
     if (!templateId || !colorTheme) {
       throw new Error('Template ID and color theme are required');
     }
 
-    const fullDashboardGeneratorService = require('../services/fullDashboardGeneratorService');
-    
-    const config = {
+    const generatedDashboard = await intelligentDashboardService.generateIntelligentDashboardFromDatasource({
       templateId,
       colorTheme,
-      sourceId: sourceId || null,
+      sourceId:   sourceId   || null,
       sourceName: sourceName || null,
-      prompt: prompt || `Generate dashboard for ${templateId}`,
-    };
-
-    const generatedDashboard = await fullDashboardGeneratorService.generateFullDashboardFromDatasource(config);
+      prompt:     prompt     || `Generate dashboard for ${templateId}`,
+      title:      title      || null,
+    });
 
     return res.json({
       success: true,

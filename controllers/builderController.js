@@ -1,8 +1,9 @@
 'use strict';
 
-const builderService       = require('../services/builderService');
-const fullDashboardService = require('../services/fullDashboardService');
-const aiInsightService     = require('../services/aiInsightService');
+const builderService              = require('../services/builderService');
+const fullDashboardService        = require('../services/fullDashboardService');
+const aiInsightService            = require('../services/aiInsightService');
+const intelligentDashboardService = require('../services/intelligentDashboardService');
 
 async function asyncPool(limit, items, iteratorFn) {
   const poolLimit = Math.max(1, parseInt(limit, 10) || 1);
@@ -116,56 +117,56 @@ exports.manualMulti = async (req, res) => {
   }
 };
 
-/** POST /dashboard/full — generate a complete corporate dashboard automatically */
+/** POST /dashboard/full — generate a complete corporate dashboard automatically.
+ *
+ * Routes through the unified intelligent dashboard pipeline so this entry
+ * point produces the SAME executive-quality output as the wizard, the
+ * AI-canvas Template Picker, and any future generation surfaces.
+ */
 exports.fullDashboard = async (req, res) => {
   try {
     const sourceId = req.body.sourceId ? parseInt(req.body.sourceId, 10) : null;
     const isAjax = req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))
                    || req.headers['content-type'] === 'application/json';
-    const {
-      title, panels, kpiData, reasoning, isFullDashboard,
-      sections, dashboardRole, dashboardSubtitle, anomalyAlert, layoutHint,
-    } = await fullDashboardService.generateFullDashboard(sourceId);
 
-    if (!panels.length) {
+    // Best-effort lookup of the source name for the dashboard header.
+    let sourceName = null;
+    if (sourceId) {
+      try {
+        const db = require('../models');
+        const ds = await db.DataSource.findByPk(sourceId);
+        if (ds) sourceName = ds.name;
+      } catch { /* ignore */ }
+    }
+
+    const result = await intelligentDashboardService.generateIntelligentDashboardFromDatasource({
+      sourceId,
+      sourceName,
+      templateId: req.body.templateId || null,
+      colorTheme: req.body.colorTheme || null,
+      title:      req.body.title      || null,
+    });
+
+    if (!result.panels || !result.panels.length) {
       if (isAjax) return res.status(400).json({ error: 'Could not generate any panels — check that the source has profiled data.' });
       req.flash('error', 'Could not generate any panels — check that the source has profiled data.');
       return res.redirect('/');
     }
 
-    // Generate AI insights for each panel and executive summary
-    try {
-      await asyncPool(3, panels, async (panel) => {
-        if (!panel || !panel.hasData || !panel.labels || !panel.values) return;
-        panel.aiInsight = await aiInsightService.generateInsight({
-          title: panel.title,
-          chartType: panel.chartType,
-          labels: panel.labels,
-          values: panel.values,
-          kpis: panel.kpis,
-        });
-      });
-    } catch (err) {
-      console.warn('[Full Dashboard] AI insights failed:', err.message);
-    }
-
-    let executiveSummary = null;
-    try {
-      executiveSummary = await aiInsightService.generateExecutiveSummary(panels);
-    } catch (err) {
-      console.warn('[Full Dashboard] Executive summary failed:', err.message);
-    }
-
-    // AJAX requests (from canvas) get JSON; form submissions get rendered view
     if (isAjax) {
-      return res.json({
-        title, panels, executiveSummary, kpiData, reasoning, isFullDashboard,
-        sections, dashboardRole, dashboardSubtitle, anomalyAlert, layoutHint,
-      });
+      // The unified result already contains all canonical AND legacy keys.
+      return res.json(result);
     }
+
     res.render('dashboard-multi', {
-      title, panels, executiveSummary, kpiData, isFullDashboard,
-      dashboardRole, dashboardSubtitle, anomalyAlert,
+      title:             result.title,
+      panels:            result.panels,
+      executiveSummary:  result.executiveSummary,
+      kpiData:           result.kpiData,
+      isFullDashboard:   true,
+      dashboardRole:     result.dashboardRole,
+      dashboardSubtitle: result.dashboardSubtitle,
+      anomalyAlert:      result.anomalyAlert,
     });
   } catch (err) {
     console.error('Full dashboard error:', err);

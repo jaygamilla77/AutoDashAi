@@ -373,6 +373,9 @@ exports.editInCanvas = async (req, res) => {
         anomalyAlert: config.anomalyAlert || null,
         layoutHint: config.layoutHint || null,
         sections: config.sections || [],
+        // ── AI intelligence — first-class dashboard content, persisted on save.
+        insights: config.insights || [],
+        recommendations: config.recommendations || [],
         schemaVersion: config.schemaVersion || null,
       },
     });
