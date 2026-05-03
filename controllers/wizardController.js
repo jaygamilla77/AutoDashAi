@@ -384,7 +384,7 @@ exports.saveDashboard = async (req, res) => {
     const dashboard = await db.SavedDashboard.create({
       title: title.trim(),
       dashboardConfigJson: JSON.stringify(dashboardConfig),
-      DataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
+      dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
     });
 
     return res.json({
@@ -647,7 +647,7 @@ exports.saveGeneratedDashboard = async (req, res) => {
       title: title.trim(),
       dashboardConfigJson: JSON.stringify(dashboardConfig),
       description: description || null,
-      DataSourceId: sourceId ? parseInt(sourceId, 10) : null,
+      dataSourceId: sourceId ? parseInt(sourceId, 10) : null,
     });
 
     return res.json({
