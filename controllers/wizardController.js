@@ -243,11 +243,13 @@ exports.getRecommendations = async (req, res) => {
       throw new Error('Analysis data required');
     }
 
-    // Resolve dashboardType FIRST (templates + title both depend on it),
-    // capped at 12s. Run the remaining AI/heuristic calls in parallel.
+    // ⚠ Hostinger's LiteSpeed proxy aggressively kills slow upstream
+    // responses (observed ~5s 503s in production). Each helper below
+    // already has a strong rule-based fallback, so run them with very
+    // short AI timeouts and gracefully degrade to canned results.
     const dashboardType = await withTimeout(
       wizardRecommendationService.recommendDashboardType(analysis),
-      12000,
+      3000,
       { type: 'general', confidence: 50, reason: 'AI timeout — using fallback' }
     );
 
@@ -255,16 +257,25 @@ exports.getRecommendations = async (req, res) => {
     const charts = wizardRecommendationService.recommendCharts(analysis);
     const anomalies = wizardRecommendationService.getAnomalyDetectionOpportunities(analysis);
 
+    const fallbackTemplates = [
+      { name: 'Balanced Overview', description: 'Mix of KPIs, trends, and details',
+        sections: ['Executive Summary', 'Key Metrics', 'Trends', 'Performance Details'], priority: 1 },
+      { name: 'Executive Focus', description: 'Top-level insights and key indicators',
+        sections: ['Executive Summary', 'Critical KPIs', 'Anomalies', 'Action Items'], priority: 2 },
+      { name: 'Detail-Oriented', description: 'Comprehensive data exploration',
+        sections: ['Overview', 'Detailed Metrics', 'Drill-down Analysis', 'Data Table'], priority: 3 },
+    ];
+
     const [templates, suggestedTitle] = await Promise.all([
       withTimeout(
         wizardRecommendationService.getTemplateSuggestions(analysis, dashboardType.type),
-        10000,
-        []
+        4000,
+        fallbackTemplates
       ),
       withTimeout(
         wizardRecommendationService.recommendDashboardTitle(analysis, dashboardType.type),
-        6000,
-        'AI Dashboard'
+        3000,
+        `${dashboardType.type} Report`
       ),
     ]);
 
