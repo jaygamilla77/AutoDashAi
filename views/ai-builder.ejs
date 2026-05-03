@@ -2598,6 +2598,26 @@
       // so the hierarchy reads: Header → Summary → Top Insights → KPIs → Sections.
       try {
         var insightsArr = data.insights || [];
+        // Merge in statistical anomalies (AI-free) so the strip reflects
+        // both rule-based and stats-grounded findings without duplicates.
+        if (Array.isArray(data.topAnomalies) && data.topAnomalies.length) {
+          var seen = {};
+          insightsArr.forEach(function(i){ if(i && i.title) seen[i.title.toLowerCase()] = 1; });
+          data.topAnomalies.forEach(function(a){
+            if (!a || !a.title) return;
+            if (seen[a.title.toLowerCase()]) return;
+            insightsArr.push({
+              title: a.title,
+              observation: a.observation,
+              businessImpact: a.businessImpact,
+              recommendation: a.recommendation,
+              riskLevel: a.riskLevel,
+              confidence: a.confidence,
+              level: a.riskLevel === 'CRITICAL' || a.riskLevel === 'HIGH' ? 'warning'
+                   : a.riskLevel === 'MEDIUM' ? 'info' : 'success',
+            });
+          });
+        }
         if (insightsArr.length && typeof window.injectInsightsStrip === 'function') {
           var oldStrip = document.getElementById('aiInsightsStrip');
           if (oldStrip) oldStrip.remove();

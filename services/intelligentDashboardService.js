@@ -167,16 +167,39 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
       if (!Array.isArray(panel.labels) || !panel.labels.length) return;
       if (!Array.isArray(panel.values) || !panel.values.length) return;
       try {
-        panel.aiInsight = await aiInsightService.generateInsight({
+        // Structured contract — preferred for new renderers.
+        panel.aiInsightStructured = await aiInsightService.generateStructuredInsight({
           title:     panel.title,
           chartType: panel.chartType,
           labels:    panel.labels,
           values:    panel.values,
           kpis:      panel.kpis,
         });
+        // Back-compat string form derived from the structured observation.
+        if (panel.aiInsightStructured && panel.aiInsightStructured.observation) {
+          const s = panel.aiInsightStructured;
+          panel.aiInsight = [s.observation, s.businessImpact, s.recommendation]
+            .filter(Boolean).join(' ');
+        } else {
+          panel.aiInsight = await aiInsightService.generateInsight({
+            title: panel.title, chartType: panel.chartType,
+            labels: panel.labels, values: panel.values, kpis: panel.kpis,
+          });
+        }
       } catch (err) {
         // AI offline / quota: silently keep the rule-based payload.
       }
+    });
+  } else {
+    // Even on the fast path, run rule-based stats so the renderer has
+    // structured findings without an AI call.
+    panels.forEach(panel => {
+      if (!panel || panel.type === 'kpi') return;
+      if (!Array.isArray(panel.labels) || !panel.labels.length) return;
+      try {
+        const profile = aiInsightService.stats.profilePanel(panel);
+        if (profile) panel.statsProfile = profile;
+      } catch (_) { /* noop */ }
     });
   }
 
@@ -236,6 +259,9 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
   // ── 8) Anomaly banner: most-severe insight as a single line. ──
   const anomalyAlert = pickAnomalyAlert(base.insights);
 
+  // ── 8b) Statistical anomaly findings (always available, AI-free). ──
+  const topAnomalies = aiInsightService.detectAnomalies(panels, { limit: 5 });
+
   // ── 9) Final unified output. Canvas/dashboard-multi consume the
   //       legacy keys; future code should consume the canonical keys. ──
   const finalTitle = overrideTitle || base.title;
@@ -250,6 +276,7 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
     kpis:             kpiData,
     charts,
     insights:         base.insights || [],
+    topAnomalies,
     recommendations,
     filters:          [], // reserved — populated by builder UI on save
     layout:           base.layoutHint || '3+2',
@@ -274,6 +301,7 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
     dashboardRole:     base.template || base.dashboardRole || 'Executive Dashboard',
     dashboardSubtitle: base.description || 'AI-Generated Executive Overview',
     anomalyAlert,
+    topAnomalies,
     layoutHint:        base.layoutHint || null,
     isFullDashboard:   true,
     sourceId:          base.sourceId  != null ? base.sourceId  : sourceId,
