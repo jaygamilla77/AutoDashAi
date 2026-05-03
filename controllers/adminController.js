@@ -16,6 +16,7 @@
 const cms = require('../services/cmsService');
 const { MarketingPage, DashboardTemplate, Inquiry } = require('../models');
 
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const ADMIN_COOKIE   = 'autodash_admin';
 
@@ -94,8 +95,9 @@ function showLogin(req, res) {
 }
 
 function login(req, res) {
+  const username = ((req.body && req.body.username) || '').trim();
   const password = (req.body && req.body.password) || '';
-  if (password === ADMIN_PASSWORD) {
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
     setAdminCookie(res);
     return res.redirect('/admin');
   }
