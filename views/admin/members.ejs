@@ -1,0 +1,225 @@
+<h1>Members</h1>
+<p style="color:#6b7280; margin-top:-16px; margin-bottom:24px;">All registered users — verification status, plan, OAuth provider, and platform usage.</p>
+
+<!-- Member stats -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Total Members</div>
+        <div class="value"><%= memberStats.total %></div>
+      </div>
+      <div class="icon"><i class="bi bi-people"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Verified</div>
+        <div class="value"><%= memberStats.verified %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="bi bi-patch-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Unverified</div>
+        <div class="value"><%= memberStats.unverified %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="bi bi-hourglass-split"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Pending Signups</div>
+        <div class="value"><%= memberStats.pendingCount %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#6366f1,#4f46e5);"><i class="bi bi-envelope-paper"></i></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Starter Plan</div>
+        <div class="value"><%= memberStats.starter %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#94a3b8,#64748b);"><i class="bi bi-rocket"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Business Plan</div>
+        <div class="value"><%= memberStats.business %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);"><i class="bi bi-briefcase"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Enterprise</div>
+        <div class="value"><%= memberStats.enterprise %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#0f172a,#1e293b);"><i class="bi bi-building"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div>
+        <div class="label">Onboarded</div>
+        <div class="value"><%= memberStats.onboarded %></div>
+      </div>
+      <div class="icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2);"><i class="bi bi-check2-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Platform totals (system-wide; per-user ownership not yet partitioned) -->
+<div class="admin-card" style="margin-bottom:24px;">
+  <h3 style="margin:0 0 4px 0;font-size:15px;">Platform totals (all users)</h3>
+  <p style="color:#6b7280;font-size:13px;margin:0 0 16px 0;">Aggregate usage across the platform. Per-user attribution will be added when ownership columns are introduced on these tables.</p>
+  <div class="row g-3">
+    <div class="col-md-3 col-sm-6">
+      <div style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;">
+        <div style="font-size:12px;color:#6b7280;">Data Sources</div>
+        <div style="font-size:24px;font-weight:700;color:#0b1020;"><%= totals.sources %></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;">
+        <div style="font-size:12px;color:#6b7280;">Saved Dashboards</div>
+        <div style="font-size:24px;font-weight:700;color:#0b1020;"><%= totals.dashboards %></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;">
+        <div style="font-size:12px;color:#6b7280;">AI Prompts</div>
+        <div style="font-size:24px;font-weight:700;color:#0b1020;"><%= totals.prompts %></div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <div style="padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;">
+        <div style="font-size:12px;color:#6b7280;">Shares</div>
+        <div style="font-size:24px;font-weight:700;color:#0b1020;"><%= totals.shares %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="GET" action="/admin/members" class="admin-card" style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+  <div style="flex:1;min-width:200px;">
+    <label style="font-size:12px;font-weight:600;color:#374151;">Search name or email</label>
+    <input type="text" name="q" value="<%= filters.q %>" class="form-control form-control-sm" placeholder="e.g. jay@…">
+  </div>
+  <div>
+    <label style="font-size:12px;font-weight:600;color:#374151;">Plan</label>
+    <select name="plan" class="form-select form-select-sm">
+      <option value="">All</option>
+      <% ['starter','business','enterprise'].forEach(function(p){ %>
+        <option value="<%= p %>" <%= filters.plan === p ? 'selected' : '' %>><%= p %></option>
+      <% }) %>
+    </select>
+  </div>
+  <div>
+    <label style="font-size:12px;font-weight:600;color:#374151;">Verified</label>
+    <select name="verified" class="form-select form-select-sm">
+      <option value="" <%= filters.verified === '' ? 'selected' : '' %>>All</option>
+      <option value="1" <%= filters.verified === '1' ? 'selected' : '' %>>Verified</option>
+      <option value="0" <%= filters.verified === '0' ? 'selected' : '' %>>Unverified</option>
+    </select>
+  </div>
+  <div>
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button>
+    <a href="/admin/members" class="btn btn-sm btn-outline-secondary">Reset</a>
+  </div>
+</form>
+
+<!-- Members table -->
+<div class="admin-card" style="padding:0; margin-bottom:24px;">
+  <% if (!members.length) { %>
+    <div class="empty-state"><i class="bi bi-people"></i><p>No members match the filter.</p></div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="admin-table" style="border:none;">
+        <thead><tr>
+          <th>Member</th><th>Plan</th><th>Verified</th><th>Provider</th>
+          <th>Onboarded</th><th>Created</th><th>Last login</th>
+          <th class="actions">Actions</th>
+        </tr></thead>
+        <tbody>
+          <% members.forEach(function(m){ %>
+            <tr>
+              <td>
+                <strong><%= m.name || '—' %></strong>
+                <div style="color:#6b7280;font-size:12px;"><a href="mailto:<%= m.email %>"><%= m.email %></a></div>
+              </td>
+              <td>
+                <span class="badge" style="background:<%= m.plan === 'business' ? '#ede9fe' : (m.plan === 'enterprise' ? '#0f172a' : '#f1f5f9') %>; color:<%= m.plan === 'enterprise' ? '#fff' : (m.plan === 'business' ? '#5b21b6' : '#475569') %>; font-weight:600;"><%= m.plan || 'starter' %></span>
+                <% if (m.planTrialEndsAt) { %>
+                  <div style="font-size:11px;color:#6b7280;margin-top:2px;">trial → <%= new Date(m.planTrialEndsAt).toLocaleDateString() %></div>
+                <% } %>
+              </td>
+              <td>
+                <% if (m.emailVerified) { %>
+                  <span style="color:#059669;font-weight:600;font-size:13px;"><i class="bi bi-patch-check-fill"></i> Yes</span>
+                <% } else { %>
+                  <span style="color:#d97706;font-weight:600;font-size:13px;"><i class="bi bi-hourglass-split"></i> No</span>
+                <% } %>
+              </td>
+              <td style="font-size:13px;color:#374151;text-transform:capitalize;"><%= m.authProvider || 'local' %></td>
+              <td style="font-size:13px;">
+                <% if (m.onboardingCompleted) { %>
+                  <span style="color:#059669;">✓ done</span>
+                <% } else { %>
+                  <span style="color:#9ca3af;">step <%= m.onboardingStep || 0 %></span>
+                <% } %>
+              </td>
+              <td style="font-size:12px;color:#6b7280;white-space:nowrap;"><%= new Date(m.createdAt).toLocaleDateString() %></td>
+              <td style="font-size:12px;color:#6b7280;white-space:nowrap;">
+                <%= m.lastLoginAt ? new Date(m.lastLoginAt).toLocaleString() : '—' %>
+              </td>
+              <td class="actions" style="white-space:nowrap;">
+                <% if (!m.emailVerified) { %>
+                  <form method="POST" action="/admin/members/<%= m.id %>/verify" style="display:inline;">
+                    <button class="btn btn-sm btn-outline-success" title="Mark verified"><i class="bi bi-check2"></i></button>
+                  </form>
+                <% } %>
+                <form method="POST" action="/admin/members/<%= m.id %>/delete" style="display:inline;" onsubmit="return confirm('Permanently delete <%= m.email %>?');">
+                  <button class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<!-- Pending signups (haven't clicked verify link) -->
+<% if (pendingSignups && pendingSignups.length) { %>
+  <h3 style="margin:24px 0 8px 0;font-size:16px;">Pending email verifications</h3>
+  <p style="color:#6b7280;font-size:13px;margin:0 0 12px 0;">Users who started signup but haven't clicked the verification link yet.</p>
+  <div class="admin-card" style="padding:0;">
+    <table class="admin-table" style="border:none;">
+      <thead><tr><th>Name</th><th>Email</th><th>Started</th><th>Expires</th></tr></thead>
+      <tbody>
+        <% pendingSignups.forEach(function(p){ %>
+          <tr>
+            <td><strong><%= p.name %></strong></td>
+            <td style="font-size:13px;"><%= p.email %></td>
+            <td style="font-size:12px;color:#6b7280;"><%= new Date(p.createdAt).toLocaleString() %></td>
+            <td style="font-size:12px;color:#6b7280;"><%= p.expiresAt ? new Date(p.expiresAt).toLocaleString() : '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>

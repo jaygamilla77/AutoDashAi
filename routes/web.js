@@ -230,6 +230,10 @@ router.get('/admin/inquiries',                   adminController.requireAdmin, a
 router.post('/admin/inquiries/:id/status',       adminController.requireAdmin, adminController.inquiriesUpdateStatus);
 router.post('/admin/inquiries/:id/delete',       adminController.requireAdmin, adminController.inquiriesDelete);
 
+router.get('/admin/members',                     adminController.requireAdmin, adminController.membersShow);
+router.post('/admin/members/:id/verify',         adminController.requireAdmin, adminController.membersResendVerification);
+router.post('/admin/members/:id/delete',         adminController.requireAdmin, adminController.membersDelete);
+
 router.get('/admin/settings',                    adminController.requireAdmin, adminController.settingsShow);
 router.post('/admin/settings',                   adminController.requireAdmin, adminController.settingsSave);
 

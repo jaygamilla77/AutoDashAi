@@ -14,7 +14,7 @@
  */
 
 const cms = require('../services/cmsService');
-const { MarketingPage, DashboardTemplate, Inquiry } = require('../models');
+const { MarketingPage, DashboardTemplate, Inquiry, User, PendingSignup, DataSource, SavedDashboard, PromptHistory, DashboardShare } = require('../models');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -686,6 +686,82 @@ async function ensureMarketingSeed() {
 
 async function getPage(slug) { return await MarketingPage.findByPk(slug); }
 
+// ───────────────────────── Members (signed-up users) ─────────────────────────
+async function membersShow(req, res, next) {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    const planFilter = (req.query.plan || '').trim();
+    const verifiedFilter = req.query.verified || ''; // '1' | '0' | ''
+
+    const where = {};
+    if (planFilter) where.plan = planFilter;
+    if (verifiedFilter === '1') where.emailVerified = true;
+    else if (verifiedFilter === '0') where.emailVerified = false;
+
+    const [users, pendingSignups, totals] = await Promise.all([
+      User.findAll({ where, order: [['createdAt', 'DESC']], limit: 500 }),
+      PendingSignup.findAll({ order: [['createdAt', 'DESC']], limit: 100 }),
+      Promise.all([
+        DataSource.count(),
+        SavedDashboard.count(),
+        PromptHistory.count(),
+        DashboardShare ? DashboardShare.count() : Promise.resolve(0),
+      ]).then(([sources, dashboards, prompts, shares]) => ({ sources, dashboards, prompts, shares })),
+    ]);
+
+    const filtered = q
+      ? users.filter(u =>
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.name || '').toLowerCase().includes(q))
+      : users;
+
+    // Aggregate stats
+    const memberStats = {
+      total: users.length,
+      verified: users.filter(u => u.emailVerified).length,
+      unverified: users.filter(u => !u.emailVerified).length,
+      starter: users.filter(u => u.plan === 'starter').length,
+      business: users.filter(u => u.plan === 'business').length,
+      enterprise: users.filter(u => u.plan === 'enterprise').length,
+      oauth: users.filter(u => u.authProvider && u.authProvider !== 'local').length,
+      onboarded: users.filter(u => u.onboardingCompleted).length,
+      pendingCount: pendingSignups.length,
+    };
+
+    adminRender(res, 'members', {
+      activeNav: 'members',
+      pageTitle: 'Members',
+      members: filtered,
+      pendingSignups,
+      totals,
+      memberStats,
+      filters: { q, plan: planFilter, verified: verifiedFilter },
+      flash: flashFromQuery(req),
+    });
+  } catch (err) { next(err); }
+}
+
+async function membersResendVerification(req, res, next) {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.redirect('/admin/members?error=1');
+    const user = await User.findByPk(id);
+    if (!user) return res.redirect('/admin/members?error=1');
+    user.emailVerified = true;
+    await user.save();
+    return res.redirect('/admin/members?updated=1');
+  } catch (err) { next(err); }
+}
+
+async function membersDelete(req, res, next) {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.redirect('/admin/members?error=1');
+    await User.destroy({ where: { id } });
+    return res.redirect('/admin/members?deleted=1');
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   isAdmin, requireAdmin, showLogin, login, logout,
   dashboard,
@@ -701,6 +777,7 @@ module.exports = {
   templatesShow, templatesSave, templatesDelete,
   inquiriesShow, inquiriesUpdateStatus, inquiriesDelete,
   settingsShow, settingsSave,
+  membersShow, membersResendVerification, membersDelete,
 
   // legacy marketing pages
   PAGE_DEFS, PAGE_MAP, ensureSeed: ensureMarketingSeed, getPage,
