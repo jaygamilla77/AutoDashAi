@@ -793,41 +793,36 @@ function injectInsightsStrip(insights) {
     const rec         = ins.recommendation || '';
 
     return '' +
-      '<div style="flex:1 1 360px;min-width:320px;max-width:560px;background:' + p.bg + ';border:1px solid ' + p.border + ';' +
-        'border-left:3px solid ' + p.accent + ';border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(15,23,42,0.03)">' +
-        '<div style="display:flex;align-items:center;gap:10px">' +
-          '<span style="font-size:1.05rem;line-height:1;opacity:0.85">' + (ins.icon || '◆') + '</span>' +
-          '<span style="font-size:0.92rem;font-weight:700;color:' + p.text + ';flex:1;letter-spacing:-0.01em">' + escapeHtmlSafe(ins.title || p.label) + '</span>' +
-          '<span style="background:' + rb.bg + ';color:' + rb.fg + ';font-size:0.6rem;font-weight:700;letter-spacing:0.6px;padding:2px 8px;border-radius:999px;text-transform:uppercase">' + escapeHtmlSafe(risk) + '</span>' +
+      '<div style="flex:1 1 280px;min-width:240px;max-width:520px;background:' + p.bg + ';border:1px solid ' + p.border + ';' +
+        'border-left:3px solid ' + p.accent + ';border-radius:10px;padding:10px 13px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 2px rgba(15,23,42,0.03)">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:0.85rem;line-height:1;opacity:0.85">' + (ins.icon || '◆') + '</span>' +
+          '<span style="font-size:0.8rem;font-weight:700;color:' + p.text + ';flex:1;letter-spacing:-0.01em;line-height:1.25">' + escapeHtmlSafe(ins.title || p.label) + '</span>' +
+          '<span style="background:' + rb.bg + ';color:' + rb.fg + ';font-size:0.55rem;font-weight:700;letter-spacing:0.5px;padding:1px 6px;border-radius:999px;text-transform:uppercase">' + escapeHtmlSafe(risk) + '</span>' +
         '</div>' +
         (observation ? (
-          '<div style="font-size:0.85rem;color:#1e293b;line-height:1.55">' + escapeHtmlSafe(observation) + '</div>'
+          '<div style="font-size:0.74rem;color:#1e293b;line-height:1.45">' + escapeHtmlSafe(observation) + '</div>'
         ) : '') +
         (impact ? (
-          '<div>' +
-            '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;color:#64748b;margin-bottom:2px">Business Impact</div>' +
-            '<div style="font-size:0.78rem;color:#475569;line-height:1.5">' + escapeHtmlSafe(impact) + '</div>' +
-          '</div>'
+          '<div style="font-size:0.7rem;color:#475569;line-height:1.45"><span style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:#64748b;margin-right:4px">Impact:</span>' + escapeHtmlSafe(impact) + '</div>'
         ) : '') +
         (rec ? (
-          '<div style="border-top:1px solid ' + p.border + ';padding-top:8px">' +
-            '<div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:700;color:' + p.text + ';margin-bottom:2px">Recommendation</div>' +
-            '<div style="font-size:0.8rem;color:#1e293b;line-height:1.55;font-weight:500">' + escapeHtmlSafe(rec) + '</div>' +
+          '<div style="border-top:1px solid ' + p.border + ';padding-top:5px;font-size:0.72rem;color:#1e293b;line-height:1.45;font-weight:500">' +
+            '<span style="font-size:0.55rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;color:' + p.text + ';margin-right:4px">Action:</span>' + escapeHtmlSafe(rec) +
           '</div>'
         ) : '') +
         (conf != null ? (
-          '<div style="display:flex;align-items:center;gap:10px;margin-top:2px">' +
-            '<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;color:#94a3b8">Confidence</span>' +
-            '<div style="flex:1;height:4px;background:#e5e7eb;border-radius:999px;overflow:hidden">' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<div style="flex:1;height:3px;background:#e5e7eb;border-radius:999px;overflow:hidden">' +
               '<div style="width:' + conf + '%;height:100%;background:' + p.accent + ';opacity:0.85"></div>' +
             '</div>' +
-            '<span style="font-size:0.72rem;font-weight:700;color:' + p.text + '">' + conf + '%</span>' +
+            '<span style="font-size:0.62rem;font-weight:700;color:' + p.text + '">' + conf + '%</span>' +
           '</div>'
         ) : '') +
       '</div>';
   }
 
-  const TOP_N = 2;
+  const TOP_N = 3;
   const top = sorted.slice(0, TOP_N);
   const more = sorted.slice(TOP_N);
   const topCards = top.map(renderCard).join('');
@@ -835,17 +830,17 @@ function injectInsightsStrip(insights) {
 
   const strip = document.createElement('div');
   strip.id = 'aiInsightsStrip';
-  strip.style.cssText = 'position:relative;z-index:1;padding:20px 24px 18px;background:#ffffff;border-bottom:1px solid #f1f5f9';
+  strip.style.cssText = 'position:relative;z-index:1;padding:10px 14px 12px;background:#ffffff;border-bottom:1px solid #f1f5f9';
   strip.innerHTML =
-    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
-      '<i class="bi bi-lightbulb" style="color:#0ea5e9;font-size:0.95rem"></i>' +
-      '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.8px;font-weight:700;color:#0f172a">Key Insights</span>' +
-      '<span style="font-size:0.7rem;color:#94a3b8">' + insights.length + ' detected · showing top ' + Math.min(TOP_N, insights.length) + '</span>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+      '<i class="bi bi-lightbulb" style="color:#0ea5e9;font-size:0.8rem"></i>' +
+      '<span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:700;color:#0f172a">Key Insights</span>' +
+      '<span style="font-size:0.66rem;color:#94a3b8">' + insights.length + ' detected · showing top ' + Math.min(TOP_N, insights.length) + '</span>' +
     '</div>' +
-    '<div id="aiInsightsTop" style="display:flex;flex-wrap:wrap;gap:14px">' + topCards + '</div>' +
+    '<div id="aiInsightsTop" style="display:flex;flex-wrap:wrap;gap:10px">' + topCards + '</div>' +
     (more.length ? (
-      '<div id="aiInsightsMoreWrap" style="display:none;flex-wrap:wrap;gap:14px;margin-top:14px">' + moreCards + '</div>' +
-      '<button type="button" id="aiInsightsToggle" style="margin-top:14px;background:transparent;border:1px solid #e2e8f0;color:#475569;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;transition:all 0.15s">' +
+      '<div id="aiInsightsMoreWrap" style="display:none;flex-wrap:wrap;gap:10px;margin-top:10px">' + moreCards + '</div>' +
+      '<button type="button" id="aiInsightsToggle" style="margin-top:10px;background:transparent;border:1px solid #e2e8f0;color:#475569;font-size:0.7rem;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;transition:all 0.15s">' +
         '<i class="bi bi-chevron-down me-1"></i>Show all ' + insights.length + ' insights' +
       '</button>'
     ) : '');

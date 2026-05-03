@@ -53,11 +53,15 @@
   <div id="aiWorkspace" style="display:flex;flex:1;overflow:hidden;user-select:none;min-height:0">
 
     <!-- Left: Prompt Panel -->
-    <div id="aiPromptPanel" style="width:300px;min-width:160px;flex-shrink:0;background:#f9fafb;overflow-y:auto">
-      <div style="padding:7px 10px 6px;border-bottom:1px solid #e5e7eb;background:#f3f4f6">
+    <div id="aiPromptPanel" style="width:260px;min-width:0;flex-shrink:0;background:#f9fafb;overflow-y:auto;transition:width 0.18s ease">
+      <div style="padding:7px 10px 6px;border-bottom:1px solid #e5e7eb;background:#f3f4f6;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#9ca3af">
           <i class="bi bi-chat-left-text me-1"></i>AI Prompt
         </span>
+        <button type="button" id="aiPromptCollapseBtn" onclick="toggleAiPromptPanel()" title="Collapse panel"
+          style="background:none;border:none;padding:0 2px;color:#6b7280;font-size:0.85rem;cursor:pointer;line-height:1">
+          <i class="bi bi-chevron-double-left"></i>
+        </button>
       </div>
       <div style="padding:10px">
 
@@ -159,7 +163,7 @@
     </div>
 
     <!-- Center: Canvas -->
-    <div id="aiCanvas" style="flex:1;overflow-y:auto;background:#e8eef5;padding:14px;min-width:0;position:relative">
+    <div id="aiCanvas" style="flex:1;overflow-y:auto;background:#e8eef5;padding:8px 8px 12px;min-width:0;position:relative">
       <!-- Export toolbar -->
       <div id="aiExportBar" style="position:sticky;top:0;z-index:50;display:flex;gap:6px;margin-bottom:10px;background:transparent">
         <button onclick="aiExportPNG()" class="btn btn-sm btn-light" style="font-size:0.72rem;padding:3px 9px;border:1px solid #d1d5db;background:#fff" title="Export canvas as PNG">
@@ -316,6 +320,34 @@
   function _aiEsc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  // ── Collapsible AI Prompt sidebar (focus mode for the canvas) ────────────
+  window.toggleAiPromptPanel = function() {
+    var panel = document.getElementById('aiPromptPanel');
+    var btn   = document.getElementById('aiPromptCollapseBtn');
+    if (!panel) return;
+    var collapsed = panel.classList.toggle('ai-collapsed');
+    if (collapsed) {
+      panel.dataset.prevWidth = panel.style.width || '260px';
+      panel.style.width = '36px';
+      panel.style.overflow = 'hidden';
+      // Hide every direct child except the header bar (first child)
+      Array.from(panel.children).forEach(function(c, i) { if (i > 0) c.style.display = 'none'; });
+      if (btn) btn.innerHTML = '<i class="bi bi-chevron-double-right"></i>';
+      btn.title = 'Expand panel';
+    } else {
+      panel.style.width = panel.dataset.prevWidth || '260px';
+      panel.style.overflow = 'auto';
+      Array.from(panel.children).forEach(function(c, i) { if (i > 0) c.style.display = ''; });
+      if (btn) btn.innerHTML = '<i class="bi bi-chevron-double-left"></i>';
+      btn.title = 'Collapse panel';
+    }
+    // Trigger chart reflow after the panel resize
+    setTimeout(function() {
+      Object.values(window.__aiECharts || {}).forEach(function(ec) { try { ec.resize(); } catch(e) {} });
+      Object.values(window.__aiCharts  || {}).forEach(function(ch) { try { ch.resize(); } catch(e) {} });
+    }, 220);
+  };
 
   // ── Toggle side panels ────────────────────────────────────────────────────
   window.toggleAiPanel = function(which) {
@@ -2085,21 +2117,21 @@
       var panels = data.panels || [];
       var canvasEl = document.getElementById('aiCanvas');
       var canvasW  = canvasEl ? canvasEl.clientWidth : 960;
-      var gap = 20;          // larger breathing room between sections
-      var pageX = 24;        // page padding for hero/summary blocks
+      var gap = 12;          // tight, info-dense spacing between sections
+      var pageX = 14;        // page padding for hero/summary blocks
 
       // 1. Light, premium dashboard header
       var headerDiv = document.createElement('div');
       headerDiv.id = 'aiFullDashHeader';
-      headerDiv.style.cssText = 'background:#ffffff;padding:24px 28px 22px;border-bottom:1px solid #f1f5f9';
+      headerDiv.style.cssText = 'background:#ffffff;padding:14px 18px 12px;border-bottom:1px solid #f1f5f9;border-radius:10px';
       var roleText = _aiEsc(data.dashboardRole || 'Executive Dashboard');
       var subtitleText = _aiEsc(data.dashboardSubtitle || 'AI-Generated Overview');
       headerDiv.innerHTML =
         '<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">' +
           '<div>' +
-            '<div style="font-size:0.62rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px">Executive Briefing</div>' +
-            '<div style="font-size:1.4rem;font-weight:700;color:#0f172a;letter-spacing:-0.02em;line-height:1.15">' + roleText + '</div>' +
-            '<div style="font-size:0.78rem;color:#64748b;margin-top:4px">' + subtitleText + ' · ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</div>' +
+            '<div style="font-size:0.58rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:3px">Executive Briefing</div>' +
+            '<div style="font-size:1.25rem;font-weight:700;color:#0f172a;letter-spacing:-0.02em;line-height:1.1">' + roleText + '</div>' +
+            '<div style="font-size:0.72rem;color:#64748b;margin-top:2px">' + subtitleText + ' · ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</div>' +
           '</div>' +
           '<div style="display:flex;gap:8px;align-items:center">' +
             '<span style="font-size:0.66rem;padding:4px 10px;border-radius:999px;background:#f1f5f9;color:#475569;font-weight:600;letter-spacing:0.3px"><i class="bi bi-stars me-1"></i>AI-Curated</span>' +
@@ -2113,13 +2145,15 @@
       if (summary && summary.length > 20) {
         var sumDiv = document.createElement('div');
         sumDiv.id = 'aiFullDashSummary';
-        sumDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;padding:22px 28px;background:#fafafa;border:1px solid #f1f5f9;border-radius:14px';
+        sumDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;padding:12px 16px;background:#fafafa;border:1px solid #f1f5f9;border-radius:10px';
+        var summaryClamped = summary.length > 360;
         sumDiv.innerHTML =
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
-            '<i class="bi bi-robot" style="color:#6366f1;font-size:0.9rem"></i>' +
-            '<span style="font-size:0.62rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:1px">AI Executive Summary</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">' +
+            '<i class="bi bi-robot" style="color:#6366f1;font-size:0.78rem"></i>' +
+            '<span style="font-size:0.58rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.9px">AI Executive Summary</span>' +
           '</div>' +
-          '<div style="font-size:0.95rem;color:#1e293b;line-height:1.7;max-width:78ch">' + _aiEsc(summary) + '</div>';
+          '<div id="aiExecSummaryText" style="font-size:0.78rem;color:#1e293b;line-height:1.55;max-width:90ch'+(summaryClamped?';max-height:64px;overflow:hidden;position:relative':'')+'">' + _aiEsc(summary) + (summaryClamped?'<div style="position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(0deg,#fafafa,rgba(250,250,250,0))"></div>':'') + '</div>' +
+          (summaryClamped ? '<button onclick="(function(b){var t=document.getElementById(\'aiExecSummaryText\');if(t.style.maxHeight){t.style.maxHeight=\'\';t.style.overflow=\'\';var fade=t.querySelector(\'div\');if(fade)fade.remove();b.textContent=\'Show less\';}else{t.style.maxHeight=\'64px\';t.style.overflow=\'hidden\';b.textContent=\'Read more\';}})(this)" style="margin-top:4px;background:none;border:none;padding:0;font-size:0.7rem;color:#6366f1;font-weight:600;cursor:pointer">Read more</button>' : '');
         gridEl.appendChild(sumDiv);
       }
 
@@ -2127,7 +2161,7 @@
       if (data.anomalyAlert) {
         var alertDiv = document.createElement('div');
         alertDiv.id = 'aiFullDashAlert';
-        alertDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;display:flex;align-items:center;gap:12px;padding:12px 18px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;font-size:0.82rem;color:#9a3412';
+        alertDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;font-size:0.74rem;color:#9a3412';
         alertDiv.innerHTML =
           '<i class="bi bi-exclamation-triangle" style="color:#f97316;font-size:1rem;flex-shrink:0"></i>' +
           '<div style="flex:1"><strong style="color:#7c2d12">Heads up — </strong>' + _aiEsc(data.anomalyAlert) + '</div>' +
@@ -2143,12 +2177,12 @@
         kpiSectionWrap.id = 'aiFullDashKpiStrip';
         kpiSectionWrap.style.cssText = 'margin:'+gap+'px '+pageX+'px 0';
         kpiSectionWrap.innerHTML =
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
-            '<div style="width:3px;height:14px;border-radius:2px;background:#0ea5e9"></div>' +
-            '<span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.8px;font-weight:700;color:#0f172a">Key Metrics</span>' +
+          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">' +
+            '<div style="width:3px;height:12px;border-radius:2px;background:#0ea5e9"></div>' +
+            '<span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:700;color:#0f172a">Key Metrics</span>' +
           '</div>';
         var kpiGrid = document.createElement('div');
-        kpiGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px';
+        kpiGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px';
         kpiData.forEach(function(kpi, ki) {
           // Calmer KPI palette: muted blues / slates by default; only KPIs
           // explicitly flagged danger get a soft red accent.
@@ -2169,17 +2203,17 @@
             dataConfig: kpi.dataConfig || null,
           };
           var kpiCard = document.createElement('div');
-          kpiCard.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px 20px;cursor:pointer;transition:all 0.18s;animation:aiSlideIn 0.3s ease '+(ki*0.05)+'s both';
+          kpiCard.style.cssText = 'background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 14px;cursor:pointer;transition:all 0.18s;animation:aiSlideIn 0.3s ease '+(ki*0.04)+'s both';
           kpiCard.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
-              '<div style="width:30px;height:30px;border-radius:8px;background:'+color+'15;display:flex;align-items:center;justify-content:center">' +
-                '<i class="bi '+(kpi.icon||'bi-bar-chart-fill')+'" style="font-size:0.9rem;color:'+color+'"></i>' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+              '<div style="font-size:0.56rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;display:flex;align-items:center;gap:5px">' +
+                '<i class="bi '+(kpi.icon||'bi-bar-chart-fill')+'" style="font-size:0.72rem;color:'+color+'"></i>' +
+                _aiEsc(kpi.label||'') +
               '</div>' +
-              (kpi.trend ? '<div style="font-size:0.7rem;font-weight:600;color:'+trendColor+';display:flex;align-items:center;gap:1px"><i class="bi '+trendIcon+'"></i>'+_aiEsc(kpi.trend)+'</div>' : '') +
+              (kpi.trend ? '<div style="font-size:0.66rem;font-weight:600;color:'+trendColor+';display:flex;align-items:center;gap:1px"><i class="bi '+trendIcon+'"></i>'+_aiEsc(kpi.trend)+'</div>' : '') +
             '</div>' +
-            '<div style="font-size:0.6rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px">'+_aiEsc(kpi.label||'')+'</div>' +
-            '<div style="font-size:1.75rem;font-weight:700;color:#0f172a;line-height:1.1;letter-spacing:-0.02em">'+_aiEsc(kpi.value||'—')+'</div>' +
-            (kpi.subtitle ? '<div style="font-size:0.72rem;color:#94a3af;margin-top:6px">'+_aiEsc(kpi.subtitle)+'</div>' : '');
+            '<div style="font-size:1.45rem;font-weight:700;color:#0f172a;line-height:1.1;letter-spacing:-0.02em">'+_aiEsc(kpi.value||'—')+'</div>' +
+            (kpi.subtitle ? '<div style="font-size:0.66rem;color:#94a3af;margin-top:2px">'+_aiEsc(kpi.subtitle)+'</div>' : '');
           kpiCard.addEventListener('mouseover', function() { this.style.boxShadow='0 4px 12px rgba(15,23,42,0.06)'; this.style.borderColor='#cbd5e1'; });
           kpiCard.addEventListener('mouseout',  function() { this.style.boxShadow='none'; this.style.borderColor='#e5e7eb'; });
           kpiCard.addEventListener('click', (function(uid) { return function() { showPanelProperties(uid); }; })(kpiUid));
@@ -2223,10 +2257,10 @@
 
       var chartContainer = document.createElement('div');
       chartContainer.id = 'aiFullDashSections';
-      chartContainer.style.cssText = 'padding:0 '+pageX+'px '+pageX+'px;margin-top:'+gap+'px;display:flex;flex-direction:column;gap:24px';
+      chartContainer.style.cssText = 'padding:0 '+pageX+'px '+pageX+'px;margin-top:'+gap+'px;display:flex;flex-direction:column;gap:14px';
 
-      var colW = Math.max(280, Math.floor((canvasW - gap * 3) / 2));
-      var panelH = 320;
+      var colW = Math.max(260, Math.floor((canvasW - gap * 3) / 2));
+      var panelH = 280;
 
       var orderedSections = sectionOrder.filter(function(s) {
         return Object.keys(sectionGroups).some(function(k) { return k.toLowerCase().indexOf(s.toLowerCase()) === 0 || s === k; }) && sectionGroups[s] && sectionGroups[s].length;
@@ -2238,10 +2272,10 @@
         var style = sectionStyles[secName] || { accent:'#475569', icon:'bi-grid' };
 
         var secHeader = document.createElement('div');
-        secHeader.style.cssText = 'display:flex;align-items:center;gap:10px;padding:6px 0 2px';
+        secHeader.style.cssText = 'display:flex;align-items:center;gap:8px;padding:2px 0 0';
         secHeader.innerHTML =
-          '<div style="width:3px;height:16px;border-radius:2px;background:'+style.accent+';flex-shrink:0"></div>' +
-          '<span style="font-size:0.72rem;font-weight:700;color:#0f172a;letter-spacing:0.6px;text-transform:uppercase">'+secName.replace(/^Strategic\\s+/i, '')+'</span>';
+          '<div style="width:3px;height:13px;border-radius:2px;background:'+style.accent+';flex-shrink:0"></div>' +
+          '<span style="font-size:0.64rem;font-weight:700;color:#0f172a;letter-spacing:0.5px;text-transform:uppercase">'+secName.replace(/^Strategic\\s+/i, '')+'</span>';
         chartContainer.appendChild(secHeader);
 
         // KPI/cards panels lay out in a denser 4-up row; charts in a 2-up row.
@@ -2256,7 +2290,7 @@
           rowDiv.style.cssText =
             'display:grid;grid-template-columns:repeat(auto-fit,minmax('+Math.max(280,colW-20)+'px,1fr));gap:'+gap+'px';
         }
-        var rowPanelH = allKpi ? 150 : panelH;
+        var rowPanelH = allKpi ? 120 : panelH;
 
         secPanels.forEach(function(panel, pi) {
           var wrapperDiv = document.createElement('div');
