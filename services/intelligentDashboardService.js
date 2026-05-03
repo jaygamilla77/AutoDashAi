@@ -118,7 +118,7 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
   const sourceId    = opts.sourceId != null ? Number(opts.sourceId) : null;
   const sourceName  = opts.sourceName || null;
   const templateId  = opts.templateId  || DEFAULT_TEMPLATE_ID;
-  const colorTheme  = opts.colorTheme  || DEFAULT_COLOR_THEME;
+  const rawTheme    = opts.colorTheme  || DEFAULT_COLOR_THEME;
   const overrideTitle = opts.title && String(opts.title).trim();
   const skipAi      = !!opts.skipAiNarrative;
 
@@ -129,6 +129,22 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
       safeTemplateId = DEFAULT_TEMPLATE_ID;
     }
   } catch { safeTemplateId = DEFAULT_TEMPLATE_ID; }
+
+  // ── 1b) Resolve color theme. Wizard exposes friendly IDs
+  //         (modern-corporate, executive-premium, …) that don't exist in
+  //         dashboardTemplateService.getColorThemes(). Map them to a real
+  //         theme; otherwise verify the ID and fall back to default. ──
+  const THEME_ALIASES = {
+    'modern-corporate':  'corporate',
+    'executive-premium': 'corporate',
+    'minimal-clean':     'green',
+    'dark-professional': 'blue',
+  };
+  let colorTheme = THEME_ALIASES[rawTheme] || rawTheme;
+  try {
+    const themes = dashboardTemplateService.getColorThemes() || [];
+    if (!themes.some(t => t.id === colorTheme)) colorTheme = DEFAULT_COLOR_THEME;
+  } catch { colorTheme = DEFAULT_COLOR_THEME; }
 
   // ── 2) Run the rich, template-aware generator (analysis, sections,
   //       hydration, rule-based insights & rule-based exec summary). ──
