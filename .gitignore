@@ -5,3 +5,5 @@ uploads/*
 !uploads/.gitkeep
 !data/.gitkeep
 *.log
+body.json
+resp.txt
