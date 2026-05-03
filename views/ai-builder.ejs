@@ -2140,20 +2140,86 @@
         '</div>';
       gridEl.insertBefore(headerDiv, gridEl.firstChild);
 
-      // 2. Executive summary — hero block with comfortable reading width
+      // 2. Executive summary — boardroom briefing across full canvas width
       var summary = data.executiveSummary || '';
       if (summary && summary.length > 20) {
         var sumDiv = document.createElement('div');
         sumDiv.id = 'aiFullDashSummary';
-        sumDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;padding:12px 16px;background:#fafafa;border:1px solid #f1f5f9;border-radius:10px';
-        var summaryClamped = summary.length > 360;
+        sumDiv.style.cssText = 'margin:'+gap+'px '+pageX+'px 0;padding:14px 18px;background:#fafafa;border:1px solid #f1f5f9;border-radius:10px';
+
+        // Try to detect a structured "Primary Risk / Business Impact / Recommended Focus"
+        // narrative and emphasise the label tokens. Fall back to a flat paragraph.
+        var labelTokens = ['Primary Risk','Business Impact','Recommended Focus','Recommendation','Risk','Impact','Focus','Opportunity','Action','Headline','Bottom Line'];
+        var formatted = _aiEsc(summary);
+        labelTokens.forEach(function(tok) {
+          var re = new RegExp('(^|[\\.\\s])(' + tok + ')\\s*:', 'g');
+          formatted = formatted.replace(re, function(_, pre, label) {
+            return (pre === '^' ? '' : pre) +
+              '<span style="display:inline-block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:700;color:#4338ca;margin-right:6px">'+label+'</span>';
+          });
+        });
+
+        // Snapshot pills (right column) — pulled from data + KPI roll-up.
+        var conf = (data.confidence != null) ? Math.round(Number(data.confidence)) :
+                   (data.aiConfidence != null ? Math.round(Number(data.aiConfidence)) : null);
+        var kpiCount = (data.kpiData || []).length;
+        var visualCount = panels.filter(function(p){return p.chartType!=='table';}).length;
+        var dominantTrend = null;
+        try {
+          var ups = 0, downs = 0;
+          (data.kpiData || []).forEach(function(k) {
+            if (k.trendDirection === 'up') ups++; else if (k.trendDirection === 'down') downs++;
+          });
+          if (ups > downs) dominantTrend = { label:'Net Trend', value:'Improving', color:'#16a34a', icon:'bi-arrow-up-right' };
+          else if (downs > ups) dominantTrend = { label:'Net Trend', value:'Declining', color:'#dc2626', icon:'bi-arrow-down-right' };
+          else if (ups || downs) dominantTrend = { label:'Net Trend', value:'Mixed', color:'#64748b', icon:'bi-dash' };
+        } catch(e) {}
+        var hasCritical = (data.insights || []).some(function(i){ return i.riskLevel === 'CRITICAL'; });
+        var riskPill = hasCritical
+          ? { label:'Risk Level', value:'Critical', color:'#dc2626', icon:'bi-shield-exclamation' }
+          : { label:'Risk Level', value:'Stable',   color:'#0ea5e9', icon:'bi-shield-check' };
+
+        var snapshotItems = [];
+        snapshotItems.push(riskPill);
+        if (dominantTrend) snapshotItems.push(dominantTrend);
+        if (conf != null) snapshotItems.push({ label:'AI Confidence', value: conf + '%', color:'#6366f1', icon:'bi-cpu' });
+        snapshotItems.push({ label:'Coverage', value: kpiCount + ' KPIs · ' + visualCount + ' charts', color:'#475569', icon:'bi-layout-text-window' });
+
+        var snapshotHtml = snapshotItems.map(function(it) {
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed #e5e7eb">' +
+            '<i class="bi '+it.icon+'" style="font-size:0.78rem;color:'+it.color+';flex-shrink:0;width:14px"></i>' +
+            '<span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.6px;font-weight:600;color:#94a3b8;flex:1">'+it.label+'</span>' +
+            '<span style="font-size:0.74rem;font-weight:700;color:'+it.color+'">'+it.value+'</span>' +
+          '</div>';
+        }).join('');
+
+        // Width-aware layout: side-by-side on desktop (≥1100px canvas), stacked otherwise.
+        var sideBySide = canvasW >= 1100;
+        var narrativeStyle = 'font-size:0.82rem;color:#1e293b;line-height:1.55;max-width:none';
+        // Mobile/tablet still gets a soft collapse for very long summaries (>500 chars).
+        var mobileClamped = !sideBySide && summary.length > 500;
+
         sumDiv.innerHTML =
-          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">' +
-            '<i class="bi bi-robot" style="color:#6366f1;font-size:0.78rem"></i>' +
-            '<span style="font-size:0.58rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.9px">AI Executive Summary</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">' +
+            '<i class="bi bi-robot" style="color:#6366f1;font-size:0.8rem"></i>' +
+            '<span style="font-size:0.58rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.9px">Executive Briefing</span>' +
+            '<span style="margin-left:auto;font-size:0.62rem;color:#94a3b8">' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) + '</span>' +
           '</div>' +
-          '<div id="aiExecSummaryText" style="font-size:0.78rem;color:#1e293b;line-height:1.55;max-width:90ch'+(summaryClamped?';max-height:64px;overflow:hidden;position:relative':'')+'">' + _aiEsc(summary) + (summaryClamped?'<div style="position:absolute;bottom:0;left:0;right:0;height:24px;background:linear-gradient(0deg,#fafafa,rgba(250,250,250,0))"></div>':'') + '</div>' +
-          (summaryClamped ? '<button onclick="(function(b){var t=document.getElementById(\'aiExecSummaryText\');if(t.style.maxHeight){t.style.maxHeight=\'\';t.style.overflow=\'\';var fade=t.querySelector(\'div\');if(fade)fade.remove();b.textContent=\'Show less\';}else{t.style.maxHeight=\'64px\';t.style.overflow=\'hidden\';b.textContent=\'Read more\';}})(this)" style="margin-top:4px;background:none;border:none;padding:0;font-size:0.7rem;color:#6366f1;font-weight:600;cursor:pointer">Read more</button>' : '');
+          '<div style="display:grid;grid-template-columns:'+(sideBySide?'minmax(0,1fr) 240px':'1fr')+';gap:'+(sideBySide?'22px':'12px')+';align-items:start">' +
+            '<div id="aiExecSummaryText" style="'+narrativeStyle+(mobileClamped?';max-height:84px;overflow:hidden;position:relative':'')+'">' +
+              formatted +
+              (mobileClamped ? '<div style="position:absolute;bottom:0;left:0;right:0;height:28px;background:linear-gradient(0deg,#fafafa,rgba(250,250,250,0))"></div>' : '') +
+            '</div>' +
+            (sideBySide
+              ? '<div style="border-left:1px solid #e5e7eb;padding-left:18px">' +
+                  '<div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.7px;font-weight:700;color:#475569;margin-bottom:4px">Executive Snapshot</div>' +
+                  snapshotHtml +
+                '</div>'
+              : '') +
+          '</div>' +
+          (mobileClamped
+            ? '<button onclick="(function(b){var t=document.getElementById(\'aiExecSummaryText\');if(t.style.maxHeight){t.style.maxHeight=\'\';t.style.overflow=\'\';var fade=t.querySelector(\'div\');if(fade)fade.remove();b.textContent=\'Show less\';}else{t.style.maxHeight=\'84px\';t.style.overflow=\'hidden\';b.textContent=\'Read more\';}})(this)" style="margin-top:6px;background:none;border:none;padding:0;font-size:0.7rem;color:#6366f1;font-weight:600;cursor:pointer">Read more</button>'
+            : '');
         gridEl.appendChild(sumDiv);
       }
 
