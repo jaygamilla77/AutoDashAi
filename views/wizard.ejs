@@ -128,7 +128,7 @@
     .topbar-user-role { font-size: 0.76rem; color: var(--muted); }
 
     /* â”€â”€ Wizard card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    .wizard-page { padding: 28px; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .wizard-page { padding: 28px 32px; max-width: 1600px; width: 100%; margin: 0 auto; }
     .wizard-container {
       background: #fff;
       border: 1px solid var(--border);
@@ -345,7 +345,7 @@
     /* â”€â”€ Step 3: Recommendations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .recommendations-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 14px;
       margin-top: 14px;
     }
@@ -366,7 +366,7 @@
     /* â”€â”€ Step 4: Style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
     .style-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 14px;
       margin-top: 14px;
     }
@@ -651,7 +651,7 @@
 
         <div id="analysisResults" class="hidden">
           <div id="sheetsInfo" class="hidden" style="margin-bottom: 16px; padding: 12px 16px; background: #eef2ff; border-left: 4px solid #667eea; border-radius: 6px; font-size: 13px; color: #1f2937;"></div>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
             <div class="analysis-card">
               <div class="analysis-stat">
                 <span class="stat-label">Total Rows</span>
