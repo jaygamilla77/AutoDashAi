@@ -35,6 +35,12 @@
     <button type="button" class="btn btn-sm btn-success px-3" id="aiSaveChangesBtn" onclick="submitAiChanges()" disabled style="font-size:0.82rem;display:none">
       <i class="bi bi-check-circle me-1"></i>Save Changes
     </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="aiClearCanvasBtn" onclick="aiClearCanvasQuick()" style="font-size:0.78rem" title="Remove all panels but keep the datasource selected">
+      <i class="bi bi-eraser me-1"></i>Clear
+    </button>
+    <button type="button" class="btn btn-sm" id="aiNewDashboardBtn" onclick="aiNewDashboard()" style="font-size:0.82rem;font-weight:600;background:#fff;color:#0f172a;border:1px solid #cbd5e1" title="Start a brand new dashboard">
+      <i class="bi bi-plus-lg me-1"></i>New
+    </button>
     <form id="aiGenerateForm" method="POST" action="/dashboard/manual-multi" style="display:none">
       <input type="hidden" name="panelsJson" id="aiPanelsJson">
       <input type="hidden" name="kpiDataJson" id="aiKpiDataJson">
@@ -200,10 +206,20 @@
             <path d="M29 26 L34 20 L39 28" stroke="#6366f1" stroke-width="1.5" fill="none" stroke-linecap="round"/>
           </svg>
         </div>
-        <div style="font-size:1rem;font-weight:700;color:#374151">Canvas is empty</div>
-        <div style="font-size:0.78rem;margin-top:6px;color:#9ca3af;line-height:1.6">
-          Type a question in the <strong style="color:#6366f1">Prompt</strong> panel ←<br>
-          click <strong style="color:#6366f1">Preview on Canvas</strong> to get started.
+        <div style="font-size:1.1rem;font-weight:700;color:#0f172a;letter-spacing:-0.01em">Start Building Your Dashboard</div>
+        <div style="font-size:0.8rem;margin-top:6px;color:#64748b;line-height:1.55;max-width:440px">
+          Choose a datasource or ask AI to generate a dashboard for you.
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px;pointer-events:auto;flex-wrap:wrap;justify-content:center">
+          <button type="button" onclick="openTemplatePickerModal()" style="font-size:0.78rem;font-weight:600;padding:8px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(99,102,241,0.25)">
+            <i class="bi bi-stars me-1"></i>Create Dashboard
+          </button>
+          <button type="button" onclick="document.getElementById('aiPromptTextarea') && document.getElementById('aiPromptTextarea').focus()" style="font-size:0.78rem;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;cursor:pointer">
+            <i class="bi bi-chat-left-text me-1"></i>Ask AI
+          </button>
+          <a href="/sources" style="font-size:0.78rem;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#0f172a;text-decoration:none">
+            <i class="bi bi-upload me-1"></i>Upload Data
+          </a>
         </div>
       </div>
       <div id="aiPanelGrid" style="position:relative;min-height:100%;width:100%"></div>
@@ -556,6 +572,150 @@
     });
     __aiQueue.splice(0, __aiQueue.length); __aiKpiData = []; __aiExecSummary = ''; aiRenderQueueList(); aiUpdateEmptyState();
     if (typeof window.aiCleanupEmptySections === 'function') window.aiCleanupEmptySections();
+  };
+
+  // ── New Dashboard / Clear Canvas / Reset workflow ────────────────────────
+  // Track unsaved changes — anything that mutates the queue marks the
+  // workspace dirty so we can prompt before discarding work.
+  window.__aiDirty = false;
+  function aiMarkDirty() { window.__aiDirty = true; }
+  function aiMarkClean() { window.__aiDirty = false; }
+  // Hook into queue mutations
+  (function() {
+    var origPush = Array.prototype.push;
+    var q = window.__aiQueue;
+    if (q && !q.__dirtyHooked) {
+      q.__dirtyHooked = true;
+      ['push','splice','pop','shift','unshift'].forEach(function(m) {
+        var orig = q[m];
+        q[m] = function() { aiMarkDirty(); return orig.apply(this, arguments); };
+      });
+    }
+  })();
+
+  // Reset the workspace back to creation mode. Wipes panels, KPIs, summary,
+  // insights, alerts, anomaly banner, queue, edit-mode markers — and
+  // re-enables creation controls (source selector + AI prompt).
+  function aiResetWorkspace() {
+    // 1. Destroy all charts / panels via aiClearQueue (handles canvases too)
+    try { window.aiClearQueue(); } catch(e) {}
+
+    // 2. Remove rendered executive sections
+    var gridEl = document.getElementById('aiPanelGrid');
+    if (gridEl) {
+      ['aiFullDashHeader','aiFullDashSummary','aiFullDashAlert','aiFullDashKpiStrip','aiFullDashSections','aiInsightsStrip']
+        .forEach(function(id) { var el = document.getElementById(id); if (el) el.remove(); });
+      // Also remove any loose section wrappers / table groups left behind
+      Array.from(gridEl.children).forEach(function(c) {
+        if (c.id !== 'aiEmptyState') c.remove();
+      });
+    }
+
+    // 3. Clear cached state
+    window.__aiPanelData = {};
+    window.__aiKpiData = [];
+    window.__aiExecSummary = '';
+    window.__aiECharts = window.__aiECharts || {};
+    window.__aiCharts  = window.__aiCharts  || {};
+    Object.keys(window.__aiECharts).forEach(function(k) { try { window.__aiECharts[k].dispose(); } catch(e) {} delete window.__aiECharts[k]; });
+    Object.keys(window.__aiCharts).forEach(function(k)  { try { window.__aiCharts[k].destroy(); } catch(e) {} delete window.__aiCharts[k]; });
+    window.__editingDashboardId = null;
+    window.__aiPreloadDashboardId = null;
+    window.__selectedPanelUid = null;
+
+    // 4. Reset toolbar buttons back to creation mode
+    var generateBtn  = document.getElementById('aiGenerateBtn');
+    var saveChangesBtn = document.getElementById('aiSaveChangesBtn');
+    if (generateBtn)    generateBtn.style.display = '';
+    if (saveChangesBtn) { saveChangesBtn.style.display = 'none'; saveChangesBtn.disabled = true; }
+
+    // 5. Re-enable source selector + prompt
+    var sourceSel = document.getElementById('aiSourceSel');
+    if (sourceSel) {
+      sourceSel.disabled = false;
+      var label = sourceSel.previousElementSibling;
+      if (label) label.innerHTML = '<i class="bi bi-database-fill me-1"></i>Source';
+    }
+    var prompt = document.getElementById('aiPromptTextarea');
+    if (prompt) { prompt.disabled = false; prompt.value = ''; }
+
+    // 6. Reset URL so refresh doesn't reload the previous dashboard
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, '', '/ai-builder');
+      }
+    } catch(e) {}
+
+    // 7. Clean state flags + toolbar
+    aiMarkClean();
+    if (typeof window.aiUpdateToolbar === 'function') window.aiUpdateToolbar();
+    aiUpdateEmptyState();
+  }
+
+  // Quick clear: remove panels but keep source/prompt selection (stays in
+  // edit-or-create mode based on whether we were editing).
+  window.aiClearCanvasQuick = function() {
+    var hasContent = (window.__aiQueue && window.__aiQueue.length) ||
+      document.getElementById('aiFullDashHeader') ||
+      document.getElementById('aiFullDashKpiStrip');
+    if (hasContent && !confirm('Clear all panels from the canvas? The datasource selection will be kept.')) return;
+    var srcId = (document.getElementById('aiSourceSel') || {}).value;
+    var promptVal = (document.getElementById('aiPromptTextarea') || {}).value;
+    aiResetWorkspace();
+    var sourceSel = document.getElementById('aiSourceSel');
+    if (sourceSel && srcId) sourceSel.value = srcId;
+    var prompt = document.getElementById('aiPromptTextarea');
+    if (prompt && promptVal) prompt.value = promptVal;
+  };
+
+  // Full New-Dashboard workflow with a 3-option modal when there are unsaved
+  // changes. Otherwise resets immediately.
+  window.aiNewDashboard = function() {
+    var hasContent = (window.__aiQueue && window.__aiQueue.length) ||
+      document.getElementById('aiFullDashHeader') ||
+      document.getElementById('aiFullDashKpiStrip');
+    if (!hasContent) { aiResetWorkspace(); return; }
+
+    var modal = document.getElementById('aiNewDashboardModal');
+    if (modal) modal.remove();
+    modal = document.createElement('div');
+    modal.id = 'aiNewDashboardModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;animation:aiSlideIn 0.18s ease';
+    modal.innerHTML =
+      '<div style="background:#fff;border-radius:14px;width:440px;max-width:92vw;box-shadow:0 20px 60px rgba(15,23,42,0.25);overflow:hidden">' +
+        '<div style="padding:20px 24px 6px">' +
+          '<div style="font-size:1.05rem;font-weight:700;color:#0f172a;margin-bottom:4px">Create New Dashboard?</div>' +
+          '<div style="font-size:0.82rem;color:#475569;line-height:1.5">You have unsaved changes in the current dashboard. What would you like to do?</div>' +
+        '</div>' +
+        '<div style="padding:14px 24px 18px;display:flex;flex-direction:column;gap:8px">' +
+          (window.__editingDashboardId
+            ? '<button type="button" id="aiNewDash_save" style="text-align:left;padding:11px 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;color:#0f172a"><i class="bi bi-check-circle me-2" style="color:#16a34a"></i>Save &amp; Create New</button>'
+            : '<button type="button" id="aiNewDash_save" style="text-align:left;padding:11px 14px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer;font-size:0.85rem;font-weight:600;color:#0f172a"><i class="bi bi-cloud-upload me-2" style="color:#2563eb"></i>Generate &amp; Save, then Create New</button>'
+          ) +
+          '<button type="button" id="aiNewDash_discard" style="text-align:left;padding:11px 14px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2;cursor:pointer;font-size:0.85rem;font-weight:600;color:#991b1b"><i class="bi bi-trash3 me-2"></i>Discard &amp; Create New</button>' +
+          '<button type="button" id="aiNewDash_cancel" style="text-align:left;padding:11px 14px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:0.85rem;color:#475569">Cancel</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    function close() { modal.remove(); }
+    modal.addEventListener('click', function(e) { if (e.target === modal) close(); });
+    document.getElementById('aiNewDash_cancel').addEventListener('click', close);
+    document.getElementById('aiNewDash_discard').addEventListener('click', function() {
+      close(); aiResetWorkspace();
+    });
+    document.getElementById('aiNewDash_save').addEventListener('click', function() {
+      close();
+      // Hook the next successful save to a reset.
+      window.__aiResetAfterSave = true;
+      try {
+        if (window.__editingDashboardId && typeof window.submitAiChanges === 'function') {
+          window.submitAiChanges();
+        } else if (typeof window.submitAiDashboard === 'function') {
+          window.submitAiDashboard();
+        }
+      } catch(e) { console.error(e); }
+    });
   };
 
   // ── Canvas helpers ────────────────────────────────────────────────────────
