@@ -295,63 +295,6 @@ class PayMongoCheckout {
     html += '</div>';
     container.innerHTML = html;
   }
-      
-      if (plan.contactSales) {
-        html += `
-          <div class="pricing-card${recommended}">
-            <div class="pricing-header">
-              <h3>${plan.name}</h3>
-              <p class="pricing-desc">${plan.description}</p>
-              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
-            </div>
-            <div class="pricing-body">
-              <div class="price">
-                <span class="amount">${priceDisplay}</span>
-                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
-              </div>
-              ${discountDisplay}
-              <ul class="features">
-                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
-              </ul>
-            </div>
-            <div class="pricing-footer">
-              <button class="btn btn-outline" onclick="window.location='mailto:sales@liknaya.com'">
-                Contact Sales
-              </button>
-            </div>
-          </div>
-        `;
-      } else {
-        html += `
-          <div class="pricing-card${recommended}">
-            <div class="pricing-header">
-              <h3>${plan.name}</h3>
-              <p class="pricing-desc">${plan.description}</p>
-              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
-            </div>
-            <div class="pricing-body">
-              <div class="price">
-                <span class="amount">${priceDisplay}</span>
-                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
-              </div>
-              ${discountDisplay}
-              <ul class="features">
-                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
-              </ul>
-            </div>
-            <div class="pricing-footer">
-              <button class="btn btn-primary" onclick="paymongoCheckout.handleUpgrade('${plan.id}')">
-                ${plan.id === 'starter' ? 'Get Started Free' : 'Upgrade to ' + plan.name}
-              </button>
-            </div>
-          </div>
-        `;
-      }
-    });
-
-    html += '</div>';
-    container.innerHTML = html;
-  }
 }
 
 // Initialize globally
