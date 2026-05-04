@@ -14,7 +14,11 @@ class PayMongoCheckout {
    */
   async loadPlans() {
     try {
-      const response = await fetch('/api/payment/plans');
+      const response = await fetch('/api/payment/plans', {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       const data = await response.json();
 
       if (!data.success) {
@@ -40,6 +44,7 @@ class PayMongoCheckout {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({ planId }),
       });
@@ -114,6 +119,7 @@ class PayMongoCheckout {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({ planId }),
       });
@@ -142,7 +148,11 @@ class PayMongoCheckout {
    */
   async checkPaymentStatus(checkoutId) {
     try {
-      const response = await fetch(`/api/payment/checkout/${checkoutId}`);
+      const response = await fetch(`/api/payment/checkout/${checkoutId}`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       const data = await response.json();
 
       if (!data.success) {
