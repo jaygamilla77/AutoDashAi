@@ -11,6 +11,15 @@ module.exports = (sequelize, DataTypes) => {
     subscriptionStatus: { type: DataTypes.STRING(32), allowNull: false, defaultValue: 'active' },
     paymentProvider: { type: DataTypes.STRING(32), allowNull: true },
     settings: { type: DataTypes.TEXT, allowNull: true },
+
+    // Per-workspace Azure OpenAI configuration.
+    //   'system' = use the global env credentials (default, shared)
+    //   'custom' = use the workspace's own dedicated endpoint below
+    aiProvider:   { type: DataTypes.STRING(16),  allowNull: false, defaultValue: 'system' },
+    aiEndpoint:   { type: DataTypes.STRING(500), allowNull: true },
+    aiApiKey:     { type: DataTypes.TEXT,        allowNull: true }, // encrypted ciphertext
+    aiDeployment: { type: DataTypes.STRING(120), allowNull: true },
+    aiApiVersion: { type: DataTypes.STRING(40),  allowNull: true },
   }, {
     tableName: 'workspaces',
     indexes: [{ fields: ['ownerUserId'] }, { fields: ['plan'] }],

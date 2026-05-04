@@ -484,7 +484,8 @@ router.post('/ai/suggestions', aiController.suggestions);
 router.post('/ai/executive-summary', aiController.executiveSummary);
 router.get('/ai/settings', requireAuth, aiController.settingsPage);
 router.get('/ai-settings', requireAuth, aiController.settingsPage);
-router.post('/ai/test', aiController.testConnection);
+router.post('/ai-settings', requireAuth, aiController.saveSettings);
+router.post('/ai/test', requireAuth, aiController.testConnection);
 
 // ─── Billing (placeholder for Phase 3) ───────────────────────────────
 router.get('/billing', requireAuth, function (req, res) {
