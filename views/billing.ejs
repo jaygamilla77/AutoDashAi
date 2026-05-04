@@ -5,6 +5,9 @@
       <p style="color: var(--muted, #6B7280); margin: 0;">Manage your plan, view usage, and update payment methods.</p>
     </header>
 
+    <!-- Alert Box -->
+    <div id="alertBox" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; font-size: 0.9rem;" role="alert"></div>
+
     <!-- Current Plan card -->
     <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
@@ -25,11 +28,6 @@
           <% if (workspace) { %>
             <div style="color: #6B7280; font-size: 0.9rem; margin-top: 8px;">Workspace: <strong><%= workspace.name %></strong></div>
           <% } %>
-        </div>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <a href="/pricing" class="btn" style="background: var(--primary, #3366FF); color: #fff; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9rem;">
-            <i class="bi bi-arrow-up-circle"></i> Upgrade Plan
-          </a>
         </div>
       </div>
     </div>
@@ -54,17 +52,192 @@
       </div>
     </div>
 
+    <!-- Pricing Plans Section -->
+    <div style="margin-bottom: 24px;">
+      <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 16px;">Upgrade Your Plan</h3>
+      <div id="pricingPlans" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+        <!-- Plans will be loaded here via JavaScript -->
+        <div style="text-align: center; padding: 40px; color: #6B7280;">Loading plans...</div>
+      </div>
+    </div>
+
     <!-- Payment methods placeholder -->
     <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 12px; padding: 24px;">
       <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 8px;">Payment Methods</h3>
       <p style="color: #6B7280; margin: 0 0 16px; font-size: 0.9rem;">
-        Card, GCash, Maya, and bank transfer support is coming soon. Contact
-        <a href="mailto:billing@liknaya.com">billing@liknaya.com</a> to upgrade in the meantime.
+        We accept Card, GCash, PayMaya, and Grab Pay via PayMongo.
       </p>
       <div style="background: #F6F7FB; border: 1px dashed #C4C7D2; border-radius: 8px; padding: 24px; text-align: center; color: #6B7280;">
         <i class="bi bi-credit-card" style="font-size: 1.5rem;"></i>
-        <div style="margin-top: 8px;">No payment method on file</div>
+        <div style="margin-top: 8px;">Payment method management coming soon</div>
       </div>
     </div>
 
 </div>
+
+<style>
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .pricing-card {
+    background: #fff;
+    border: 1px solid #E6E8F0;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .pricing-card.recommended {
+    border-color: #3366FF;
+    box-shadow: 0 4px 12px rgba(51, 102, 255, 0.1);
+  }
+
+  .pricing-header {
+    margin-bottom: 16px;
+    flex: 1;
+  }
+
+  .pricing-header h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+    color: var(--ink, #1A1F36);
+  }
+
+  .pricing-desc {
+    color: #6B7280;
+    font-size: 0.88rem;
+    margin: 0 0 12px;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #3366FF;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .pricing-body {
+    margin-bottom: 20px;
+  }
+
+  .price {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .price .amount {
+    color: var(--ink, #1A1F36);
+  }
+
+  .price .billing {
+    font-size: 0.9rem;
+    color: #6B7280;
+    font-weight: 500;
+  }
+
+  .features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .features li {
+    font-size: 0.9rem;
+    color: #6B7280;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .features i {
+    color: #10B981;
+    font-weight: 700;
+  }
+
+  .pricing-footer {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .btn-primary {
+    background: #3366FF;
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #254FCC;
+  }
+
+  .btn-outline {
+    background: #fff;
+    color: #3366FF;
+    border: 1px solid #3366FF;
+  }
+
+  .btn-outline:hover {
+    background: #F0F4FF;
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .alert-success {
+    background: #DCFCE7;
+    color: #166534;
+    border: 1px solid #BBF7D0;
+  }
+
+  .alert-error {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+  }
+
+  .alert-info {
+    background: #EFF6FF;
+    color: #1E40AF;
+    border: 1px solid #BFDBFE;
+  }
+</style>
+
+<script src="/js/paymongo-checkout.js"></script>
+<script>
+  // Load pricing plans on page load
+  document.addEventListener('DOMContentLoaded', async function() {
+    await paymongoCheckout.renderPlans('pricingPlans');
+  });
+</script>

@@ -217,37 +217,56 @@ class PayMongoCheckout {
     plans.forEach((plan) => {
       const priceDisplay = plan.price === 0 ? 'Free' : `₱${(plan.price / 100).toLocaleString()}`;
       const recommended = plan.recommended ? ' recommended' : '';
-      const buttonText = plan.contactSales ? 'Contact Sales' : 'Upgrade to ' + plan.name;
-
-      html += `
-        <div class="pricing-card${recommended}">
-          <div class="pricing-header">
-            <h3>${plan.name}</h3>
-            <p class="pricing-desc">${plan.description}</p>
-            ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
-          </div>
-          <div class="pricing-body">
-            <div class="price">
-              <span class="amount">${priceDisplay}</span>
-              ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
+      
+      if (plan.contactSales) {
+        html += `
+          <div class="pricing-card${recommended}">
+            <div class="pricing-header">
+              <h3>${plan.name}</h3>
+              <p class="pricing-desc">${plan.description}</p>
+              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
             </div>
-            <ul class="features">
-              ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
-            </ul>
+            <div class="pricing-body">
+              <div class="price">
+                <span class="amount">${priceDisplay}</span>
+                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
+              </div>
+              <ul class="features">
+                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="pricing-footer">
+              <button class="btn btn-outline" onclick="window.location='mailto:sales@liknaya.com'">
+                Contact Sales
+              </button>
+            </div>
           </div>
-          <div class="pricing-footer">
-            ${
-              plan.contactSales
-                ? `<button class="btn btn-outline" onclick="window.location='mailto:sales@liknaya.com'">
-                     ${buttonText}
-                   </button>`
-                : `<button class="btn btn-primary" onclick="paymongoCheckout.handleUpgrade('${plan.id}')">
-                     ${buttonText}
-                   </button>`
-            }
+        `;
+      } else {
+        html += `
+          <div class="pricing-card${recommended}">
+            <div class="pricing-header">
+              <h3>${plan.name}</h3>
+              <p class="pricing-desc">${plan.description}</p>
+              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
+            </div>
+            <div class="pricing-body">
+              <div class="price">
+                <span class="amount">${priceDisplay}</span>
+                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
+              </div>
+              <ul class="features">
+                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="pricing-footer">
+              <button class="btn btn-primary" onclick="paymongoCheckout.handleUpgrade('${plan.id}')">
+                ${plan.id === 'starter' ? 'Get Started Free' : 'Upgrade to ' + plan.name}
+              </button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
     });
 
     html += '</div>';
