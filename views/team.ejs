@@ -1,0 +1,94 @@
+<div class="container py-4" style="max-width: 1080px;">
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="mb-1" style="font-size: 28px; font-weight: 700; letter-spacing: -0.02em;">Team & Members</h1>
+      <p class="text-muted mb-0">Manage who has access to <strong><%= workspace.name %></strong>.</p>
+    </div>
+    <div class="text-end">
+      <div class="text-muted small">Members</div>
+      <div style="font-size: 22px; font-weight: 700;">
+        <%= members.length %><% if (memberLimit && memberLimit > 0) { %><span class="text-muted" style="font-weight:500;"> / <%= memberLimit %></span><% } %>
+      </div>
+    </div>
+  </div>
+
+  <% if (typeof query !== 'undefined' && query && query.updated) { %>
+    <div class="alert alert-success">Member updated.</div>
+  <% } %>
+  <% if (typeof query !== 'undefined' && query && query.removed) { %>
+    <div class="alert alert-success">Member removed.</div>
+  <% } %>
+  <% if (typeof query !== 'undefined' && query && query.error) { %>
+    <div class="alert alert-danger"><%= query.error %></div>
+  <% } %>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead style="background:#f9fafb;">
+          <tr>
+            <th style="padding:14px 16px;">Member</th>
+            <th>Role</th>
+            <th>Auth</th>
+            <th>Last login</th>
+            <th>Joined</th>
+            <th style="text-align:right; padding-right:16px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(function(m) { %>
+            <% var isOwnerRow = (m.id === workspace.ownerUserId); %>
+            <tr>
+              <td style="padding:14px 16px;">
+                <div style="font-weight:600;"><%= m.name || '—' %></div>
+                <div class="text-muted small"><%= m.email %></div>
+              </td>
+              <td>
+                <% if (isOwnerRow) { %>
+                  <span class="badge bg-primary">Owner</span>
+                <% } else { %>
+                  <form action="/settings/team/<%= m.id %>/role" method="POST" class="d-flex gap-2 align-items-center" style="margin:0;">
+                    <select name="role" class="form-select form-select-sm" style="width:auto;">
+                      <% ['admin','member','viewer'].forEach(function(r){ %>
+                        <option value="<%= r %>" <%= m.role === r ? 'selected' : '' %>><%= r.charAt(0).toUpperCase()+r.slice(1) %></option>
+                      <% }); %>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+                  </form>
+                <% } %>
+              </td>
+              <td class="text-muted small text-capitalize"><%= m.authProvider || 'local' %></td>
+              <td class="text-muted small">
+                <%= m.lastLoginAt ? new Date(m.lastLoginAt).toLocaleString() : '—' %>
+              </td>
+              <td class="text-muted small">
+                <%= new Date(m.createdAt).toLocaleDateString() %>
+              </td>
+              <td style="text-align:right; padding-right:16px;">
+                <% if (!isOwnerRow && m.id !== currentUser.id) { %>
+                  <form action="/settings/team/<%= m.id %>/remove" method="POST" style="display:inline;"
+                        onsubmit="return confirm('Remove <%= m.name || m.email %> from this workspace? Their dashboards and history will remain but they will lose access.');">
+                    <button class="btn btn-sm btn-outline-danger">Remove</button>
+                  </form>
+                <% } else if (m.id === currentUser.id && !isOwnerRow) { %>
+                  <span class="text-muted small">You</span>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm mt-4">
+    <div class="card-body">
+      <h5 class="mb-2">Invite teammates</h5>
+      <p class="text-muted mb-3">
+        Email-based invitations will be available in the next release. For now, share your workspace by adding members
+        directly through the admin portal, or have them sign up and contact support to attach them to <strong><%= workspace.name %></strong>.
+      </p>
+      <a href="/billing" class="btn btn-outline-secondary btn-sm">Manage plan & seats</a>
+    </div>
+  </div>
+</div>

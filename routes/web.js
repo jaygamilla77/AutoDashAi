@@ -501,6 +501,76 @@ router.get('/billing', requireAuth, function (req, res) {
   });
 });
 
+// ─── Team / workspace members ────────────────────────────────────────
+// Lists users in the current workspace and lets the owner change roles
+// or remove members. Visible to admin / super_admin only.
+router.get('/settings/team', requireAuth, requireRole(['admin', 'super_admin']), async function (req, res, next) {
+  try {
+    var ws = req.workspace;
+    if (!ws) return res.redirect('/dashboard');
+    var members = await db.User.findAll({
+      where: { workspaceId: ws.id },
+      order: [['createdAt', 'ASC']],
+      attributes: ['id', 'name', 'email', 'role', 'plan', 'lastLoginAt', 'createdAt', 'authProvider'],
+    });
+    var limits = planService.getLimits(ws.plan || 'starter');
+    res.render('team', {
+      title: 'Team & Members',
+      workspace: ws,
+      members: members,
+      memberLimit: limits && limits.teamMembers != null ? limits.teamMembers : null,
+      isOwner: ws.ownerUserId === req.user.id,
+      query: req.query || {},
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/settings/team/:id/role', requireAuth, requireRole(['admin', 'super_admin']), async function (req, res, next) {
+  try {
+    var ws = req.workspace;
+    var targetId = parseInt(req.params.id, 10);
+    var newRole = String(req.body.role || '').trim();
+    var allowedRoles = ['admin', 'member', 'viewer'];
+    if (!allowedRoles.includes(newRole)) {
+      return res.redirect('/settings/team?error=' + encodeURIComponent('Invalid role.'));
+    }
+    var target = await db.User.findOne({ where: { id: targetId, workspaceId: ws.id } });
+    if (!target) return res.redirect('/settings/team?error=' + encodeURIComponent('Member not found.'));
+    if (target.id === ws.ownerUserId) {
+      return res.redirect('/settings/team?error=' + encodeURIComponent('Cannot change the workspace owner role.'));
+    }
+    target.role = newRole;
+    await target.save();
+    return res.redirect('/settings/team?updated=1');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/settings/team/:id/remove', requireAuth, requireRole(['admin', 'super_admin']), async function (req, res, next) {
+  try {
+    var ws = req.workspace;
+    var targetId = parseInt(req.params.id, 10);
+    var target = await db.User.findOne({ where: { id: targetId, workspaceId: ws.id } });
+    if (!target) return res.redirect('/settings/team?error=' + encodeURIComponent('Member not found.'));
+    if (target.id === ws.ownerUserId) {
+      return res.redirect('/settings/team?error=' + encodeURIComponent('Cannot remove the workspace owner.'));
+    }
+    if (target.id === req.user.id) {
+      return res.redirect('/settings/team?error=' + encodeURIComponent('You cannot remove yourself.'));
+    }
+    // Detach from workspace rather than hard-delete so historical data
+    // (dashboards, prompts) keeps a referential trail.
+    target.workspaceId = null;
+    await target.save();
+    return res.redirect('/settings/team?removed=1');
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Global PlanLimitError handler ───────────────────────────────────
 // When any route handler throws a PlanLimitError (e.g. via
 // `workspaceService.enforceLimit`) we surface it as 402 JSON for AJAX
