@@ -215,8 +215,9 @@ class PayMongoCheckout {
     let html = '<div class="pricing-grid">';
 
     plans.forEach((plan) => {
-      const priceDisplay = plan.price === 0 ? 'Free' : `₱${(plan.price / 100).toLocaleString()}`;
+      const priceDisplay = plan.price === 0 ? 'Free' : `₱${(plan.price).toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
       const recommended = plan.recommended ? ' recommended' : '';
+      const discountDisplay = plan.discount ? `<div style="color: #10B981; font-size: 0.85rem; margin-top: 4px;">💰 Save ${plan.discount}</div>` : '';
       
       if (plan.contactSales) {
         html += `
@@ -231,6 +232,7 @@ class PayMongoCheckout {
                 <span class="amount">${priceDisplay}</span>
                 ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
               </div>
+              ${discountDisplay}
               <ul class="features">
                 ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
               </ul>
@@ -255,6 +257,7 @@ class PayMongoCheckout {
                 <span class="amount">${priceDisplay}</span>
                 ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
               </div>
+              ${discountDisplay}
               <ul class="features">
                 ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
               </ul>

@@ -32,7 +32,7 @@ exports.createCheckout = async (req, res) => {
     }
 
     // Get plan pricing
-    const plans = paymongoService.getPricingPlans();
+    const plans = await paymongoService.getPricingPlans();
     const selectedPlan = plans.find(p => p.id === planId);
 
     if (!selectedPlan) {
@@ -147,7 +147,7 @@ exports.handleWebhook = async (req, res) => {
  */
 exports.getPlans = async (req, res) => {
   try {
-    const plans = paymongoService.getPricingPlans();
+    const plans = await paymongoService.getPricingPlans();
     return res.json({
       success: true,
       plans,
@@ -171,7 +171,7 @@ exports.upgradePlan = async (req, res) => {
       return res.json({ success: false, error: 'Missing planId or workspace' });
     }
 
-    const plans = paymongoService.getPricingPlans();
+    const plans = await paymongoService.getPricingPlans();
     const selectedPlan = plans.find(p => p.id === planId);
 
     if (!selectedPlan) {

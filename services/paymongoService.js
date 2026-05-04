@@ -281,78 +281,132 @@ async function handleChargePaid(eventData) {
 }
 
 /**
- * Get pricing plans for billing page
+ * Get pricing plans for billing page (with admin-configured prices)
  */
-function getPricingPlans() {
-  return [
-    {
-      id: 'starter',
-      name: 'Starter',
-      price: 0,
-      currency: 'PHP',
-      billing_cycle: 'monthly',
-      description: 'Perfect to get started',
-      features: [
-        '3 Dashboards',
-        '1 Data Source',
-        '50 AI Generations/month',
-        'Basic Support',
-      ],
-      limits: {
-        dashboards: 3,
-        dataSources: 1,
-        aiGenerations: 50,
+async function getPricingPlans() {
+  try {
+    const pricingConfigService = require('./pricingConfigService');
+    
+    // Fetch prices from database
+    const starterPrice = await pricingConfigService.getPricing('starter');
+    const professionalPrice = await pricingConfigService.getPricing('professional');
+    const enterprisePrice = await pricingConfigService.getPricing('enterprise');
+
+    return [
+      {
+        id: 'starter',
+        name: 'Starter',
+        price: starterPrice?.finalPricePHP || 0,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'Perfect to get started',
+        features: [
+          '3 Dashboards',
+          '1 Data Source',
+          '50 AI Generations/month',
+          'Basic Support',
+        ],
+        limits: {
+          dashboards: 3,
+          dataSources: 1,
+          aiGenerations: 50,
+        },
+        badge: 'Free',
+        discount: starterPrice?.discountApplied ? `${starterPrice.discountType === 'percentage' ? starterPrice.discountValue + '%' : '₱' + starterPrice.discountValue.toFixed(2)}` : null,
       },
-      badge: 'Free',
-    },
-    {
-      id: 'pro',
-      name: 'Professional',
-      price: 3990, // PHP 3,990/month
-      currency: 'PHP',
-      billing_cycle: 'monthly',
-      description: 'For growing teams',
-      features: [
-        '∞ Dashboards',
-        '10 Data Sources',
-        '1,000 AI Generations/month',
-        'Priority Email Support',
-        'Advanced Analytics',
-        'Custom Branding',
-      ],
-      limits: {
-        dashboards: 999,
-        dataSources: 10,
-        aiGenerations: 1000,
+      {
+        id: 'professional',
+        name: 'Professional',
+        price: professionalPrice?.finalPricePHP || 3990,
+        basePrice: professionalPrice?.basePricePHP || 3990,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'For growing teams',
+        features: [
+          '∞ Dashboards',
+          '10 Data Sources',
+          '1,000 AI Generations/month',
+          'Priority Email Support',
+          'Advanced Analytics',
+          'Custom Branding',
+        ],
+        limits: {
+          dashboards: 999,
+          dataSources: 10,
+          aiGenerations: 1000,
+        },
+        badge: 'Popular',
+        recommended: true,
+        discount: professionalPrice?.discountApplied ? `${professionalPrice.discountType === 'percentage' ? professionalPrice.discountValue + '%' : '₱' + professionalPrice.discountValue.toFixed(2)}` : null,
       },
-      badge: 'Popular',
-      recommended: true,
-    },
-    {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 9990, // PHP 9,990/month (or custom)
-      currency: 'PHP',
-      billing_cycle: 'monthly',
-      description: 'For large organizations',
-      features: [
-        '∞ Dashboards',
-        '∞ Data Sources',
-        '∞ AI Generations',
-        '24/7 Priority Support',
-        'Dedicated Account Manager',
-        'Custom Integrations',
-        'SLA Guarantee',
-      ],
-      limits: {
-        dashboards: 999999,
-        dataSources: 999999,
-        aiGenerations: 999999,
+      {
+        id: 'enterprise',
+        name: 'Enterprise',
+        price: enterprisePrice?.finalPricePHP || 9990,
+        basePrice: enterprisePrice?.basePricePHP || 9990,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'For large organizations',
+        features: [
+          '∞ Dashboards',
+          '∞ Data Sources',
+          '∞ AI Generations',
+          '24/7 Priority Support',
+          'Dedicated Account Manager',
+          'Custom Integrations',
+          'SLA Guarantee',
+        ],
+        limits: {
+          dashboards: 999999,
+          dataSources: 999999,
+          aiGenerations: 999999,
+        },
+        badge: 'Best Value',
+        contactSales: true,
+        discount: enterprisePrice?.discountApplied ? `${enterprisePrice.discountType === 'percentage' ? enterprisePrice.discountValue + '%' : '₱' + enterprisePrice.discountValue.toFixed(2)}` : null,
       },
-      badge: 'Best Value',
-      contactSales: true,
-    },
-  ];
+    ];
+  } catch (err) {
+    console.error('[PayMongo] Get pricing plans error:', err.message);
+    // Return hardcoded defaults if database lookup fails
+    return [
+      {
+        id: 'starter',
+        name: 'Starter',
+        price: 0,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'Perfect to get started',
+        features: ['3 Dashboards', '1 Data Source', '50 AI Generations/month', 'Basic Support'],
+        limits: { dashboards: 3, dataSources: 1, aiGenerations: 50 },
+        badge: 'Free',
+      },
+      {
+        id: 'professional',
+        name: 'Professional',
+        price: 3990,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'For growing teams',
+        features: ['∞ Dashboards', '10 Data Sources', '1,000 AI Generations/month', 'Priority Support'],
+        limits: { dashboards: 999, dataSources: 10, aiGenerations: 1000 },
+        badge: 'Popular',
+        recommended: true,
+      },
+      {
+        id: 'enterprise',
+        name: 'Enterprise',
+        price: 9990,
+        currency: 'PHP',
+        billing_cycle: 'monthly',
+        description: 'For large organizations',
+        features: ['∞ Dashboards', '∞ Data Sources', '∞ AI Generations', '24/7 Support'],
+        limits: { dashboards: 999999, dataSources: 999999, aiGenerations: 999999 },
+        badge: 'Best Value',
+        contactSales: true,
+      },
+    ];
+  }
 }
 
 module.exports = {
