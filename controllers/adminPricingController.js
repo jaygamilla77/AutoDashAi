@@ -47,14 +47,14 @@ exports.getPricingJson = async (req, res) => {
  */
 exports.updatePricing = async (req, res) => {
   try {
-    const { planId, basePricePHP, discountType, discountValue, description } = req.body;
+    const { planId, basePriceUSD, discountType, discountValue, description } = req.body;
 
-    if (!planId || basePricePHP === undefined) {
-      return res.json({ success: false, error: 'Missing planId or basePricePHP' });
+    if (!planId || basePriceUSD === undefined) {
+      return res.json({ success: false, error: 'Missing planId or basePriceUSD' });
     }
 
     const result = await pricingConfigService.updatePricing(planId, {
-      basePricePHP,
+      basePriceUSD,
       discountType,
       discountValue,
       description,
@@ -89,7 +89,7 @@ exports.bulkUpdatePricing = async (req, res) => {
     const results = [];
     for (const update of updates) {
       const result = await pricingConfigService.updatePricing(update.planId, {
-        basePricePHP: update.basePricePHP,
+        basePriceUSD: update.basePriceUSD,
         discountType: update.discountType,
         discountValue: update.discountValue,
         description: update.description,
