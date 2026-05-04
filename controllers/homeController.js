@@ -7,8 +7,15 @@ const aiService = require('../services/aiService');
  * Executive Dashboard / Home Page
  */
 exports.index = async (req, res) => {
-  const safeCount = async (model) => {
-    try { return model ? await model.count() : 0; } catch { return 0; }
+  // Explicit workspace scope — don't rely solely on the Sequelize beforeFind
+  // hook because Model.count() doesn't always pass through it cleanly, which
+  // caused the home page "Total Dashboards" to show a global count while the
+  // "Recent Dashboards" list (findAll) was correctly scoped to the workspace.
+  const wsId = req.workspace ? req.workspace.id : null;
+  const wsWhere = wsId ? { workspaceId: wsId } : {};
+
+  const safeCount = async (model, where) => {
+    try { return model ? await model.count({ where: where || {} }) : 0; } catch { return 0; }
   };
   const safeFindAll = async (model, opts) => {
     try { return model ? await model.findAll(opts) : []; } catch { return []; }
@@ -17,17 +24,20 @@ exports.index = async (req, res) => {
   try {
     const [recentDashboards, totalDashboards, totalSources, totalInsights, totalMembers, recentSources, recentInsights, recentMembers] = await Promise.all([
       safeFindAll(db.SavedDashboard, {
+        where: wsWhere,
         order: [['updatedAt', 'DESC']],
         limit: 6,
         attributes: ['id', 'title', 'createdAt', 'updatedAt', 'dataSourceId', 'visibility'].filter(Boolean),
       }),
-      safeCount(db.SavedDashboard),
-      safeCount(db.DataSource),
-      safeCount(db.PromptHistory),
-      safeCount(db.User),
-      safeFindAll(db.DataSource, { order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'name', 'createdAt'] }),
-      safeFindAll(db.PromptHistory, { order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'prompt', 'createdAt'] }),
-      safeFindAll(db.User, { order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'name', 'email', 'createdAt'] }),
+      safeCount(db.SavedDashboard, wsWhere),
+      safeCount(db.DataSource, wsWhere),
+      safeCount(db.PromptHistory, wsWhere),
+      // Team Members: count users belonging to this workspace (fallback to all
+      // users if the column doesn't exist yet on this deploy).
+      safeCount(db.User, wsId ? { workspaceId: wsId } : {}),
+      safeFindAll(db.DataSource, { where: wsWhere, order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'name', 'createdAt'] }),
+      safeFindAll(db.PromptHistory, { where: wsWhere, order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'prompt', 'createdAt'] }),
+      safeFindAll(db.User, { where: wsId ? { workspaceId: wsId } : {}, order: [['createdAt', 'DESC']], limit: 4, attributes: ['id', 'name', 'email', 'createdAt'] }),
     ]);
 
     // Build a unified activity feed
