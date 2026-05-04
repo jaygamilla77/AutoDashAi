@@ -245,7 +245,15 @@
 
 <script src="/js/paymongo-checkout.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', async function() {
-    await paymongoCheckout.renderPlans('pricingPlans');
-  });
+  // Call immediately — DOM element already exists above this script tag.
+  // Don't rely on DOMContentLoaded which waits for all CDN scripts to finish.
+  (async function() {
+    try {
+      await paymongoCheckout.renderPlans('pricingPlans');
+    } catch(e) {
+      console.error('[Billing] Failed to render plans:', e);
+      const c = document.getElementById('pricingPlans');
+      if (c) c.innerHTML = '<p style="color:#e53e3e;text-align:center">Failed to load plans. Please refresh.</p>';
+    }
+  })();
 </script>
