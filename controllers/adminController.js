@@ -271,11 +271,8 @@ async function faqDelete(req, res, next) {
 // ───────────────────────── Pricing ─────────────────────────
 async function pricingShow(req, res, next) {
   try {
-    const pricing = await cms.getSection('pricing');
-    adminRender(res, 'pricing', {
-      activeNav: 'pricing', pageTitle: 'Pricing Plans',
-      plans: pricing.plans || [], flash: flashFromQuery(req),
-    });
+    // Redirect to new PayMongo pricing settings page
+    return res.redirect('/admin/pricing-settings');
   } catch (err) { next(err); }
 }
 
