@@ -128,47 +128,50 @@
               </form>
             </td>
           </tr>
-
-          <!-- Edit modal -->
-          <div class="modal fade" id="wsEdit<%= w.id %>" tabindex="-1">
-            <div class="modal-dialog">
-              <form class="modal-content" action="/admin/workspaces/<%= w.id %>/update" method="POST">
-                <div class="modal-header">
-                  <h5 class="modal-title">Edit <%= w.name %></h5>
-                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                  <div class="mb-3">
-                    <label class="form-label">Plan</label>
-                    <select name="plan" class="form-select">
-                      <% ['starter','business','enterprise'].forEach(function(p){ %>
-                        <option value="<%= p %>" <%= w.plan === p ? 'selected' : '' %>><%= p.charAt(0).toUpperCase()+p.slice(1) %></option>
-                      <% }); %>
-                    </select>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Subscription Status</label>
-                    <select name="subscriptionStatus" class="form-select">
-                      <% ['trialing','active','expired','cancelled'].forEach(function(s){ %>
-                        <option value="<%= s %>" <%= w.subscriptionStatus === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase()+s.slice(1) %></option>
-                      <% }); %>
-                    </select>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Extend trial by (days)</label>
-                    <input type="number" name="extendTrialDays" class="form-control" min="0" max="365" placeholder="e.g. 14">
-                    <small class="text-muted">Leaves trial unchanged if blank.</small>
-                  </div>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                  <button type="submit" class="btn btn-primary">Save</button>
-                </div>
-              </form>
-            </div>
-          </div>
         <% }); %>
       </tbody>
     </table>
   </div>
 </div>
+
+<!-- Edit modals (rendered OUTSIDE the table — putting <div> inside <tbody>
+     is invalid HTML and the browser reparents it, breaking form submission). -->
+<% workspaces.forEach(function(w){ %>
+  <div class="modal fade" id="wsEdit<%= w.id %>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" action="/admin/workspaces/<%= w.id %>/update" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit <%= w.name %></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Plan</label>
+            <select name="plan" class="form-select">
+              <% ['starter','business','enterprise'].forEach(function(p){ %>
+                <option value="<%= p %>" <%= w.plan === p ? 'selected' : '' %>><%= p.charAt(0).toUpperCase()+p.slice(1) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Subscription Status</label>
+            <select name="subscriptionStatus" class="form-select">
+              <% ['trialing','active','expired','cancelled'].forEach(function(s){ %>
+                <option value="<%= s %>" <%= w.subscriptionStatus === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase()+s.slice(1) %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Extend trial by (days)</label>
+            <input type="number" name="extendTrialDays" class="form-control" min="0" max="365" placeholder="e.g. 14">
+            <small class="text-muted">Leaves trial unchanged if blank.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<% }); %>
