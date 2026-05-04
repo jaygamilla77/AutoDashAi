@@ -197,10 +197,21 @@ const PORT = appConfig.port;
 async function start() {
   try {
     // Sync database (create tables if needed)
-    // alter:true keeps schema in sync with model changes during development.
-    const syncOpts = process.env.DB_SYNC_ALTER === '0' ? {} : { alter: true };
-    await db.sequelize.sync(syncOpts);
-    console.log('Database synchronized.');
+    // In production, disable alter:true to prevent schema conflicts
+    // In dev, use alter:true to keep schema in sync with model changes
+    const syncOpts = process.env.NODE_ENV === 'production' 
+      ? {} 
+      : (process.env.DB_SYNC_ALTER === '0' ? {} : { alter: true });
+    
+    try {
+      await db.sequelize.sync(syncOpts);
+      console.log('Database synchronized.');
+    } catch (syncErr) {
+      console.error('[Database Sync Error]', syncErr.message);
+      // Log but continue — allow server to start even if schema is out of sync
+      // This prevents cascading restarts when a schema migration fails
+      console.warn('[Database] Continuing startup despite sync error — schema may be stale');
+    }
 
     const server = app.listen(PORT, () => {
       console.log(`AI Auto-Dashboard Builder running at http://localhost:${PORT}`);
