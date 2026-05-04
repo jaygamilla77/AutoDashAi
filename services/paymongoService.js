@@ -32,16 +32,16 @@ async function createCheckout(opts = {}) {
       throw new Error('Missing required fields: workspaceId, planId, amount');
     }
 
-    // Convert USD to target currency
-    const amountInCurrency = currencyService.convertUSDTo(amount, currency);
-    const amountInCents = currencyService.getPaymongoAmount(amount, currency);
+    // PayMongo only supports PHP — always charge in PHP regardless of display currency
+    const amountInPHP = currencyService.convertUSDTo(amount, 'PHP');
+    const amountInCents = currencyService.getPaymongoAmount(amount, 'PHP');
 
     console.log('[PayMongo] Creating checkout:', { 
       workspaceId, 
       planId, 
       amountUSD: amount,
-      amountInCurrency,
-      currency,
+      amountInPHP,
+      displayCurrency: currency,
       amountInCents
     });
 
@@ -50,15 +50,15 @@ async function createCheckout(opts = {}) {
         attributes: {
           billing: {
             address: {
-              country: 'PH', // Philippines (default for Liknaya)
+              country: 'PH',
             },
             email: opts.email || 'workspace@example.com',
             name: opts.workspaceName || `Workspace ${workspaceId}`,
           },
           line_items: [
             {
-              amount: amountInCents, // Convert to cents for PayMongo
-              currency: currency,
+              amount: amountInCents, // in PHP centavos
+              currency: 'PHP',
               description: description || `Upgrade to ${planId} plan`,
               name: `${planId.toUpperCase()} Plan (${currencyService.formatPrice(amount, currency)})`,
               quantity: 1,
@@ -68,7 +68,7 @@ async function createCheckout(opts = {}) {
           success_url: successUrl || `${process.env.SITE_URL}/billing?upgraded=true&plan=${planId}`,
           cancel_url: cancelUrl || `${process.env.SITE_URL}/billing?cancelled=true`,
           reference_number: `${workspaceId}-${planId}-${Date.now()}`,
-          description: `Subscription upgrade: ${planId} (${amountInCurrency.toFixed(2)} ${currency})`,
+          description: `Subscription upgrade: ${planId} (${amountInPHP.toFixed(2)} PHP)`,
         },
       },
     };
