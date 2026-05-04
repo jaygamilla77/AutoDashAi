@@ -267,6 +267,19 @@ async function generateIntelligentDashboardFromDatasource(opts = {}) {
   const finalTitle = overrideTitle || base.title;
   const charts     = panels.filter(p => p.type !== 'kpi');
 
+  // LOG: Final dashboard structure before return
+  console.log('[IntelligentDashboard] ─── Final Dashboard Output ───');
+  console.log('  Title:        ', finalTitle);
+  console.log('  Dashboard Type: ', 'executive');
+  console.log('  Total panels: ', panels.length);
+  console.log('  Charts:       ', charts.length);
+  console.log('  KPIs:         ', kpiData.length);
+  console.log('  Sections:     ', base.sections ? base.sections.length : 0);
+  if (panels.length === 0) {
+    console.warn('[IntelligentDashboard] ⚠️  WARNING: Dashboard has ZERO panels!');
+    console.warn('[IntelligentDashboard]   Base skipped panels: ', (base.skippedPanels || []).map(s => s.title));
+  }
+
   return {
     // ── Canonical schema (preferred for new code) ──
     dashboardTitle:   finalTitle,

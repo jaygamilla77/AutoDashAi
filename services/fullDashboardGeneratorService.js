@@ -747,6 +747,25 @@ async function generateFullDashboardFromDatasource(config) {
     console.log('  Generated panels:  ', hydratedPanels.map(p => p.title));
     console.log('  Skipped panels:    ', skippedPanels.map(s => `${s.title} — ${s.reason}`));
     console.log('  Final sections:    ', finalSections.map(s => `${s.name} (${s.panels.length})`));
+    
+    // CRITICAL: Log if NO panels were generated (indicates empty dashboard)
+    if (hydratedPanels.length === 0) {
+      console.error('[FullDashboardGenerator] ⚠️  WARNING: NO PANELS GENERATED! Dashboard will be empty.');
+      console.error('[FullDashboardGenerator]   - Total candidates created: ', dedupedPanels.length);
+      console.error('[FullDashboardGenerator]   - Panels after dedup:       ', validatedPanels.length);
+      console.error('[FullDashboardGenerator]   - Panels after validation:  ', validatedPanels.length);
+      console.error('[FullDashboardGenerator]   - Panels after hydration:   ', hydratedPanels.length);
+      if (skippedPanels.length > 0) {
+        console.error('[FullDashboardGenerator]   Reasons for skipping:');
+        skippedPanels.forEach(s => console.error(`     • ${s.title}: ${s.reason}`));
+      }
+      console.error('[FullDashboardGenerator]   Available analysis data: ', {
+        tables: analysis.tables,
+        measures: analysis.measures.length,
+        dimensions: analysis.dimensions.length,
+        dateFields: analysis.dateFields.length,
+      });
+    }
 
     return {
       success: true,

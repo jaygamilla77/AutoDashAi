@@ -398,11 +398,34 @@ exports.saveDashboard = async (req, res) => {
       throw new Error('Title and dashboard config required');
     }
 
+    console.log('[Wizard] Saving dashboard:', {
+      title,
+      hasConfig: !!dashboardConfig,
+      panelCount: dashboardConfig.panels ? dashboardConfig.panels.length : 0,
+      dashboardType: dashboardConfig.dashboardType,
+      kpiCount: dashboardConfig.kpiData ? dashboardConfig.kpiData.length : 0,
+      dataSourceId,
+    });
+
+    // Log if the config has no panels (would result in empty dashboard)
+    if (!dashboardConfig.panels || dashboardConfig.panels.length === 0) {
+      console.error('[Wizard] ⚠️  WARNING: Dashboard config has ZERO panels! Will appear empty.');
+      console.error('[Wizard]   Config keys:', Object.keys(dashboardConfig));
+      console.error('[Wizard]   Skipped panels:', dashboardConfig.skippedPanels?.map(s => s.title));
+    }
+
     // Save as new dashboard
     const dashboard = await db.SavedDashboard.create({
       title: title.trim(),
       dashboardConfigJson: JSON.stringify(dashboardConfig),
       dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
+    });
+
+    console.log('[Wizard] Dashboard saved:', {
+      id: dashboard.id,
+      title: dashboard.title,
+      workspaceId: dashboard.workspaceId,
+      ownerUserId: dashboard.ownerUserId,
     });
 
     return res.json({
