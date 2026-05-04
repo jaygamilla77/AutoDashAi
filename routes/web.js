@@ -512,6 +512,16 @@ router.get('/billing', requireAuth, function (req, res) {
   });
 });
 
+// ─── Payment & Subscription (PayMongo Integration) ─────────────────────
+const paymentController = require('../controllers/paymentController');
+
+router.get('/api/payment/plans',                                  paymentController.getPlans);
+router.get('/api/payment/limits',                 requireAuth,    paymentController.getLimits);
+router.post('/api/payment/checkout',              requireAuth,    paymentController.createCheckout);
+router.get('/api/payment/checkout/:checkoutId',   requireAuth,    paymentController.getCheckoutStatus);
+router.post('/api/payment/upgrade',               requireAuth,    paymentController.upgradePlan);
+router.post('/api/payment/webhook',                               paymentController.handleWebhook);
+
 // ─── Team / workspace members ────────────────────────────────────────
 // Lists users in the current workspace and lets the owner change roles
 // or remove members. Visible to admin / super_admin only.
