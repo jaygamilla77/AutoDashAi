@@ -19,11 +19,11 @@ module.exports = (sequelize, DataTypes) => {
         unique: true, // One config per plan
         comment: 'Plan ID: starter, professional, enterprise',
       },
-      basePricePHP: {
+      basePriceUSD: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
-        comment: 'Base price in PHP (0 for free)',
+        comment: 'Base price in USD (0 for free) - converted to user currency during checkout',
       },
       discountType: {
         type: DataTypes.ENUM('none', 'percentage', 'fixed'),
@@ -35,13 +35,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
-        comment: 'Discount value (% or PHP amount depending on discountType)',
+        comment: 'Discount value (% or USD amount depending on discountType)',
       },
-      finalPricePHP: {
+      finalPriceUSD: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
-        comment: 'Calculated final price after discount',
+        comment: 'Calculated final price after discount (in USD)',
       },
       isActive: {
         type: DataTypes.BOOLEAN,
@@ -80,12 +80,12 @@ module.exports = (sequelize, DataTypes) => {
 
   PricingConfig.prototype.calculateFinalPrice = function() {
     if (this.discountType === 'none') {
-      this.finalPricePHP = this.basePricePHP;
+      this.finalPriceUSD = this.basePriceUSD;
     } else if (this.discountType === 'percentage') {
-      const discount = (this.basePricePHP * this.discountValue) / 100;
-      this.finalPricePHP = Math.max(0, this.basePricePHP - discount);
+      const discount = (this.basePriceUSD * this.discountValue) / 100;
+      this.finalPriceUSD = Math.max(0, this.basePriceUSD - discount);
     } else if (this.discountType === 'fixed') {
-      this.finalPricePHP = Math.max(0, this.basePricePHP - this.discountValue);
+      this.finalPriceUSD = Math.max(0, this.basePriceUSD - this.discountValue);
     }
   };
 

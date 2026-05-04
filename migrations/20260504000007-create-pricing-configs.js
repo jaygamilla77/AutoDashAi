@@ -24,7 +24,7 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
-      basePricePHP: {
+      basePriceUSD: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
@@ -39,7 +39,7 @@ module.exports = {
         allowNull: false,
         defaultValue: 0,
       },
-      finalPricePHP: {
+      finalPriceUSD: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
         defaultValue: 0,
@@ -83,10 +83,10 @@ module.exports = {
     await queryInterface.bulkInsert('pricing_configs', [
       {
         planId: 'starter',
-        basePricePHP: 0,
+        basePriceUSD: 0,
         discountType: 'none',
         discountValue: 0,
-        finalPricePHP: 0,
+        finalPriceUSD: 0,
         isActive: true,
         description: 'Free starter plan',
         createdAt: new Date(),
@@ -94,23 +94,23 @@ module.exports = {
       },
       {
         planId: 'professional',
-        basePricePHP: 3990,
+        basePriceUSD: 99,
         discountType: 'none',
         discountValue: 0,
-        finalPricePHP: 3990,
+        finalPriceUSD: 99,
         isActive: true,
-        description: 'Professional plan - ₱3,990/month',
+        description: 'Professional plan - $99/month USD',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         planId: 'enterprise',
-        basePricePHP: 9990,
+        basePriceUSD: 199,
         discountType: 'none',
         discountValue: 0,
-        finalPricePHP: 9990,
+        finalPriceUSD: 199,
         isActive: true,
-        description: 'Enterprise plan - ₱9,990/month',
+        description: 'Enterprise plan - $199/month USD',
         createdAt: new Date(),
         updatedAt: new Date(),
       },

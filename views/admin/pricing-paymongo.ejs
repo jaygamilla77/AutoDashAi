@@ -13,7 +13,7 @@
       <strong>Active Discounts:</strong>
       <ul class="mb-0 mt-2">
         <% discounts.forEach(d => { %>
-          <li><%= d.planId.toUpperCase() %>: <%= d.discount %> OFF (Save ₱<%= d.savings.toFixed(2) %>)</li>
+          <li><%= d.planId.toUpperCase() %>: <%= d.discount %> OFF (Save $<%= d.savings.toFixed(2) %>)</li>
         <% }); %>
       </ul>
     </div>
@@ -40,12 +40,12 @@
           <% configs.forEach(config => { %>
             <tr data-plan-id="<%= config.planId %>">
               <td class="fw-bold"><%= config.planId.toUpperCase() %></td>
-              <td>₱<span class="basePrice"><%= config.basePricePHP.toFixed(2) %></span></td>
+              <td>$<span class="basePrice"><%= config.basePriceUSD.toFixed(2) %></span></td>
               <td>
                 <select class="form-select form-select-sm discountType" style="width: 120px;">
                   <option value="none" <%= config.discountType === 'none' ? 'selected' : '' %>>None</option>
                   <option value="percentage" <%= config.discountType === 'percentage' ? 'selected' : '' %>>Percentage (%)</option>
-                  <option value="fixed" <%= config.discountType === 'fixed' ? 'selected' : '' %>>Fixed (₱)</option>
+                  <option value="fixed" <%= config.discountType === 'fixed' ? 'selected' : '' %>>Fixed ($)</option>
                 </select>
               </td>
               <td>
@@ -55,7 +55,7 @@
                        step="0.01" 
                        min="0">
               </td>
-              <td class="fw-bold text-primary">₱<span class="finalPrice"><%= config.finalPricePHP.toFixed(2) %></span></td>
+              <td class="fw-bold text-primary">$<span class="finalPrice"><%= config.finalPriceUSD.toFixed(2) %></span></td>
               <td>
                 <button class="btn btn-sm btn-primary updateBtn">Update</button>
               </td>
@@ -83,9 +83,9 @@
           </select>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Base Price (PHP)</label>
+          <label class="form-label">Base Price (USD)</label>
           <div class="input-group">
-            <span class="input-group-text">₱</span>
+            <span class="input-group-text">$</span>
             <input type="number" id="basePriceInput" class="form-control" step="0.01" min="0">
           </div>
         </div>
@@ -149,7 +149,7 @@
     btn.addEventListener('click', async function() {
       const row = this.closest('tr');
       const planId = row.dataset.planId;
-      const basePricePHP = parseFloat(row.querySelector('.basePrice').textContent);
+      const basePriceUSD = parseFloat(row.querySelector('.basePrice').textContent);
       const discountType = row.querySelector('.discountType').value;
       const discountValue = parseFloat(row.querySelector('.discountValue').value) || 0;
 
@@ -162,7 +162,7 @@
           },
           body: JSON.stringify({
             planId,
-            basePricePHP,
+            basePriceUSD,
             discountType,
             discountValue,
           }),
@@ -184,7 +184,7 @@
   // Handle Save Pricing button
   document.getElementById('savePricingBtn')?.addEventListener('click', async function() {
     const planId = document.getElementById('planSelect').value;
-    const basePricePHP = parseFloat(document.getElementById('basePriceInput').value) || 0;
+    const basePriceUSD = parseFloat(document.getElementById('basePriceInput').value) || 0;
     const discountType = document.getElementById('discountTypeSelect').value;
     const discountValue = parseFloat(document.getElementById('discountValueInput').value) || 0;
     const description = document.getElementById('descriptionInput').value;
@@ -203,7 +203,7 @@
         },
         body: JSON.stringify({
           planId,
-          basePricePHP,
+          basePriceUSD,
           discountType,
           discountValue,
           description,

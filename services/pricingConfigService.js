@@ -19,17 +19,17 @@ async function getPricing(planId) {
     if (!config) {
       // Fallback defaults
       const defaults = {
-        starter: { basePricePHP: 0, finalPricePHP: 0, discountType: 'none' },
-        professional: { basePricePHP: 3990, finalPricePHP: 3990, discountType: 'none' },
-        enterprise: { basePricePHP: 9990, finalPricePHP: 9990, discountType: 'none' },
+        starter: { basePriceUSD: 0, finalPriceUSD: 0, discountType: 'none' },
+        professional: { basePriceUSD: 99, finalPriceUSD: 99, discountType: 'none' },
+        enterprise: { basePriceUSD: 199, finalPriceUSD: 199, discountType: 'none' },
       };
       return defaults[planId] || defaults.starter;
     }
 
     return {
       planId: config.planId,
-      basePricePHP: parseFloat(config.basePricePHP),
-      finalPricePHP: parseFloat(config.finalPricePHP),
+      basePriceUSD: parseFloat(config.basePriceUSD),
+      finalPriceUSD: parseFloat(config.finalPriceUSD),
       discountType: config.discountType,
       discountValue: parseFloat(config.discountValue),
       discountApplied: config.discountType !== 'none',
@@ -52,8 +52,8 @@ async function getAllPricing() {
 
     return configs.map((c) => ({
       planId: c.planId,
-      basePricePHP: parseFloat(c.basePricePHP),
-      finalPricePHP: parseFloat(c.finalPricePHP),
+      basePriceUSD: parseFloat(c.basePriceUSD),
+      finalPriceUSD: parseFloat(c.finalPriceUSD),
       discountType: c.discountType,
       discountValue: parseFloat(c.discountValue),
       description: c.description,
@@ -72,7 +72,7 @@ async function getAllPricing() {
  */
 async function updatePricing(planId, opts = {}) {
   try {
-    const { basePricePHP, discountType, discountValue, description, validFrom, validUntil, updatedBy } = opts;
+    const { basePriceUSD, discountType, discountValue, description, validFrom, validUntil, updatedBy } = opts;
 
     let config = await db.PricingConfig.findOne({
       where: { planId },
@@ -81,7 +81,7 @@ async function updatePricing(planId, opts = {}) {
     if (!config) {
       config = await db.PricingConfig.create({
         planId,
-        basePricePHP: basePricePHP || 0,
+        basePriceUSD: basePriceUSD || 0,
         discountType: discountType || 'none',
         discountValue: discountValue || 0,
         isActive: true,
@@ -92,7 +92,7 @@ async function updatePricing(planId, opts = {}) {
         updatedBy,
       });
     } else {
-      config.basePricePHP = basePricePHP !== undefined ? basePricePHP : config.basePricePHP;
+      config.basePriceUSD = basePriceUSD !== undefined ? basePriceUSD : config.basePriceUSD;
       config.discountType = discountType || config.discountType;
       config.discountValue = discountValue !== undefined ? discountValue : config.discountValue;
       config.description = description !== undefined ? description : config.description;
@@ -104,15 +104,15 @@ async function updatePricing(planId, opts = {}) {
     }
 
     console.log('[PricingService] Updated pricing for plan:', planId, {
-      base: config.basePricePHP,
-      final: config.finalPricePHP,
+      base: config.basePriceUSD,
+      final: config.finalPriceUSD,
       discount: config.discountType,
     });
 
     return {
       planId: config.planId,
-      basePricePHP: parseFloat(config.basePricePHP),
-      finalPricePHP: parseFloat(config.finalPricePHP),
+      basePriceUSD: parseFloat(config.basePriceUSD),
+      finalPriceUSD: parseFloat(config.finalPriceUSD),
       discountType: config.discountType,
       discountValue: parseFloat(config.discountValue),
     };
@@ -151,8 +151,8 @@ async function getDiscountSummary() {
 
     return configs.map((c) => ({
       planId: c.planId,
-      discount: `${c.discountType === 'percentage' ? c.discountValue + '%' : '₱' + c.discountValue}`,
-      savings: parseFloat(c.basePricePHP) - parseFloat(c.finalPricePHP),
+      discount: `${c.discountType === 'percentage' ? c.discountValue + '%' : '$' + c.discountValue}`,
+      savings: parseFloat(c.basePriceUSD) - parseFloat(c.finalPriceUSD),
     }));
   } catch (err) {
     console.error('[PricingService] Get discount summary error:', err.message);

@@ -3,9 +3,12 @@
 /**
  * PayMongo Payment Service
  * Handles all payment operations: creating checkouts, webhooks, invoices
+ * Supports USD base pricing with multi-currency conversion
  */
 
 const axios = require('axios');
+const currencyService = require('./currencyService');
+const pricingConfigService = require('./pricingConfigService');
 
 const PAYMONGO_SECRET_KEY = process.env.PAYMONGO_SECRET_KEY;
 const PAYMONGO_PUBLIC_KEY = process.env.PAYMONGO_PUBLIC_KEY;
@@ -18,17 +21,29 @@ const authHeader = {
 
 /**
  * Create a checkout session for plan upgrade
+ * Converts USD pricing to target currency
  * Returns payment link that user can visit
  */
 async function createCheckout(opts = {}) {
   try {
-    const { workspaceId, planId, amount, currency = 'PHP', description, successUrl, cancelUrl } = opts;
+    const { workspaceId, planId, amount, currency = 'USD', description, successUrl, cancelUrl } = opts;
 
     if (!workspaceId || !planId || !amount) {
       throw new Error('Missing required fields: workspaceId, planId, amount');
     }
 
-    console.log('[PayMongo] Creating checkout:', { workspaceId, planId, amount, currency });
+    // Convert USD to target currency
+    const amountInCurrency = currencyService.convertUSDTo(amount, currency);
+    const amountInCents = currencyService.getPaymongoAmount(amount, currency);
+
+    console.log('[PayMongo] Creating checkout:', { 
+      workspaceId, 
+      planId, 
+      amountUSD: amount,
+      amountInCurrency,
+      currency,
+      amountInCents
+    });
 
     const payload = {
       data: {
@@ -42,10 +57,10 @@ async function createCheckout(opts = {}) {
           },
           line_items: [
             {
-              amount: Math.round(amount * 100), // Convert to cents
+              amount: amountInCents, // Convert to cents for PayMongo
               currency: currency,
               description: description || `Upgrade to ${planId} plan`,
-              name: `${planId.toUpperCase()} Plan`,
+              name: `${planId.toUpperCase()} Plan (${currencyService.formatPrice(amount, currency)})`,
               quantity: 1,
             },
           ],
@@ -53,7 +68,7 @@ async function createCheckout(opts = {}) {
           success_url: successUrl || `${process.env.SITE_URL}/billing?upgraded=true&plan=${planId}`,
           cancel_url: cancelUrl || `${process.env.SITE_URL}/billing?cancelled=true`,
           reference_number: `${workspaceId}-${planId}-${Date.now()}`,
-          description: `Subscription upgrade: ${planId}`,
+          description: `Subscription upgrade: ${planId} (${amountInCurrency.toFixed(2)} ${currency})`,
         },
       },
     };
@@ -283,21 +298,25 @@ async function handleChargePaid(eventData) {
 /**
  * Get pricing plans for billing page (with admin-configured prices)
  */
-async function getPricingPlans() {
+async function getPricingPlans(userCurrency = 'USD') {
   try {
-    const pricingConfigService = require('./pricingConfigService');
-    
-    // Fetch prices from database
+    // Fetch USD prices from database
     const starterPrice = await pricingConfigService.getPricing('starter');
     const professionalPrice = await pricingConfigService.getPricing('professional');
     const enterprisePrice = await pricingConfigService.getPricing('enterprise');
+
+    // Format prices in user's currency
+    const starterFinalUSD = starterPrice?.finalPriceUSD || 0;
+    const professionalFinalUSD = professionalPrice?.finalPriceUSD || 99;
+    const enterpriseFinalUSD = enterprisePrice?.finalPriceUSD || 199;
 
     return [
       {
         id: 'starter',
         name: 'Starter',
-        price: starterPrice?.finalPricePHP || 0,
-        currency: 'PHP',
+        price: currencyService.convertUSDTo(starterFinalUSD, userCurrency),
+        priceUSD: starterFinalUSD,
+        currency: userCurrency,
         billing_cycle: 'monthly',
         description: 'Perfect to get started',
         features: [
@@ -312,14 +331,16 @@ async function getPricingPlans() {
           aiGenerations: 50,
         },
         badge: 'Free',
-        discount: starterPrice?.discountApplied ? `${starterPrice.discountType === 'percentage' ? starterPrice.discountValue + '%' : '₱' + starterPrice.discountValue.toFixed(2)}` : null,
+        discount: starterPrice?.discountApplied ? `${starterPrice.discountType === 'percentage' ? starterPrice.discountValue + '%' : '$' + starterPrice.discountValue.toFixed(2)}` : null,
       },
       {
         id: 'professional',
         name: 'Professional',
-        price: professionalPrice?.finalPricePHP || 3990,
-        basePrice: professionalPrice?.basePricePHP || 3990,
-        currency: 'PHP',
+        price: currencyService.convertUSDTo(professionalFinalUSD, userCurrency),
+        priceUSD: professionalFinalUSD,
+        basePrice: currencyService.convertUSDTo(professionalPrice?.basePriceUSD || 99, userCurrency),
+        basePriceUSD: professionalPrice?.basePriceUSD || 99,
+        currency: userCurrency,
         billing_cycle: 'monthly',
         description: 'For growing teams',
         features: [
@@ -337,14 +358,16 @@ async function getPricingPlans() {
         },
         badge: 'Popular',
         recommended: true,
-        discount: professionalPrice?.discountApplied ? `${professionalPrice.discountType === 'percentage' ? professionalPrice.discountValue + '%' : '₱' + professionalPrice.discountValue.toFixed(2)}` : null,
+        discount: professionalPrice?.discountApplied ? `${professionalPrice.discountType === 'percentage' ? professionalPrice.discountValue + '%' : '$' + professionalPrice.discountValue.toFixed(2)}` : null,
       },
       {
         id: 'enterprise',
         name: 'Enterprise',
-        price: enterprisePrice?.finalPricePHP || 9990,
-        basePrice: enterprisePrice?.basePricePHP || 9990,
-        currency: 'PHP',
+        price: currencyService.convertUSDTo(enterpriseFinalUSD, userCurrency),
+        priceUSD: enterpriseFinalUSD,
+        basePrice: currencyService.convertUSDTo(enterprisePrice?.basePriceUSD || 199, userCurrency),
+        basePriceUSD: enterprisePrice?.basePriceUSD || 199,
+        currency: userCurrency,
         billing_cycle: 'monthly',
         description: 'For large organizations',
         features: [
