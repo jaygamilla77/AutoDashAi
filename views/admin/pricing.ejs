@@ -1,33 +1,235 @@
-<h1>Pricing Plans</h1>
+<div class="container py-4">
+  <header class="mb-4">
+    <h1 class="h3 mb-2">Pricing Configuration</h1>
+    <p class="text-muted mb-0">Manage plan prices and discounts</p>
+  </header>
 
-<div class="admin-card">
-  <h2 id="formTitle">Add Pricing Plan</h2>
-  <form method="POST" action="/admin/pricing" id="pForm">
-    <input type="hidden" name="index" id="p-index" value="">
-    <div class="row g-3">
-      <div class="col-md-4"><label class="form-label">Plan Name</label><input class="form-control" name="name" id="p-name" required></div>
-      <div class="col-md-3"><label class="form-label">Price</label><input class="form-control" name="price" id="p-price" placeholder="$29 or Custom"></div>
-      <div class="col-md-3"><label class="form-label">Period</label><input class="form-control" name="period" id="p-period" placeholder="/month"></div>
-      <div class="col-md-2 d-flex align-items-end">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" name="recommended" id="p-recommended">
-          <label class="form-check-label" for="p-recommended">Recommended</label>
+  <!-- Alert Box -->
+  <div id="alertBox" class="alert alert-info d-none" role="alert"></div>
+
+  <!-- Current Discounts Summary -->
+  <% if (discounts && discounts.length > 0) { %>
+    <div class="alert alert-warning mb-4">
+      <strong>Active Discounts:</strong>
+      <ul class="mb-0 mt-2">
+        <% discounts.forEach(d => { %>
+          <li><%= d.planId.toUpperCase() %>: <%= d.discount %> OFF (Save ₱<%= d.savings.toFixed(2) %>)</li>
+        <% }); %>
+      </ul>
+    </div>
+  <% } %>
+
+  <!-- Pricing Table -->
+  <div class="card">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Plan Pricing</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Plan</th>
+            <th>Base Price</th>
+            <th>Discount Type</th>
+            <th>Discount Value</th>
+            <th>Final Price</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% configs.forEach(config => { %>
+            <tr data-plan-id="<%= config.planId %>">
+              <td class="fw-bold"><%= config.planId.toUpperCase() %></td>
+              <td>₱<span class="basePrice"><%= config.basePricePHP.toFixed(2) %></span></td>
+              <td>
+                <select class="form-select form-select-sm discountType" style="width: 120px;">
+                  <option value="none" <%= config.discountType === 'none' ? 'selected' : '' %>>None</option>
+                  <option value="percentage" <%= config.discountType === 'percentage' ? 'selected' : '' %>>Percentage (%)</option>
+                  <option value="fixed" <%= config.discountType === 'fixed' ? 'selected' : '' %>>Fixed (₱)</option>
+                </select>
+              </td>
+              <td>
+                <input type="number" class="form-control form-control-sm discountValue" 
+                       value="<%= config.discountValue %>" 
+                       style="width: 100px;" 
+                       step="0.01" 
+                       min="0">
+              </td>
+              <td class="fw-bold text-primary">₱<span class="finalPrice"><%= config.finalPricePHP.toFixed(2) %></span></td>
+              <td>
+                <button class="btn btn-sm btn-primary updateBtn">Update</button>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Base Price Editor (Advanced) -->
+  <div class="card mt-4">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">Edit Plan Pricing</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <label class="form-label">Plan</label>
+          <select id="planSelect" class="form-select">
+            <option value="">Select a plan...</option>
+            <% configs.forEach(config => { %>
+              <option value="<%= config.planId %>"><%= config.planId.toUpperCase() %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Base Price (PHP)</label>
+          <div class="input-group">
+            <span class="input-group-text">₱</span>
+            <input type="number" id="basePriceInput" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Description</label>
+          <input type="text" id="descriptionInput" class="form-control" placeholder="e.g., Q2 Promo">
         </div>
       </div>
-      <div class="col-md-12"><label class="form-label">Description</label><textarea class="form-control" name="description" id="p-description" rows="2"></textarea></div>
-      <div class="col-md-12">
-        <label class="form-label">Features (one per line)</label>
-        <textarea class="form-control" name="features" id="p-features" rows="5" placeholder="Unlimited dashboards&#10;All data sources&#10;Priority support"></textarea>
+      <div class="row mt-3">
+        <div class="col-md-4">
+          <label class="form-label">Discount Type</label>
+          <select id="discountTypeSelect" class="form-select">
+            <option value="none">None</option>
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed Amount (₱)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Discount Value</label>
+          <input type="number" id="discountValueInput" class="form-control" step="0.01" min="0" placeholder="0">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button id="savePricingBtn" class="btn btn-success w-100">Save Pricing</button>
+        </div>
       </div>
-      <div class="col-md-6"><label class="form-label">CTA Label</label><input class="form-control" name="ctaLabel" id="p-ctaLabel" value="Get Started"></div>
-      <div class="col-md-6"><label class="form-label">CTA Link</label><input class="form-control" name="ctaHref" id="p-ctaHref" value="#"></div>
     </div>
-    <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn-primary-pill" id="p-submit"><i class="bi bi-plus-lg"></i> Add Plan</button>
-      <button type="button" class="btn btn-outline-secondary" id="p-cancel" style="border-radius:999px;padding:10px 20px;display:none;">Cancel</button>
-    </div>
-  </form>
+  </div>
+
 </div>
+
+<script>
+  // Calculate final price when discount changes
+  function calculateFinalPrice(basePrice, discountType, discountValue) {
+    if (discountType === 'none') return basePrice;
+    if (discountType === 'percentage') {
+      return Math.max(0, basePrice - (basePrice * discountValue / 100));
+    }
+    if (discountType === 'fixed') {
+      return Math.max(0, basePrice - discountValue);
+    }
+    return basePrice;
+  }
+
+  // Update row's final price display
+  function updateRowDisplay(row) {
+    const basePrice = parseFloat(row.querySelector('.basePrice').textContent);
+    const discountType = row.querySelector('.discountType').value;
+    const discountValue = parseFloat(row.querySelector('.discountValue').value) || 0;
+    const finalPrice = calculateFinalPrice(basePrice, discountType, discountValue);
+    row.querySelector('.finalPrice').textContent = finalPrice.toFixed(2);
+  }
+
+  // Handle discount type/value changes
+  document.querySelectorAll('table tbody tr').forEach(row => {
+    row.querySelector('.discountType').addEventListener('change', () => updateRowDisplay(row));
+    row.querySelector('.discountValue').addEventListener('input', () => updateRowDisplay(row));
+  });
+
+  // Handle Update buttons
+  document.querySelectorAll('.updateBtn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const row = this.closest('tr');
+      const planId = row.dataset.planId;
+      const basePricePHP = parseFloat(row.querySelector('.basePrice').textContent);
+      const discountType = row.querySelector('.discountType').value;
+      const discountValue = parseFloat(row.querySelector('.discountValue').value) || 0;
+
+      try {
+        const response = await fetch('/api/admin/pricing/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            planId,
+            basePricePHP,
+            discountType,
+            discountValue,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          showAlert('✓ Pricing updated!', 'success');
+          console.log('[Pricing] Updated:', data.pricing);
+        } else {
+          showAlert('✗ Error: ' + data.error, 'danger');
+        }
+      } catch (err) {
+        showAlert('✗ Error: ' + err.message, 'danger');
+      }
+    });
+  });
+
+  // Handle Save Pricing button
+  document.getElementById('savePricingBtn')?.addEventListener('click', async function() {
+    const planId = document.getElementById('planSelect').value;
+    const basePricePHP = parseFloat(document.getElementById('basePriceInput').value) || 0;
+    const discountType = document.getElementById('discountTypeSelect').value;
+    const discountValue = parseFloat(document.getElementById('discountValueInput').value) || 0;
+    const description = document.getElementById('descriptionInput').value;
+
+    if (!planId) {
+      showAlert('✗ Please select a plan', 'warning');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/pricing/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          planId,
+          basePricePHP,
+          discountType,
+          discountValue,
+          description,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        showAlert('✓ Pricing saved! Reload to see updates.', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showAlert('✗ Error: ' + data.error, 'danger');
+      }
+    } catch (err) {
+      showAlert('✗ Error: ' + err.message, 'danger');
+    }
+  });
+
+  function showAlert(message, type) {
+    const box = document.getElementById('alertBox');
+    box.className = `alert alert-${type}`;
+    box.textContent = message;
+    box.classList.remove('d-none');
+    setTimeout(() => box.classList.add('d-none'), 5000);
+  }
+</script>
 
 <div class="admin-card" style="padding:0;">
   <% if (!plans.length) { %>

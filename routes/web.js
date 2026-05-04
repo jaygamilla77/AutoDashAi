@@ -525,6 +525,7 @@ router.get('/billing', requireAuth, function (req, res) {
 
 // ─── Payment & Subscription (PayMongo Integration) ─────────────────────
 const paymentController = require('../controllers/paymentController');
+const adminPricingController = require('../controllers/adminPricingController');
 
 router.get('/api/payment/plans',                                  paymentController.getPlans);
 router.get('/api/payment/limits',                 requireAuth,    paymentController.getLimits);
@@ -532,6 +533,13 @@ router.post('/api/payment/checkout',              requireAuth,    paymentControl
 router.get('/api/payment/checkout/:checkoutId',   requireAuth,    paymentController.getCheckoutStatus);
 router.post('/api/payment/upgrade',               requireAuth,    paymentController.upgradePlan);
 router.post('/api/payment/webhook',                               paymentController.handleWebhook);
+
+// Admin Pricing Configuration (API endpoints)
+router.get('/admin/pricing-settings',             adminController.requireAdmin, adminPricingController.getPricingPage);
+router.get('/api/admin/pricing',                  adminController.requireAdmin, adminPricingController.getPricingJson);
+router.post('/api/admin/pricing/update',          adminController.requireAdmin, adminPricingController.updatePricing);
+router.post('/api/admin/pricing/bulk-update',     adminController.requireAdmin, adminPricingController.bulkUpdatePricing);
+router.get('/api/admin/pricing/discounts',        adminController.requireAdmin, adminPricingController.getDiscounts);
 
 // ─── Team / workspace members ────────────────────────────────────────
 // Lists users in the current workspace and lets the owner change roles

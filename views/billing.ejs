@@ -1,75 +1,71 @@
-<div class="container py-4" style="max-width: 980px;">
+<div class="container py-3" style="max-width: 1200px;">
 
-    <header style="margin-bottom: 28px;">
-      <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--ink, #1A1F36); margin: 0 0 6px;">Billing & Subscription</h1>
-      <p style="color: var(--muted, #6B7280); margin: 0;">Manage your plan, view usage, and update payment methods.</p>
+    <header style="margin-bottom: 16px;">
+      <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--ink, #1A1F36); margin: 0;">Billing & Subscription</h1>
+      <p style="color: var(--muted, #6B7280); margin: 4px 0 0; font-size: 0.95rem;">Manage your plan and view billing.</p>
     </header>
 
     <!-- Alert Box -->
-    <div id="alertBox" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: 8px; font-size: 0.9rem;" role="alert"></div>
+    <div id="alertBox" style="display: none; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem;" role="alert"></div>
 
-    <!-- Current Plan card -->
-    <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap;">
-        <div>
-          <div style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6B7280; margin-bottom: 8px;">Current Plan</div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0;"><%= plan.name || plan.id %></h2>
+    <!-- Two-Column Layout: Current Plan + Limits (LEFT) | Pricing Plans (RIGHT) -->
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
+      
+      <!-- LEFT: Current Plan & Limits (Compact) -->
+      <div>
+        <!-- Current Plan card -->
+        <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6B7280; margin-bottom: 6px;">Current Plan</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0;"><%= plan.name || plan.id %></h2>
             <% if (workspace && workspace.subscriptionStatus === 'trialing' && trialDaysLeft != null) { %>
-              <span style="background: #FEF3C7; color: #92400E; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;">
-                Trial — <%= trialDaysLeft %> day<%= trialDaysLeft === 1 ? '' : 's' %> left
+              <span style="background: #FEF3C7; color: #92400E; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap;">
+                Trial — <%= trialDaysLeft %>d
               </span>
             <% } else if (workspace && workspace.subscriptionStatus) { %>
-              <span style="background: #DCFCE7; color: #166534; font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px;">
+              <span style="background: #DCFCE7; color: #166534; font-size: 0.7rem; font-weight: 600; padding: 3px 8px; border-radius: 999px;">
                 <%= workspace.subscriptionStatus.charAt(0).toUpperCase() + workspace.subscriptionStatus.slice(1) %>
               </span>
             <% } %>
           </div>
           <% if (workspace) { %>
-            <div style="color: #6B7280; font-size: 0.9rem; margin-top: 8px;">Workspace: <strong><%= workspace.name %></strong></div>
+            <div style="color: #6B7280; font-size: 0.85rem; margin-top: 6px;"><%= workspace.name %></div>
           <% } %>
         </div>
+
+        <!-- Plan Limits (Compact) -->
+        <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 10px; padding: 16px;">
+          <h4 style="font-size: 0.9rem; font-weight: 600; margin: 0 0 10px;">Plan Limits</h4>
+          <% var fmt = function(v){ return (v === Infinity || v === null || typeof v === 'undefined') ? '∞' : String(v); }; %>
+          <div style="font-size: 0.85rem; line-height: 1.6;">
+            <div><span style="color: #6B7280;">Dashboards:</span> <strong><%= fmt(limits.dashboards) %></strong></div>
+            <div><span style="color: #6B7280;">Data Sources:</span> <strong><%= fmt(limits.dataSources) %></strong></div>
+            <div><span style="color: #6B7280;">AI Gen/mo:</span> <strong><%= fmt(limits.aiGenerationsPerMonth) %></strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Pricing Plans (Compact Grid) -->
+      <div>
+        <div style="margin-bottom: 8px;">
+          <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Upgrade Your Plan</h3>
+        </div>
+        <div id="pricingPlans" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+          <!-- Plans loaded via JavaScript -->
+          <div style="text-align: center; padding: 20px; color: #6B7280; font-size: 0.9rem;">Loading plans...</div>
+        </div>
       </div>
     </div>
 
-    <!-- Usage card -->
-    <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 12px; padding: 24px; margin-bottom: 20px;">
-      <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 16px;">Plan Limits</h3>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-        <% var fmt = function(v){ return (v === Infinity || v === null || typeof v === 'undefined') ? 'Unlimited' : String(v); }; %>
-        <div>
-          <div style="font-size: 0.78rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em;">Dashboards</div>
-          <div style="font-size: 1.5rem; font-weight: 700; margin-top: 4px;"><%= fmt(limits.dashboards) %></div>
-        </div>
-        <div>
-          <div style="font-size: 0.78rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em;">Data Sources</div>
-          <div style="font-size: 1.5rem; font-weight: 700; margin-top: 4px;"><%= fmt(limits.dataSources) %></div>
-        </div>
-        <div>
-          <div style="font-size: 0.78rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em;">AI Generations / month</div>
-          <div style="font-size: 1.5rem; font-weight: 700; margin-top: 4px;"><%= fmt(limits.aiGenerationsPerMonth) %></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pricing Plans Section -->
-    <div style="margin-bottom: 24px;">
-      <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 16px;">Upgrade Your Plan</h3>
-      <div id="pricingPlans" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
-        <!-- Plans will be loaded here via JavaScript -->
-        <div style="text-align: center; padding: 40px; color: #6B7280;">Loading plans...</div>
-      </div>
-    </div>
-
-    <!-- Payment methods placeholder -->
-    <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 12px; padding: 24px;">
-      <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 8px;">Payment Methods</h3>
-      <p style="color: #6B7280; margin: 0 0 16px; font-size: 0.9rem;">
-        We accept Card, GCash, PayMaya, and Grab Pay via PayMongo.
+    <!-- Payment methods -->
+    <div style="background: #fff; border: 1px solid #E6E8F0; border-radius: 10px; padding: 16px;">
+      <h4 style="font-size: 0.95rem; font-weight: 600; margin: 0 0 8px;">Payment Methods</h4>
+      <p style="color: #6B7280; margin: 0 0 10px; font-size: 0.85rem;">
+        We accept Card, GCash, PayMaya, and Grab Pay.
       </p>
-      <div style="background: #F6F7FB; border: 1px dashed #C4C7D2; border-radius: 8px; padding: 24px; text-align: center; color: #6B7280;">
-        <i class="bi bi-credit-card" style="font-size: 1.5rem;"></i>
-        <div style="margin-top: 8px;">Payment method management coming soon</div>
+      <div style="background: #F6F7FB; border: 1px dashed #C4C7D2; border-radius: 8px; padding: 16px; text-align: center; color: #6B7280; font-size: 0.85rem;">
+        <i class="bi bi-credit-card"></i>
+        <div style="margin-top: 6px;">Payment management coming soon</div>
       </div>
     </div>
 
@@ -78,18 +74,24 @@
 <style>
   .pricing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
   }
 
   .pricing-card {
     background: #fff;
     border: 1px solid #E6E8F0;
-    border-radius: 12px;
-    padding: 24px;
+    border-radius: 10px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+
+  .pricing-card:hover {
+    border-color: #D1D5DB;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   }
 
   .pricing-card.recommended {
@@ -98,42 +100,42 @@
   }
 
   .pricing-header {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     flex: 1;
   }
 
   .pricing-header h3 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    margin: 0 0 6px;
+    margin: 0 0 4px;
     color: var(--ink, #1A1F36);
   }
 
   .pricing-desc {
     color: #6B7280;
-    font-size: 0.88rem;
-    margin: 0 0 12px;
+    font-size: 0.8rem;
+    margin: 0 0 8px;
   }
 
   .badge {
     display: inline-block;
     background: #3366FF;
     color: #fff;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    padding: 4px 8px;
+    padding: 3px 7px;
     border-radius: 4px;
     text-transform: uppercase;
   }
 
   .pricing-body {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
   }
 
   .price {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .price .amount {
@@ -141,7 +143,7 @@
   }
 
   .price .billing {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #6B7280;
     font-weight: 500;
   }
@@ -149,16 +151,16 @@
   .features {
     list-style: none;
     padding: 0;
-    margin: 0;
+    margin: 0 0 12px;
   }
 
   .features li {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #6B7280;
-    margin: 8px 0;
+    margin: 4px 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   .features i {
@@ -168,14 +170,14 @@
 
   .pricing-footer {
     display: flex;
-    gap: 8px;
+    gap: 6px;
   }
 
   .btn {
-    padding: 10px 16px;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
     border: none;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
@@ -183,7 +185,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     flex: 1;
   }
 
@@ -207,12 +209,12 @@
   }
 
   .alert {
-    padding: 12px 16px;
+    padding: 10px 14px;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .alert-success {
@@ -226,17 +228,10 @@
     color: #991B1B;
     border: 1px solid #FECACA;
   }
-
-  .alert-info {
-    background: #EFF6FF;
-    color: #1E40AF;
-    border: 1px solid #BFDBFE;
-  }
 </style>
 
 <script src="/js/paymongo-checkout.js"></script>
 <script>
-  // Load pricing plans on page load
   document.addEventListener('DOMContentLoaded', async function() {
     await paymongoCheckout.renderPlans('pricingPlans');
   });
