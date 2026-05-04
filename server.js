@@ -168,11 +168,27 @@ app.use((err, req, res, next) => {
 });
 
 // Prevent unhandled rejections from silently crashing the server
-process.on('unhandledRejection', (reason) => {
-  console.error('[Unhandled Rejection]', reason);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection:', {
+    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+    promise: promise,
+    timestamp: new Date().toISOString(),
+  });
+  // DO NOT exit — gracefully keep the process alive so Passenger doesn't restart
 });
+
 process.on('uncaughtException', (err) => {
-  console.error('[Uncaught Exception]', err);
+  console.error('[CRITICAL] Uncaught Exception:', {
+    message: err.message,
+    stack: err.stack,
+    timestamp: new Date().toISOString(),
+  });
+  // Log but keep the process alive to avoid cascading restarts
+  // In production, consider a graceful shutdown here and let Passenger restart
+  if (process.env.NODE_ENV === 'production') {
+    // Give Passenger time to notice and restart us
+    setTimeout(() => process.exit(1), 5000);
+  }
 });
 
 // Start server

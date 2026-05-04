@@ -179,15 +179,31 @@ exports.saveDirect = async (req, res, next) => {
 };
 
 exports.generatePanel = async (req, res) => {
+  const startTime = Date.now();
   try {
     const { prompt, chartType, dataSourceId } = req.body;
     if (!prompt || !prompt.trim()) return res.json({ error: 'Prompt is required.' });
-    const r = await dashboardService.generate({
-      prompt: prompt.trim(),
-      chartType: chartType || 'auto',
-      dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
-      templateId: null,
-    });
+    
+    console.log('[generatePanel] Starting for prompt:', prompt.substring(0, 60) + '...');
+    
+    let r;
+    try {
+      r = await dashboardService.generate({
+        prompt: prompt.trim(),
+        chartType: chartType || 'auto',
+        dataSourceId: dataSourceId ? parseInt(dataSourceId, 10) : null,
+        templateId: null,
+      });
+    } catch (genErr) {
+      console.error('[generatePanel] dashboardService.generate error:', {
+        message: genErr.message,
+        stack: genErr.stack,
+        elapsedMs: Date.now() - startTime,
+      });
+      // Return error but don't crash
+      return res.json({ error: 'Failed to generate dashboard: ' + (genErr.message || 'Unknown error') });
+    }
+    
     const cfg = r.chartConfig || null;
     const chartEngine = r.chartEngine || 'chartjs';
     const ds = cfg && cfg.data && cfg.data.datasets && cfg.data.datasets[0] ? cfg.data.datasets[0] : null;
@@ -202,6 +218,7 @@ exports.generatePanel = async (req, res) => {
     const sortStr = sr.sort && sr.sort.direction ? ` (${sr.sort.direction === 'desc' ? '↓' : '↑'})` : '';
     const calculationLabel = `AI: ${metricStr}(${entityStr}) by ${dimStr}${sortStr}${limitStr}`;
 
+    console.log('[generatePanel] Success in', Date.now() - startTime, 'ms');
     res.json({
       title: r.title,
       originalPrompt: prompt.trim(),
@@ -221,8 +238,12 @@ exports.generatePanel = async (req, res) => {
       parsedByAI: r.parsedByAI || false,
     });
   } catch (err) {
-    console.error('Panel generate error:', err);
-    res.json({ error: err.message });
+    console.error('[generatePanel] Outer catch error:', {
+      message: err.message,
+      stack: err.stack,
+      elapsedMs: Date.now() - startTime,
+    });
+    res.json({ error: err.message || 'An unexpected error occurred' });
   }
 };
 

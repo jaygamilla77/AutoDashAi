@@ -74,12 +74,16 @@ function resolveAutoChartType(sr) {
  * @returns {object} dashboard result
  */
 async function generate({ prompt, chartType, dataSourceId, templateId }) {
+  const startTime = Date.now();
+  console.log('[dashboardService] generate start:', { prompt: prompt.substring(0, 60), chartType, dataSourceId });
+  
   // 1. Parse prompt — try AI first, fall back to regex
   let structuredRequest = null;
   let parsedByAI = false;
 
   if (aiService.isAvailable()) {
     try {
+      console.log('[dashboardService] AI parsing...');
       // Build schema context for better AI understanding
       let schemaCtx = null;
       if (dataSourceId) {
@@ -99,12 +103,14 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
       }
       structuredRequest = await promptParserService.parseWithAI(prompt, chartType, schemaCtx);
       if (structuredRequest) parsedByAI = true;
+      console.log('[dashboardService] AI parsing complete:', { elapsed: Date.now() - startTime, parsedByAI: true });
     } catch (err) {
-      console.warn('[Dashboard] AI parse failed, using regex fallback:', err.message);
+      console.warn('[dashboardService] AI parse failed, using regex fallback:', err.message);
     }
   }
 
   if (!structuredRequest) {
+    console.log('[dashboardService] Using regex parser...');
     structuredRequest = promptParserService.parse(prompt, chartType);
   }
   if (!structuredRequest) {
@@ -112,6 +118,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
   }
 
   // 2. Identify data source
+  console.log('[dashboardService] Loading data source...');
   let dataSource = null;
   if (dataSourceId) {
     dataSource = await db.DataSource.findByPk(dataSourceId);
@@ -140,12 +147,15 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
   }
 
   // 3. Query data
+  console.log('[dashboardService] Executing query...');
   const queryResult = await queryService.execute(structuredRequest, dataSource);
 
   // 4. Build KPIs
+  console.log('[dashboardService] Generating KPIs...');
   const kpis = await kpiService.generateKPIs(structuredRequest.focusArea, queryResult, dataSource);
 
   // 5. Build chart config
+  console.log('[dashboardService] Building chart config...');
   const chartResult = chartService.buildChartConfig(
     queryResult.labels,
     queryResult.values,
@@ -157,6 +167,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
   const chartEngine = chartResult ? chartResult.engine : 'chartjs';
 
   // 6. Assemble dashboard
+  console.log('[dashboardService] Assembling dashboard...');
   const dashboard = {
     title: structuredRequest.title,
     subtitle: `Focus: ${structuredRequest.focusArea} | Chart: ${structuredRequest.chartPreference}`,
@@ -187,6 +198,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
   };
 
   // 6b. Generate AI narrative insight
+  console.log('[dashboardService] Generating AI insight...');
   try {
     dashboard.aiInsight = await aiInsightService.generateInsight({
       title: dashboard.title,
@@ -196,10 +208,11 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
       kpis,
     });
   } catch (err) {
-    console.warn('[Dashboard] AI insight generation failed:', err.message);
+    console.warn('[dashboardService] AI insight generation failed:', err.message);
   }
 
   // 7. Save prompt history
+  console.log('[dashboardService] Saving prompt history...');
   try {
     await db.PromptHistory.create({
       promptText: prompt,
@@ -213,6 +226,7 @@ async function generate({ prompt, chartType, dataSourceId, templateId }) {
     console.error('Failed to save prompt history:', err);
   }
 
+  console.log('[dashboardService] generate complete:', { totalMs: Date.now() - startTime });
   return dashboard;
 }
 
