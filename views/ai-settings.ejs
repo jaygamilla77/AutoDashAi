@@ -199,9 +199,18 @@
     btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Testing...';
     try {
       var res = await fetch('/ai/test', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-      var data = await res.json();
-      alert((data.success ? '✅ ' : '❌ ') + data.message + (data.mode ? '\n\nMode: ' + data.mode : ''));
-    } catch (e) { alert('Error: ' + e.message); }
+      var ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!res.ok && !ct.includes('application/json')) {
+        var msg = res.status === 503 ? 'The AI service is temporarily unavailable. Please retry in a moment.'
+                : res.status === 502 ? 'The server returned a bad gateway error. Please retry.'
+                : res.status === 504 ? 'The AI service timed out. Please retry.'
+                : 'Server error (HTTP ' + res.status + '). Please retry.';
+        alert('⚠️ ' + msg);
+      } else {
+        var data = await res.json().catch(function() { throw new Error('Unexpected non-JSON response from server. Please retry.'); });
+        alert((data.success ? '✅ ' : '❌ ') + data.message + (data.mode ? '\n\nMode: ' + data.mode : ''));
+      }
+    } catch (e) { alert('Error: ' + (e && e.message ? e.message : 'Request failed')); }
     btn.disabled = false; btn.innerHTML = '<i class="bi bi-lightning-charge"></i> Test Connection';
   }
 
@@ -222,12 +231,21 @@
       var res = await fetch('/ai/test', {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
       });
-      var data = await res.json();
-      resultEl.innerHTML = data.success
-        ? '<span class="text-success">✅ ' + data.message + '</span>'
-        : '<span class="text-danger">❌ ' + data.message + '</span>';
+      var ct = (res.headers.get('content-type') || '').toLowerCase();
+      if (!res.ok && !ct.includes('application/json')) {
+        var msg = res.status === 503 ? 'The AI service is temporarily unavailable. Please retry in a moment.'
+                : res.status === 502 ? 'The server returned a bad gateway error. Please retry.'
+                : res.status === 504 ? 'The AI service timed out. Please retry.'
+                : 'Server error (HTTP ' + res.status + '). Please retry.';
+        resultEl.innerHTML = '<span class="text-danger">⚠️ ' + msg + '</span>';
+      } else {
+        var data = await res.json().catch(function() { throw new Error('Unexpected non-JSON response from server. Please retry.'); });
+        resultEl.innerHTML = data.success
+          ? '<span class="text-success">✅ ' + data.message + '</span>'
+          : '<span class="text-danger">❌ ' + data.message + '</span>';
+      }
     } catch (e) {
-      resultEl.innerHTML = '<span class="text-danger">❌ ' + e.message + '</span>';
+      resultEl.innerHTML = '<span class="text-danger">❌ ' + (e && e.message ? e.message : 'Request failed') + '</span>';
     }
   }
 </script>

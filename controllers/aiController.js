@@ -196,7 +196,8 @@ exports.testConnection = async (req, res) => {
     }
     return res.json({ success: false, message: 'No response received from Azure OpenAI.' });
   } catch (err) {
-    res.json({ success: false, message: 'Connection failed: ' + err.message });
+    console.error('[Test Connection] Error:', err.message);
+    res.json({ success: false, message: 'Connection test failed: ' + (err && err.message ? err.message : 'Unknown error') });
   }
 };
 
