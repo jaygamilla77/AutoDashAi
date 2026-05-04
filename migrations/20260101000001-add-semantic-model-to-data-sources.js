@@ -17,16 +17,18 @@
  *    }],
  *    dataSourceId, generatedAt, version
  *  }
- *
- * LONGTEXT (4 GB max) chosen to support large schemas.
  */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('data_sources', 'semanticModelJson', {
-      type: 'LONGTEXT',
-      allowNull: true,
-      defaultValue: null,
-    });
+    // Check if column already exists to avoid duplicate column error
+    const tableDescription = await queryInterface.describeTable('data_sources');
+    if (!tableDescription.semanticModelJson) {
+      await queryInterface.addColumn('data_sources', 'semanticModelJson', {
+        type: 'LONGTEXT',
+        allowNull: true,
+        defaultValue: null,
+      });
+    }
   },
 
   async down(queryInterface) {

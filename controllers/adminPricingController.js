@@ -11,7 +11,7 @@ exports.getPricingPage = async (req, res) => {
     const configs = await pricingConfigService.getAllPricing();
     const discounts = await pricingConfigService.getDiscountSummary();
 
-    res.render('admin/pricing', {
+    res.render('admin/pricing-paymongo', {
       title: 'Pricing Configuration',
       currentUser: req.user,
       currentWorkspace: req.workspace,

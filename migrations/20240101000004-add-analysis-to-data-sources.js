@@ -2,11 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.addColumn('data_sources', 'analysisJson', {
-      type: Sequelize.TEXT,
-      allowNull: true,
-      defaultValue: null,
-    });
+    // Check if column already exists to avoid duplicate column error
+    const tableDescription = await queryInterface.describeTable('data_sources');
+    if (!tableDescription.analysisJson) {
+      await queryInterface.addColumn('data_sources', 'analysisJson', {
+        type: Sequelize.TEXT,
+        allowNull: true,
+        defaultValue: null,
+      });
+    }
   },
 
   async down(queryInterface) {
