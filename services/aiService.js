@@ -116,15 +116,33 @@ async function chat(systemPrompt, userMessage, options = {}) {
   const r = resolveClient(options.workspace);
   if (!r) return null;
   try {
-    const response = await r.client.chat.completions.create({
-      model: r.deployment,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_completion_tokens: options.max_completion_tokens ?? options.max_tokens ?? 1024,
-    });
-    return response.choices?.[0]?.message?.content?.trim() || null;
+    // Wrap with timeout (30s default) to prevent Passenger worker starvation
+    const timeoutMs = options.timeoutMs ?? 30000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await r.client.chat.completions.create({
+        model: r.deployment,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_completion_tokens: options.max_completion_tokens ?? options.max_tokens ?? 1024,
+      }, {
+        signal: controller.signal,
+        timeout: timeoutMs,
+      });
+      clearTimeout(timeoutId);
+      return response.choices?.[0]?.message?.content?.trim() || null;
+    } catch (timeoutErr) {
+      clearTimeout(timeoutId);
+      if (timeoutErr.name === 'AbortError' || timeoutErr.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
+        console.error('[AI Service] chat timeout after', timeoutMs, 'ms');
+        return null;
+      }
+      throw timeoutErr;
+    }
   } catch (err) {
     console.error('[AI Service] chat error (', r.mode, '):', err.message);
     return null;
@@ -135,18 +153,36 @@ async function chatJSON(systemPrompt, userMessage, options = {}) {
   const r = resolveClient(options.workspace);
   if (!r) return null;
   try {
-    const response = await r.client.chat.completions.create({
-      model: r.deployment,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_completion_tokens: options.max_completion_tokens ?? options.max_tokens ?? 1024,
-      response_format: { type: 'json_object' },
-    });
-    const text = response.choices?.[0]?.message?.content?.trim();
-    if (!text) return null;
-    return JSON.parse(text);
+    // Wrap with timeout (30s default) to prevent Passenger worker starvation
+    const timeoutMs = options.timeoutMs ?? 30000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await r.client.chat.completions.create({
+        model: r.deployment,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_completion_tokens: options.max_completion_tokens ?? options.max_tokens ?? 1024,
+        response_format: { type: 'json_object' },
+      }, {
+        signal: controller.signal,
+        timeout: timeoutMs,
+      });
+      clearTimeout(timeoutId);
+      const text = response.choices?.[0]?.message?.content?.trim();
+      if (!text) return null;
+      return JSON.parse(text);
+    } catch (timeoutErr) {
+      clearTimeout(timeoutId);
+      if (timeoutErr.name === 'AbortError' || timeoutErr.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
+        console.error('[AI Service] chatJSON timeout after', timeoutMs, 'ms');
+        return null;
+      }
+      throw timeoutErr;
+    }
   } catch (err) {
     console.error('[AI Service] chatJSON error (', r.mode, '):', err.message);
     return null;
@@ -167,17 +203,33 @@ async function testCredentials({ endpoint, apiKey, deployment, apiVersion }) {
       apiVersion: apiVersion || '2024-02-15-preview',
       deployment,
     });
-    const resp = await c.chat.completions.create({
-      model: deployment,
-      messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: 'Reply with exactly: "Connection successful"' },
-      ],
-      max_completion_tokens: 20,
-    });
-    const reply = resp.choices?.[0]?.message?.content?.trim();
-    if (reply) return { success: true, message: 'Connection successful', reply };
-    return { success: false, message: 'No response received from Azure OpenAI.' };
+    // Timeout after 20s to prevent hanging the test endpoint
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    
+    try {
+      const resp = await c.chat.completions.create({
+        model: deployment,
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant.' },
+          { role: 'user', content: 'Reply with exactly: "Connection successful"' },
+        ],
+        max_completion_tokens: 20,
+      }, {
+        signal: controller.signal,
+        timeout: 20000,
+      });
+      clearTimeout(timeoutId);
+      const reply = resp.choices?.[0]?.message?.content?.trim();
+      if (reply) return { success: true, message: 'Connection successful', reply };
+      return { success: false, message: 'No response received from Azure OpenAI.' };
+    } catch (timeoutErr) {
+      clearTimeout(timeoutId);
+      if (timeoutErr.name === 'AbortError' || timeoutErr.code === 'ERR_HTTP_REQUEST_TIMEOUT') {
+        return { success: false, message: 'Connection test timed out after 20s. The endpoint may be offline or overloaded.' };
+      }
+      throw timeoutErr;
+    }
   } catch (err) {
     return { success: false, message: 'Connection failed: ' + err.message };
   }
