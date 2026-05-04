@@ -15,11 +15,12 @@ const planService = require('../services/planService');
  */
 exports.createCheckout = async (req, res) => {
   try {
-    const { planId } = req.body;
+    const { planId, currency = 'USD' } = req.body;
     const workspace = req.workspace;
 
     console.log('[Payment] createCheckout called:', {
       planId,
+      currency,
       hasWorkspace: !!workspace,
       workspaceId: workspace?.id,
       hasUser: !!req.user,
@@ -31,8 +32,8 @@ exports.createCheckout = async (req, res) => {
       return res.json({ success: false, error: 'Missing planId or workspace' });
     }
 
-    // Get plan pricing
-    const plans = await paymongoService.getPricingPlans();
+    // Get plan pricing in selected currency
+    const plans = await paymongoService.getPricingPlans(currency);
     const selectedPlan = plans.find(p => p.id === planId);
 
     if (!selectedPlan) {
@@ -52,8 +53,8 @@ exports.createCheckout = async (req, res) => {
     const result = await paymongoService.createCheckout({
       workspaceId: workspace.id,
       planId: planId,
-      amount: selectedPlan.price / 100, // Convert from cents to PHP
-      currency: 'PHP',
+      amount: selectedPlan.priceUSD, // Use USD amount, service handles conversion
+      currency: currency,
       description: `Upgrade to ${selectedPlan.name} plan`,
       email: workspace.email || 'workspace@example.com',
       workspaceName: workspace.name,
@@ -68,6 +69,7 @@ exports.createCheckout = async (req, res) => {
     console.log('[Payment] Checkout created:', {
       workspaceId: workspace.id,
       planId: planId,
+      currency: currency,
       checkoutId: result.checkoutId,
     });
 
@@ -147,7 +149,8 @@ exports.handleWebhook = async (req, res) => {
  */
 exports.getPlans = async (req, res) => {
   try {
-    const plans = await paymongoService.getPricingPlans();
+    const currency = req.query.currency || 'USD';
+    const plans = await paymongoService.getPricingPlans(currency);
     return res.json({
       success: true,
       plans,

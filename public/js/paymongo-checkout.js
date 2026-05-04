@@ -11,10 +11,11 @@ class PayMongoCheckout {
 
   /**
    * Fetch all available plans from API
+   * Accepts optional currency parameter
    */
-  async loadPlans() {
+  async loadPlans(currency = 'USD') {
     try {
-      const response = await fetch('/api/payment/plans', {
+      const response = await fetch(`/api/payment/plans?currency=${currency}`, {
         headers: {
           'Accept': 'application/json',
         },
@@ -36,9 +37,9 @@ class PayMongoCheckout {
   /**
    * Create a checkout session for the selected plan
    */
-  async createCheckout(planId) {
+  async createCheckout(planId, currency = 'USD') {
     try {
-      console.log('[PayMongo] Creating checkout for plan:', planId);
+      console.log('[PayMongo] Creating checkout for plan:', planId, 'currency:', currency);
 
       const response = await fetch('/api/payment/checkout', {
         method: 'POST',
@@ -46,7 +47,7 @@ class PayMongoCheckout {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, currency }),
       });
 
       const data = await response.json();
@@ -85,7 +86,7 @@ class PayMongoCheckout {
   /**
    * Handle upgrade button click
    */
-  async handleUpgrade(planId) {
+  async handleUpgrade(planId, currency = 'USD') {
     // Disable button to prevent double-click
     const btn = event.target;
     const originalText = btn.textContent;
@@ -100,7 +101,7 @@ class PayMongoCheckout {
       }
 
       // For paid plans, create checkout
-      const checkoutData = await this.createCheckout(planId);
+      const checkoutData = await this.createCheckout(planId, currency);
       if (checkoutData && checkoutData.paymentLink) {
         this.redirectToCheckout(checkoutData.paymentLink);
       }
@@ -206,7 +207,11 @@ class PayMongoCheckout {
       return;
     }
 
-    const plans = await this.loadPlans();
+    // Get selected currency
+    const currencySelector = document.getElementById('currencySelector');
+    const selectedCurrency = currencySelector?.value || 'USD';
+
+    const plans = await this.loadPlans(selectedCurrency);
     if (!plans || plans.length === 0) {
       container.innerHTML = '<p class="text-center">Failed to load pricing plans</p>';
       return;
@@ -214,10 +219,82 @@ class PayMongoCheckout {
 
     let html = '<div class="pricing-grid">';
 
+    // Currency symbols map
+    const symbols = {
+      USD: '$',
+      PHP: '₱',
+      EUR: '€',
+      GBP: '£',
+      AUD: '$',
+      CAD: '$',
+      INR: '₹',
+      SGD: '$',
+      HKD: 'HK$',
+      JPY: '¥',
+    };
+    const symbol = symbols[selectedCurrency] || '$';
+
     plans.forEach((plan) => {
-      const priceDisplay = plan.price === 0 ? 'Free' : `₱${(plan.price).toLocaleString('en-PH', {minimumFractionDigits: 2})}`;
+      const priceDisplay = plan.price === 0 ? 'Free' : `${symbol}${(plan.price).toLocaleString('en-US', {minimumFractionDigits: 2})}`;
       const recommended = plan.recommended ? ' recommended' : '';
       const discountDisplay = plan.discount ? `<div style="color: #10B981; font-size: 0.85rem; margin-top: 4px;">💰 Save ${plan.discount}</div>` : '';
+      
+      if (plan.contactSales) {
+        html += `
+          <div class="pricing-card${recommended}">
+            <div class="pricing-header">
+              <h3>${plan.name}</h3>
+              <p class="pricing-desc">${plan.description}</p>
+              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
+            </div>
+            <div class="pricing-body">
+              <div class="price">
+                <span class="amount">${priceDisplay}</span>
+                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
+              </div>
+              ${discountDisplay}
+              <ul class="features">
+                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="pricing-footer">
+              <button class="btn btn-outline" onclick="window.location='mailto:sales@liknaya.com'">
+                Contact Sales
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="pricing-card${recommended}">
+            <div class="pricing-header">
+              <h3>${plan.name}</h3>
+              <p class="pricing-desc">${plan.description}</p>
+              ${plan.badge ? `<span class="badge">${plan.badge}</span>` : ''}
+            </div>
+            <div class="pricing-body">
+              <div class="price">
+                <span class="amount">${priceDisplay}</span>
+                ${plan.price > 0 ? `<span class="billing">/month</span>` : ''}
+              </div>
+              ${discountDisplay}
+              <ul class="features">
+                ${plan.features.map((f) => `<li><i class="bi bi-check"></i> ${f}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="pricing-footer">
+              <button class="btn btn-primary" onclick="paymongoCheckout.handleUpgrade('${plan.id}', '${selectedCurrency}')">
+                ${plan.id === 'starter' ? 'Get Started Free' : 'Upgrade to ' + plan.name}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  }
       
       if (plan.contactSales) {
         html += `
@@ -279,6 +356,17 @@ class PayMongoCheckout {
 
 // Initialize globally
 const paymongoCheckout = new PayMongoCheckout();
+
+// Handle currency selector changes
+document.addEventListener('DOMContentLoaded', () => {
+  const currencySelector = document.getElementById('currencySelector');
+  if (currencySelector) {
+    currencySelector.addEventListener('change', () => {
+      console.log('[PayMongo] Currency changed to:', currencySelector.value);
+      paymongoCheckout.renderPlans('pricingPlans');
+    });
+  }
+});
 
 // Check URL params for payment status
 document.addEventListener('DOMContentLoaded', function () {

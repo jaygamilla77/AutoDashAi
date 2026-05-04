@@ -47,8 +47,21 @@
 
       <!-- RIGHT: Pricing Plans (Compact Grid) -->
       <div>
-        <div style="margin-bottom: 8px;">
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
           <h3 style="font-size: 1rem; font-weight: 600; margin: 0;">Upgrade Your Plan</h3>
+          <!-- Currency Selector -->
+          <select id="currencySelector" style="font-size: 0.85rem; padding: 6px 10px; border: 1px solid #E6E8F0; border-radius: 6px; background: #fff; cursor: pointer;">
+            <option value="USD">USD ($)</option>
+            <option value="PHP">PHP (₱)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="AUD">AUD ($)</option>
+            <option value="CAD">CAD ($)</option>
+            <option value="INR">INR (₹)</option>
+            <option value="SGD">SGD ($)</option>
+            <option value="HKD">HKD (HK$)</option>
+            <option value="JPY">JPY (¥)</option>
+          </select>
         </div>
         <div id="pricingPlans" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
           <!-- Plans loaded via JavaScript -->
