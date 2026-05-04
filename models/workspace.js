@@ -12,13 +12,6 @@ module.exports = (sequelize, DataTypes) => {
     paymentProvider: { type: DataTypes.STRING(32), allowNull: true },
     settings: { type: DataTypes.TEXT, allowNull: true },
 
-    // PayMongo payment integration
-    paymongoCustomerId: { type: DataTypes.STRING(120), allowNull: true },
-    paymongoSubscriptionId: { type: DataTypes.STRING(120), allowNull: true },
-    paymentMethod: { type: DataTypes.STRING(50), allowNull: true, defaultValue: 'card' },
-    planUpgradedAt: { type: DataTypes.DATE, allowNull: true },
-    nextBillingDate: { type: DataTypes.DATE, allowNull: true },
-
     // Per-workspace Azure OpenAI configuration.
     //   'system' = use the global env credentials (default, shared)
     //   'custom' = use the workspace's own dedicated endpoint below

@@ -172,7 +172,9 @@ exports.upgradePlan = async (req, res) => {
     // Update workspace plan
     await workspace.update({
       plan: planId,
-      planUpgradedAt: new Date(),
+      // PayMongo fields will be added after migration runs:
+      // paymentMethod: 'card',
+      // planUpgradedAt: new Date(),
     });
 
     console.log('[Payment] Plan upgraded:', {
