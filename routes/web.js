@@ -16,6 +16,10 @@ const authController = require('../controllers/authController');
 const cmsService = require('../services/cmsService');
 const planService = require('../services/planService');
 const oauthService = require('../services/oauthService');
+const workspaceService = require('../services/workspaceService');
+const authToken = require('../utils/authToken');
+const tenantCtx = require('../utils/tenantContext');
+const db = require('../models');
 
 // ─── Lightweight auth helpers (mock auth via cookie) ─────────────────
 function parseCookies(req) {
@@ -31,9 +35,52 @@ function parseCookies(req) {
   }, {});
 }
 
+/**
+ * Load the current user + workspace from the signed `autodash_auth` cookie
+ * and store them on `req`. Subsequent middleware (`requireAuth`,
+ * `requireRole`, route handlers, views) can rely on req.user / req.workspace.
+ *
+ * Sets res.locals.currentUser / currentWorkspace / trialDaysLeft so views
+ * can render the real user without controllers having to pass them.
+ *
+ * Wraps the rest of the request in a tenant ALS scope so Sequelize hooks
+ * auto-filter every SELECT on tenant tables.
+ */
+async function loadAuth(req, res, next) {
+  try {
+    var cookies = parseCookies(req);
+    var token = cookies.autodash_auth || '';
+    var verified = authToken.verify(token);
+    if (!verified) return next();
+    var user = await db.User.findByPk(verified.uid);
+    if (!user) return next();
+    var workspace = null;
+    if (user.workspaceId) {
+      workspace = await db.Workspace.findByPk(user.workspaceId);
+    }
+    if (!workspace) {
+      // Legacy: no workspace yet — create one on the fly.
+      workspace = await workspaceService.createForUser(user, { plan: user.plan });
+    }
+    req.user = user;
+    req.workspace = workspace;
+    res.locals.currentUser = {
+      id: user.id, name: user.name, email: user.email,
+      role: user.role, plan: user.plan, avatarUrl: user.avatarUrl || null,
+      onboardingCompleted: !!user.onboardingCompleted,
+    };
+    res.locals.currentWorkspace = {
+      id: workspace.id, name: workspace.name, plan: workspace.plan,
+      trialEndsAt: workspace.trialEndsAt, subscriptionStatus: workspace.subscriptionStatus,
+    };
+    res.locals.trialDaysLeft = workspaceService.trialDaysLeft(workspace);
+    // Open tenant ALS context for the rest of the request
+    tenantCtx.run({ user: user, workspace: workspace }, next);
+  } catch (err) { next(err); }
+}
+
 function requireAuth(req, res, next) {
-  var cookies = parseCookies(req);
-  if (cookies.autodash_auth) return next();
+  if (req.user && req.workspace) return next();
   // For HTML page requests → redirect; for AJAX/JSON → 401
   var accepts = req.headers.accept || '';
   if (req.xhr || accepts.indexOf('application/json') !== -1) {
@@ -42,6 +89,33 @@ function requireAuth(req, res, next) {
   var next_url = encodeURIComponent(req.originalUrl || '/');
   return res.redirect('/auth?next=' + next_url);
 }
+
+/**
+ * Block normal users from admin-only routes. Use after requireAuth.
+ *   role: 'admin' | 'super_admin' | array of allowed roles
+ */
+function requireRole(roles) {
+  var allowed = Array.isArray(roles) ? roles : [roles];
+  return function (req, res, next) {
+    if (!req.user) return res.redirect('/auth');
+    if (allowed.indexOf(req.user.role) === -1) {
+      var accepts = req.headers.accept || '';
+      if (req.xhr || accepts.indexOf('application/json') !== -1) {
+        return res.status(403).json({ success: false, error: 'You do not have permission to access this resource.' });
+      }
+      return res.redirect('/dashboard?error=' + encodeURIComponent('You do not have permission to access this page.'));
+    }
+    return next();
+  };
+}
+
+// Apply loadAuth to every non-admin request so views always know who's
+// logged in. Admin portal uses its own cookie (`autodash_admin`) and must
+// query global tables unfiltered, so we skip the tenant context there.
+router.use(function (req, res, next) {
+  if (req.path.indexOf('/admin') === 0) return next();
+  return loadAuth(req, res, next);
+});
 
 // ─── Auth routes ─────────────────────────────────────────────────────
 router.get(['/auth', '/login', '/signup'], (req, res) => {
@@ -403,5 +477,20 @@ router.post('/ai/executive-summary', aiController.executiveSummary);
 router.get('/ai/settings', requireAuth, aiController.settingsPage);
 router.get('/ai-settings', requireAuth, aiController.settingsPage);
 router.post('/ai/test', aiController.testConnection);
+
+// ─── Billing (placeholder for Phase 3) ───────────────────────────────
+router.get('/billing', requireAuth, function (req, res) {
+  var ws = req.workspace;
+  var planId = (ws && ws.plan) || 'starter';
+  var limits = planService.getLimits(planId);
+  var trialDaysLeft = workspaceService.trialDaysLeft(ws);
+  res.render('billing', {
+    title: 'Billing & Subscription',
+    workspace: ws,
+    plan: planService.get(planId) || { id: planId, name: planId },
+    limits: limits,
+    trialDaysLeft: trialDaysLeft,
+  });
+});
 
 module.exports = router;

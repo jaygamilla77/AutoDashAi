@@ -22,9 +22,16 @@ module.exports = (sequelize, DataTypes) => {
     // Onboarding state
     onboardingCompleted: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     onboardingStep: { type: DataTypes.STRING(32), allowNull: true },
+
+    // Multi-tenant SaaS — each user belongs to exactly one workspace
+    workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+    role: { type: DataTypes.STRING(24), allowNull: false, defaultValue: 'admin' }, // super_admin | admin | member | viewer
   }, {
     tableName: 'users',
     timestamps: true,
   });
+  User.associate = (models) => {
+    User.belongsTo(models.Workspace, { foreignKey: 'workspaceId', as: 'workspace' });
+  };
   return User;
 };

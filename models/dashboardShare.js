@@ -54,11 +54,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // Multi-tenant
+    workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+    ownerUserId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'dashboard_shares',
     indexes: [
       { unique: true, fields: ['shareToken'] },
       { fields: ['dashboardId'] },
+      // workspaceId index intentionally omitted: dashboard_shares table has
+      // already hit the MySQL 64-keys-per-table limit on production.
     ],
   });
 

@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const db = require('../models');
 const emailService = require('../services/emailService');
 const planService = require('../services/planService');
+const workspaceService = require('../services/workspaceService');
+const authToken = require('../utils/authToken');
 
 const TOKEN_TTL_HOURS = 24;
 const AUTH_COOKIE = 'autodash_auth';
@@ -13,12 +15,15 @@ const USER_COOKIE = 'autodash_user';
 function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '')); }
 
 function setAuthCookie(res, user) {
-  const token = crypto.randomBytes(24).toString('hex');
-  const maxAge = 60 * 60 * 24 * 7; // 7 days
+  const token = authToken.sign(user.id);
+  const maxAge = Math.floor(authToken.DEFAULT_TTL_MS / 1000);
   const userPayload = encodeURIComponent(JSON.stringify({
     id: user.id, name: user.name, email: user.email,
     plan: user.plan || 'starter',
+    role: user.role || 'admin',
+    workspaceId: user.workspaceId || null,
     onboardingCompleted: !!user.onboardingCompleted,
+    avatarUrl: user.avatarUrl || null,
   }));
   res.setHeader('Set-Cookie', [
     AUTH_COOKIE + '=' + token + '; Max-Age=' + maxAge + '; Path=/; HttpOnly; SameSite=Lax',
@@ -123,7 +128,10 @@ exports.verify = async (req, res) => {
         planTrialEndsAt: planService.trialEndDate(planId),
         authProvider: 'local',
         onboardingCompleted: false,
+        role: 'admin',
       });
+      // Auto-create workspace + 14-day trial (per requirements)
+      await workspaceService.createForUser(user, { plan: planId });
     }
     await pending.destroy();
 
@@ -165,6 +173,8 @@ exports.signin = async (req, res) => {
 
     user.lastLoginAt = new Date();
     await user.save();
+    // Backfill workspace for legacy accounts that pre-date multi-tenancy
+    if (!user.workspaceId) await workspaceService.createForUser(user, { plan: user.plan });
     setAuthCookie(res, user);
     return res.json({
       success: true,
@@ -230,7 +240,9 @@ exports.oauthHandle = async (profile, req, res) => {
         providerUserId: profile.providerUserId || null,
         avatarUrl: profile.avatarUrl || null,
         onboardingCompleted: false,
+        role: 'admin',
       });
+      await workspaceService.createForUser(user, { plan: planId });
     } else {
       // Link provider on existing user, refresh avatar/lastLogin
       let dirty = false;
@@ -239,6 +251,8 @@ exports.oauthHandle = async (profile, req, res) => {
       if (!user.avatarUrl && profile.avatarUrl) { user.avatarUrl = profile.avatarUrl; dirty = true; }
       user.lastLoginAt = new Date();
       await user.save();
+      // Existing legacy users created before multi-tenancy may not have a workspace
+      if (!user.workspaceId) await workspaceService.createForUser(user, { plan: user.plan });
     }
     setAuthCookie(res, user);
     return res.redirect(postAuthRedirect(user));

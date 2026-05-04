@@ -447,9 +447,11 @@
                     <td style="color: var(--sp-muted);"><%= fmtRelative(s.lastSyncedAt || s.updatedAt) %></td>
                     <td style="color: var(--sp-muted);"><%= s.originalFileName ? '—' : '—' %></td>
                     <td>
+                      <% var __srcOwner = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : { name: 'Owner' }; %>
+                      <% var __srcInit = (__srcOwner.name || 'O').trim().charAt(0).toUpperCase(); %>
                       <span class="sp-owner">
-                        <span class="sp-owner-avatar">J</span>
-                        <span>John Doe</span>
+                        <span class="sp-owner-avatar"><%= __srcInit %></span>
+                        <span><%= __srcOwner.name %></span>
                       </span>
                     </td>
                     <td style="text-align:right;">

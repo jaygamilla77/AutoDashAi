@@ -31,8 +31,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    // Multi-tenant
+    workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+    ownerUserId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'prompt_history',
+    indexes: [{ fields: ['workspaceId'] }],
   });
 
   PromptHistory.associate = (models) => {

@@ -23,8 +23,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    // Multi-tenant
+    workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+    ownerUserId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'saved_dashboards',
+    indexes: [{ fields: ['workspaceId'] }],
   });
 
   SavedDashboard.associate = (models) => {

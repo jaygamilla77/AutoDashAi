@@ -478,10 +478,12 @@
         <div class="topbar-right">
           <button type="button" class="topbar-icon-btn" aria-label="Help" title="Help"><i class="bi bi-question-circle"></i></button>
           <div class="topbar-user">
-            <span class="topbar-avatar" id="topbarAvatar">J</span>
+            <% var __u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : { name: 'Guest', role: 'viewer' }; %>
+            <% var __initial = (__u.name || __u.email || '?').trim().charAt(0).toUpperCase(); %>
+            <span class="topbar-avatar" id="topbarAvatar"><%= __initial %></span>
             <div class="topbar-user-info">
-              <div class="topbar-user-name" id="topbarUserName">John Doe</div>
-              <div class="topbar-user-role">Admin</div>
+              <div class="topbar-user-name" id="topbarUserName"><%= __u.name || __u.email || 'Guest' %></div>
+              <div class="topbar-user-role"><%= (typeof currentWorkspace !== 'undefined' && currentWorkspace) ? (currentWorkspace.plan ? currentWorkspace.plan.charAt(0).toUpperCase() + currentWorkspace.plan.slice(1) + ' Plan' : __u.role) : __u.role %></div>
             </div>
           </div>
         </div>

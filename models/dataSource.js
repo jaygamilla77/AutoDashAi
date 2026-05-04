@@ -50,8 +50,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT('long'),
       allowNull: true,
     },
+    // Multi-tenant
+    workspaceId: { type: DataTypes.INTEGER, allowNull: true },
+    ownerUserId: { type: DataTypes.INTEGER, allowNull: true },
   }, {
     tableName: 'data_sources',
+    indexes: [{ fields: ['workspaceId'] }],
   });
 
   DataSource.associate = (models) => {

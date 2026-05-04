@@ -77,10 +77,38 @@ function trialEndDate(planId) {
   return new Date(Date.now() + p.trialDays * 24 * 60 * 60 * 1000);
 }
 
+// ── Plan limits (enforced via enforceLimit at create endpoints) ──
+// `null` / `Infinity` = unlimited. Add new keys here as needed.
+const LIMITS = {
+  starter:    { dashboards: 3,        dataSources: 1,        aiGenerationsPerMonth: 50  },
+  business:   { dashboards: Infinity, dataSources: Infinity, aiGenerationsPerMonth: Infinity },
+  enterprise: { dashboards: Infinity, dataSources: Infinity, aiGenerationsPerMonth: Infinity },
+};
+
+function getLimits(planId) {
+  return LIMITS[String(planId || 'starter').toLowerCase()] || LIMITS.starter;
+}
+
+/**
+ * Returns null if within limit, or an object describing the overage if not.
+ *   { limit, current, plan, suggestUpgradeTo }
+ */
+function checkLimit(planId, key, currentCount) {
+  const limits = getLimits(planId);
+  const limit = limits[key];
+  if (limit === Infinity || limit == null) return null;
+  if (currentCount < limit) return null;
+  const next = planId === 'starter' ? 'business' : 'enterprise';
+  return { limit, current: currentCount, plan: planId, suggestUpgradeTo: next, key };
+}
+
 module.exports = {
   PLANS,
+  LIMITS,
   get,
   isValid,
   trialEndDate,
+  getLimits,
+  checkLimit,
   list: () => Object.values(PLANS),
 };
