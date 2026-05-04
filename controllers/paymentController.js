@@ -18,7 +18,16 @@ exports.createCheckout = async (req, res) => {
     const { planId } = req.body;
     const workspace = req.workspace;
 
+    console.log('[Payment] createCheckout called:', {
+      planId,
+      hasWorkspace: !!workspace,
+      workspaceId: workspace?.id,
+      hasUser: !!req.user,
+      userId: req.user?.id,
+    });
+
     if (!planId || !workspace) {
+      console.error('[Payment] Missing planId or workspace');
       return res.json({ success: false, error: 'Missing planId or workspace' });
     }
 

@@ -83,12 +83,23 @@ async function loadAuth(req, res, next) {
 }
 
 function requireAuth(req, res, next) {
+  console.log('[Auth] requireAuth check:', {
+    path: req.path,
+    hasUser: !!req.user,
+    hasWorkspace: !!req.workspace,
+    userId: req.user?.id,
+    workspaceId: req.workspace?.id,
+    accept: req.headers.accept,
+    xhr: req.xhr,
+  });
   if (req.user && req.workspace) return next();
   // For HTML page requests → redirect; for AJAX/JSON → 401
   var accepts = req.headers.accept || '';
   if (req.xhr || accepts.indexOf('application/json') !== -1) {
+    console.log('[Auth] Returning 401 JSON (API request)');
     return res.status(401).json({ success: false, error: 'Authentication required' });
   }
+  console.log('[Auth] Redirecting to /auth (HTML request)');
   var next_url = encodeURIComponent(req.originalUrl || '/');
   return res.redirect('/auth?next=' + next_url);
 }
