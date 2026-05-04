@@ -83,7 +83,7 @@ async function loadWorkspaceContext(workspaceId) {
     where: { workspaceId },
     order: [['createdAt', 'DESC']],
     limit: MAX_DATA_SOURCES_IN_CTX,
-    attributes: ['id', 'name', 'type', 'description'],
+    attributes: ['id', 'name', 'sourceType'],
   });
 
   const schemas = sources.length
@@ -115,8 +115,7 @@ async function loadWorkspaceContext(workspaceId) {
     return {
       id: s.id,
       name: s.name,
-      type: s.type,
-      description: s.description || '',
+      type: s.sourceType,
       datasets,
     };
   });
