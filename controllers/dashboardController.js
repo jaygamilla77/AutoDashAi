@@ -90,13 +90,21 @@ exports.generate = async (req, res) => {
   }
 };
 
-exports.save = async (req, res) => {
+exports.save = async (req, res, next) => {
   try {
     const { title, promptText, dashboardConfigJson, dataSourceId } = req.body;
 
     if (!title || !title.trim()) {
       req.flash('error', 'Dashboard title is required.');
       return res.redirect('/');
+    }
+
+    if (req.workspace) {
+      const workspaceService = require('../services/workspaceService');
+      const currentCount = await db.SavedDashboard.count();
+      try {
+        workspaceService.enforceLimit(req.workspace, 'dashboards', currentCount);
+      } catch (limitErr) { return next(limitErr); }
     }
 
     await db.SavedDashboard.create({
@@ -124,12 +132,20 @@ exports.save = async (req, res) => {
  *
  * Body: { title, promptText, dashboardConfig (object), dataSourceId }
  */
-exports.saveDirect = async (req, res) => {
+exports.saveDirect = async (req, res, next) => {
   try {
     const { title, promptText, dashboardConfig, dataSourceId } = req.body || {};
 
     if (!dashboardConfig || typeof dashboardConfig !== 'object') {
       return res.status(400).json({ error: 'dashboardConfig (object) is required.' });
+    }
+
+    if (req.workspace) {
+      const workspaceService = require('../services/workspaceService');
+      const currentCount = await db.SavedDashboard.count();
+      try {
+        workspaceService.enforceLimit(req.workspace, 'dashboards', currentCount);
+      } catch (limitErr) { return next(limitErr); }
     }
 
     // Stamp metadata for forward-compatibility on reopen

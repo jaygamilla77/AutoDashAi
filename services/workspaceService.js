@@ -92,9 +92,33 @@ function trialDaysLeft(workspace) {
   return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
+/**
+ * Idempotent trial expiry: when a workspace's trial has ended and it is
+ * still in `trialing` status (i.e. user never paid), downgrade it to the
+ * Starter plan with `expired` status. Cheap to call on every authenticated
+ * request — only writes when state actually changes.
+ */
+async function checkTrialExpiry(workspace) {
+  if (!workspace) return workspace;
+  if (workspace.subscriptionStatus !== 'trialing') return workspace;
+  if (!workspace.trialEndsAt) return workspace;
+  if (new Date(workspace.trialEndsAt).getTime() > Date.now()) return workspace;
+
+  workspace.plan = 'starter';
+  workspace.subscriptionStatus = 'expired';
+  await workspace.save();
+
+  // Sync the owner user's plan column so the UI reflects the downgrade.
+  if (workspace.ownerUserId) {
+    await db.User.update({ plan: 'starter' }, { where: { id: workspace.ownerUserId } });
+  }
+  return workspace;
+}
+
 module.exports = {
   createForUser,
   enforceLimit,
   trialDaysLeft,
+  checkTrialExpiry,
   PlanLimitError,
 };

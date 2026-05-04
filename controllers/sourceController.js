@@ -38,13 +38,22 @@ exports.showForm = (req, res) => {
   res.render('source-form', { title: 'Add Data Source', sourceTypes: SOURCE_TYPES });
 };
 
-exports.create = async (req, res) => {
+exports.create = async (req, res, next) => {
   try {
     const { name, sourceType, apiUrl, apiHeaders, apiParams } = req.body;
 
     if (!name || !sourceType) {
       req.flash('error', 'Source name and type are required.');
       return res.redirect('/sources/new');
+    }
+
+    // Plan limit enforcement (multi-tenant SaaS Phase 2)
+    if (req.workspace) {
+      const workspaceService = require('../services/workspaceService');
+      const currentCount = await db.DataSource.count();
+      try {
+        workspaceService.enforceLimit(req.workspace, 'dataSources', currentCount);
+      } catch (limitErr) { return next(limitErr); }
     }
 
     if (!SOURCE_TYPES.includes(sourceType)) {

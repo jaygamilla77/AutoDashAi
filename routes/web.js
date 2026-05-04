@@ -62,6 +62,8 @@ async function loadAuth(req, res, next) {
       // Legacy: no workspace yet — create one on the fly.
       workspace = await workspaceService.createForUser(user, { plan: user.plan });
     }
+    // Auto-downgrade expired trials before exposing the workspace
+    workspace = await workspaceService.checkTrialExpiry(workspace);
     req.user = user;
     req.workspace = workspace;
     res.locals.currentUser = {
@@ -308,6 +310,12 @@ router.get('/admin/members',                     adminController.requireAdmin, a
 router.post('/admin/members/:id/verify',         adminController.requireAdmin, adminController.membersResendVerification);
 router.post('/admin/members/:id/delete',         adminController.requireAdmin, adminController.membersDelete);
 
+router.get('/admin/workspaces',                  adminController.requireAdmin, adminController.workspacesShow);
+router.post('/admin/workspaces/:id/update',      adminController.requireAdmin, adminController.workspacesUpdate);
+router.post('/admin/workspaces/:id/delete',      adminController.requireAdmin, adminController.workspacesDelete);
+
+router.get('/admin/subscriptions',               adminController.requireAdmin, adminController.subscriptionsShow);
+
 router.get('/admin/settings',                    adminController.requireAdmin, adminController.settingsShow);
 router.post('/admin/settings',                   adminController.requireAdmin, adminController.settingsSave);
 
@@ -491,6 +499,24 @@ router.get('/billing', requireAuth, function (req, res) {
     limits: limits,
     trialDaysLeft: trialDaysLeft,
   });
+});
+
+// ─── Global PlanLimitError handler ───────────────────────────────────
+// When any route handler throws a PlanLimitError (e.g. via
+// `workspaceService.enforceLimit`) we surface it as 402 JSON for AJAX
+// callers (frontend modal handles it) and as a redirect to /billing for
+// HTML form posts. Status 402 = "Payment Required" (RFC 7231 reserved).
+router.use(function (err, req, res, next) {
+  if (err && err.name === 'PlanLimitError') {
+    var info = err.info || {};
+    var accepts = req.headers.accept || '';
+    if (req.xhr || accepts.indexOf('application/json') !== -1) {
+      return res.status(402).json(Object.assign({ success: false, error: 'plan_limit', message: err.message }, info));
+    }
+    var qs = 'limit_hit=' + encodeURIComponent(info.key || '') + '&plan=' + encodeURIComponent(info.plan || '');
+    return res.redirect('/billing?' + qs);
+  }
+  return next(err);
 });
 
 module.exports = router;

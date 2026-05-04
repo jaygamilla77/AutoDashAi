@@ -14,7 +14,9 @@
  */
 
 const cms = require('../services/cmsService');
-const { MarketingPage, DashboardTemplate, Inquiry, User, PendingSignup, DataSource, SavedDashboard, PromptHistory, DashboardShare } = require('../models');
+const { MarketingPage, DashboardTemplate, Inquiry, User, PendingSignup, DataSource, SavedDashboard, PromptHistory, DashboardShare, Workspace, sequelize } = require('../models');
+const planService = require('../services/planService');
+const tenantCtx = require('../utils/tenantContext');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
@@ -762,6 +764,195 @@ async function membersDelete(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// ───────────────────────── Workspaces (tenants) ─────────────────────────
+async function workspacesShow(req, res, next) {
+  try {
+    const q = (req.query.q || '').trim().toLowerCase();
+    const planFilter = (req.query.plan || '').trim();
+    const statusFilter = (req.query.status || '').trim();
+
+    const where = {};
+    if (planFilter) where.plan = planFilter;
+    if (statusFilter) where.subscriptionStatus = statusFilter;
+
+    const workspaces = await Workspace.findAll({ where, order: [['createdAt', 'DESC']], limit: 500 });
+    const ownerIds = [...new Set(workspaces.map(w => w.ownerUserId).filter(Boolean))];
+    const owners = ownerIds.length ? await User.findAll({ where: { id: ownerIds } }) : [];
+    const ownerMap = {}; owners.forEach(o => { ownerMap[o.id] = o; });
+
+    // Per-workspace usage counts (one query per table grouped)
+    async function countByWorkspace(model) {
+      const rows = await model.findAll({
+        attributes: ['workspaceId', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+        group: ['workspaceId'],
+        raw: true,
+      });
+      const map = {};
+      rows.forEach(r => { map[r.workspaceId || 0] = parseInt(r.count, 10) || 0; });
+      return map;
+    }
+    const [dsCounts, dashCounts, promptCounts, shareCounts] = await Promise.all([
+      countByWorkspace(DataSource),
+      countByWorkspace(SavedDashboard),
+      countByWorkspace(PromptHistory),
+      countByWorkspace(DashboardShare),
+    ]);
+
+    const decorated = workspaces.map(w => {
+      const owner = ownerMap[w.ownerUserId];
+      return {
+        id: w.id, name: w.name, slug: w.slug, plan: w.plan,
+        trialEndsAt: w.trialEndsAt, subscriptionStatus: w.subscriptionStatus,
+        paymentProvider: w.paymentProvider,
+        createdAt: w.createdAt,
+        owner: owner ? { id: owner.id, name: owner.name, email: owner.email } : null,
+        usage: {
+          dataSources: dsCounts[w.id] || 0,
+          dashboards:  dashCounts[w.id] || 0,
+          prompts:     promptCounts[w.id] || 0,
+          shares:      shareCounts[w.id] || 0,
+        },
+      };
+    });
+
+    const filtered = q
+      ? decorated.filter(w =>
+          (w.name || '').toLowerCase().includes(q) ||
+          (w.slug || '').toLowerCase().includes(q) ||
+          (w.owner && (w.owner.email || '').toLowerCase().includes(q)))
+      : decorated;
+
+    const stats = {
+      total: workspaces.length,
+      trialing:  workspaces.filter(w => w.subscriptionStatus === 'trialing').length,
+      active:    workspaces.filter(w => w.subscriptionStatus === 'active').length,
+      expired:   workspaces.filter(w => w.subscriptionStatus === 'expired').length,
+      cancelled: workspaces.filter(w => w.subscriptionStatus === 'cancelled').length,
+      starter:    workspaces.filter(w => w.plan === 'starter').length,
+      business:   workspaces.filter(w => w.plan === 'business').length,
+      enterprise: workspaces.filter(w => w.plan === 'enterprise').length,
+    };
+
+    adminRender(res, 'workspaces', {
+      activeNav: 'workspaces',
+      pageTitle: 'Workspaces',
+      workspaces: filtered,
+      stats,
+      filters: { q, plan: planFilter, status: statusFilter },
+      flash: flashFromQuery(req),
+    });
+  } catch (err) { next(err); }
+}
+
+async function workspacesUpdate(req, res, next) {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const ws = await Workspace.findByPk(id);
+    if (!ws) return res.redirect('/admin/workspaces?error=1');
+
+    const newPlan   = (req.body.plan || ws.plan).toLowerCase();
+    const newStatus = (req.body.subscriptionStatus || ws.subscriptionStatus).toLowerCase();
+    if (planService.isValid(newPlan)) ws.plan = newPlan;
+    ws.subscriptionStatus = newStatus;
+    if (req.body.extendTrialDays) {
+      const days = parseInt(req.body.extendTrialDays, 10);
+      if (Number.isFinite(days) && days > 0) {
+        const base = ws.trialEndsAt && new Date(ws.trialEndsAt) > new Date() ? new Date(ws.trialEndsAt) : new Date();
+        base.setDate(base.getDate() + days);
+        ws.trialEndsAt = base;
+        if (ws.subscriptionStatus !== 'active') ws.subscriptionStatus = 'trialing';
+      }
+    }
+    await ws.save();
+
+    // Also bump the owner user's plan to keep UI in sync.
+    if (ws.ownerUserId) {
+      await User.update({ plan: ws.plan }, { where: { id: ws.ownerUserId } });
+    }
+    return res.redirect('/admin/workspaces?updated=1');
+  } catch (err) { next(err); }
+}
+
+async function workspacesDelete(req, res, next) {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id)) return res.redirect('/admin/workspaces?error=1');
+    // Cascade: zero out tenant rows (we keep them for audit) and unlink users.
+    await Promise.all([
+      DataSource.update({ workspaceId: null }, { where: { workspaceId: id } }),
+      SavedDashboard.update({ workspaceId: null }, { where: { workspaceId: id } }),
+      PromptHistory.update({ workspaceId: null }, { where: { workspaceId: id } }),
+      DashboardShare.update({ workspaceId: null }, { where: { workspaceId: id } }),
+      User.update({ workspaceId: null }, { where: { workspaceId: id } }),
+    ]);
+    await Workspace.destroy({ where: { id } });
+    return res.redirect('/admin/workspaces?deleted=1');
+  } catch (err) { next(err); }
+}
+
+// ───────────────────────── Subscriptions overview ─────────────────────────
+async function subscriptionsShow(req, res, next) {
+  try {
+    const workspaces = await Workspace.findAll({ order: [['trialEndsAt', 'ASC']] });
+    const ownerIds = [...new Set(workspaces.map(w => w.ownerUserId).filter(Boolean))];
+    const owners = ownerIds.length ? await User.findAll({ where: { id: ownerIds } }) : [];
+    const ownerMap = {}; owners.forEach(o => { ownerMap[o.id] = o; });
+
+    const now = new Date();
+    function daysLeft(d) {
+      if (!d) return null;
+      const ms = new Date(d).getTime() - now.getTime();
+      return Math.ceil(ms / (24 * 60 * 60 * 1000));
+    }
+    const trialing = [];
+    const expiringSoon = [];   // <=3 days
+    const active = [];
+    const expired = [];
+
+    for (const w of workspaces) {
+      const owner = ownerMap[w.ownerUserId] || null;
+      const dl = daysLeft(w.trialEndsAt);
+      const item = {
+        id: w.id, name: w.name, plan: w.plan,
+        subscriptionStatus: w.subscriptionStatus,
+        trialEndsAt: w.trialEndsAt, daysLeft: dl,
+        owner: owner ? { id: owner.id, name: owner.name, email: owner.email } : null,
+      };
+      if (w.subscriptionStatus === 'trialing') {
+        if (dl !== null && dl <= 3) expiringSoon.push(item);
+        else trialing.push(item);
+      } else if (w.subscriptionStatus === 'active') {
+        active.push(item);
+      } else if (w.subscriptionStatus === 'expired' || w.subscriptionStatus === 'cancelled') {
+        expired.push(item);
+      }
+    }
+
+    const stats = {
+      total:     workspaces.length,
+      trialing:  trialing.length + expiringSoon.length,
+      expiring:  expiringSoon.length,
+      active:    active.length,
+      expired:   expired.length,
+      // Monthly recurring revenue estimate (placeholder — real billing in Phase 3)
+      mrrEstimate: workspaces.reduce((sum, w) => {
+        if (w.subscriptionStatus !== 'active') return sum;
+        if (w.plan === 'business') return sum + 49;
+        if (w.plan === 'enterprise') return sum + 199;
+        return sum;
+      }, 0),
+    };
+
+    adminRender(res, 'subscriptions', {
+      activeNav: 'subscriptions',
+      pageTitle: 'Subscriptions',
+      stats,
+      trialing, expiringSoon, active, expired,
+      flash: flashFromQuery(req),
+    });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   isAdmin, requireAdmin, showLogin, login, logout,
   dashboard,
@@ -778,6 +969,8 @@ module.exports = {
   inquiriesShow, inquiriesUpdateStatus, inquiriesDelete,
   settingsShow, settingsSave,
   membersShow, membersResendVerification, membersDelete,
+  workspacesShow, workspacesUpdate, workspacesDelete,
+  subscriptionsShow,
 
   // legacy marketing pages
   PAGE_DEFS, PAGE_MAP, ensureSeed: ensureMarketingSeed, getPage,

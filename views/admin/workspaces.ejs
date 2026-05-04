@@ -1,0 +1,174 @@
+<h1>Workspaces</h1>
+<p style="color:#6b7280; margin-top:-16px; margin-bottom:24px;">All customer tenants — plans, trial status, and per-workspace usage.</p>
+
+<!-- Stats -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="label">Total Workspaces</div><div class="value"><%= stats.total %></div></div>
+      <div class="icon"><i class="bi bi-building"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="label">Trialing</div><div class="value"><%= stats.trialing %></div></div>
+      <div class="icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="bi bi-stopwatch"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="label">Active (Paying)</div><div class="value"><%= stats.active %></div></div>
+      <div class="icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="bi bi-patch-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-sm-6">
+    <div class="stat-card d-flex justify-content-between align-items-start">
+      <div><div class="label">Expired / Cancelled</div><div class="value"><%= stats.expired + stats.cancelled %></div></div>
+      <div class="icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);"><i class="bi bi-x-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Plan breakdown -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="stat-card"><div class="label">Starter</div><div class="value"><%= stats.starter %></div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="label">Business</div><div class="value"><%= stats.business %></div></div></div>
+  <div class="col-md-4"><div class="stat-card"><div class="label">Enterprise</div><div class="value"><%= stats.enterprise %></div></div></div>
+</div>
+
+<!-- Filters -->
+<form method="GET" action="/admin/workspaces" class="card p-3 mb-3" style="border:1px solid #e5e7eb;">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4">
+      <label class="form-label small text-muted mb-1">Search (name, slug, owner email)</label>
+      <input type="text" name="q" value="<%= filters.q %>" class="form-control" placeholder="Search...">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted mb-1">Plan</label>
+      <select name="plan" class="form-select">
+        <option value="">All plans</option>
+        <% ['starter','business','enterprise'].forEach(function(p){ %>
+          <option value="<%= p %>" <%= filters.plan === p ? 'selected' : '' %>><%= p.charAt(0).toUpperCase()+p.slice(1) %></option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small text-muted mb-1">Status</label>
+      <select name="status" class="form-select">
+        <option value="">All statuses</option>
+        <% ['trialing','active','expired','cancelled'].forEach(function(s){ %>
+          <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase()+s.slice(1) %></option>
+        <% }); %>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filter</button>
+    </div>
+  </div>
+</form>
+
+<% if (flash && flash.text) { %>
+  <div class="alert alert-<%= flash.type %>"><%= flash.text %></div>
+<% } %>
+
+<!-- Workspaces table -->
+<div class="card" style="border:1px solid #e5e7eb;">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Workspace</th>
+          <th>Owner</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Trial Ends</th>
+          <th>Usage (DS / Dash / AI / Shares)</th>
+          <th>Created</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!workspaces.length) { %>
+          <tr><td colspan="8" class="text-center text-muted py-4">No workspaces found.</td></tr>
+        <% } %>
+        <% workspaces.forEach(function(w){
+          var planColor = w.plan === 'enterprise' ? '#7c3aed' : (w.plan === 'business' ? '#2563eb' : '#6b7280');
+          var statusColor = w.subscriptionStatus === 'active' ? '#10b981' : (w.subscriptionStatus === 'trialing' ? '#f59e0b' : '#ef4444');
+        %>
+          <tr>
+            <td>
+              <div style="font-weight:600;"><%= w.name %></div>
+              <div style="font-size:0.78rem; color:#6b7280;"><%= w.slug %></div>
+            </td>
+            <td>
+              <% if (w.owner) { %>
+                <div style="font-size:0.88rem;"><%= w.owner.name || w.owner.email %></div>
+                <div style="font-size:0.78rem; color:#6b7280;"><%= w.owner.email %></div>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td><span class="badge" style="background:<%= planColor %>; color:#fff;"><%= w.plan %></span></td>
+            <td><span class="badge" style="background:<%= statusColor %>; color:#fff;"><%= w.subscriptionStatus %></span></td>
+            <td>
+              <% if (w.trialEndsAt) { %>
+                <span style="font-size:0.85rem;"><%= new Date(w.trialEndsAt).toLocaleDateString() %></span>
+              <% } else { %>
+                <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td style="font-size:0.85rem;">
+              <%= w.usage.dataSources %> / <%= w.usage.dashboards %> / <%= w.usage.prompts %> / <%= w.usage.shares %>
+            </td>
+            <td style="font-size:0.85rem; color:#6b7280;"><%= new Date(w.createdAt).toLocaleDateString() %></td>
+            <td style="text-align:right; white-space:nowrap;">
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#wsEdit<%= w.id %>">Edit</button>
+              <form action="/admin/workspaces/<%= w.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Delete workspace &quot;<%= w.name %>&quot;? Tenant rows will be unlinked but preserved.');">
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </form>
+            </td>
+          </tr>
+
+          <!-- Edit modal -->
+          <div class="modal fade" id="wsEdit<%= w.id %>" tabindex="-1">
+            <div class="modal-dialog">
+              <form class="modal-content" action="/admin/workspaces/<%= w.id %>/update" method="POST">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit <%= w.name %></h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label">Plan</label>
+                    <select name="plan" class="form-select">
+                      <% ['starter','business','enterprise'].forEach(function(p){ %>
+                        <option value="<%= p %>" <%= w.plan === p ? 'selected' : '' %>><%= p.charAt(0).toUpperCase()+p.slice(1) %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Subscription Status</label>
+                    <select name="subscriptionStatus" class="form-select">
+                      <% ['trialing','active','expired','cancelled'].forEach(function(s){ %>
+                        <option value="<%= s %>" <%= w.subscriptionStatus === s ? 'selected' : '' %>><%= s.charAt(0).toUpperCase()+s.slice(1) %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Extend trial by (days)</label>
+                    <input type="number" name="extendTrialDays" class="form-control" min="0" max="365" placeholder="e.g. 14">
+                    <small class="text-muted">Leaves trial unchanged if blank.</small>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>

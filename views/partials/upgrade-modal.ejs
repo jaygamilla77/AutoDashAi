@@ -1,0 +1,84 @@
+<!--
+  Upgrade modal — global. Triggered by `window.AutoDashUpgrade.show(info)`.
+  Controllers can throw a PlanLimitError; the global error handler in
+  routes/web.js converts it to a 402 JSON response with shape:
+    { error:'plan_limit', limit, current, plan, suggestUpgradeTo, key }
+  Frontend code wraps fetches with `AutoDashUpgrade.handleResponse(res)`
+  to surface the modal automatically.
+-->
+<div id="autodashUpgradeModal" class="adu-modal" hidden>
+  <div class="adu-backdrop" data-adu-close></div>
+  <div class="adu-card" role="dialog" aria-modal="true" aria-labelledby="aduTitle">
+    <button type="button" class="adu-close" data-adu-close aria-label="Close">&times;</button>
+    <div class="adu-icon"><i class="bi bi-stars"></i></div>
+    <h3 id="aduTitle" class="adu-title">You've reached your plan limit</h3>
+    <p class="adu-msg" id="aduMsg">Upgrade to keep building dashboards.</p>
+    <div class="adu-meta" id="aduMeta"></div>
+    <div class="adu-actions">
+      <button type="button" class="adu-btn adu-btn-ghost" data-adu-close>Maybe later</button>
+      <a href="/billing" class="adu-btn adu-btn-primary">View plans <i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+</div>
+<style>
+  .adu-modal { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+  .adu-modal[hidden] { display: none; }
+  .adu-backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px); }
+  .adu-card { position: relative; background: #fff; border-radius: 14px; padding: 32px; max-width: 460px; width: calc(100% - 32px); box-shadow: 0 20px 60px rgba(0,0,0,0.25); text-align: center; }
+  .adu-close { position: absolute; top: 12px; right: 14px; background: none; border: 0; font-size: 1.5rem; line-height: 1; color: #94A3B8; cursor: pointer; }
+  .adu-icon { width: 56px; height: 56px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff; border-radius: 50%; font-size: 1.5rem; }
+  .adu-title { font-size: 1.35rem; font-weight: 700; color: #0F172A; margin: 0 0 8px; }
+  .adu-msg { color: #475569; margin: 0 0 16px; font-size: 0.95rem; }
+  .adu-meta { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.85rem; color: #334155; text-align: left; }
+  .adu-meta div + div { margin-top: 6px; }
+  .adu-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .adu-btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; border: 0; cursor: pointer; text-decoration: none; }
+  .adu-btn-ghost { background: #F1F5F9; color: #334155; }
+  .adu-btn-ghost:hover { background: #E2E8F0; }
+  .adu-btn-primary { background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff; }
+  .adu-btn-primary:hover { color: #fff; opacity: 0.92; }
+</style>
+<script>
+(function () {
+  var modal = document.getElementById('autodashUpgradeModal');
+  if (!modal) return;
+  function close() { modal.setAttribute('hidden', ''); }
+  modal.querySelectorAll('[data-adu-close]').forEach(function (el) { el.addEventListener('click', close); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+  function pretty(key) {
+    return ({
+      dashboards: 'dashboards',
+      dataSources: 'data sources',
+      aiGenerationsPerMonth: 'AI generations this month',
+    })[key] || key;
+  }
+
+  window.AutoDashUpgrade = {
+    show: function (info) {
+      info = info || {};
+      var msg = document.getElementById('aduMsg');
+      var meta = document.getElementById('aduMeta');
+      var planName = (info.plan || 'starter').replace(/^./, function (c) { return c.toUpperCase(); });
+      var nextName = (info.suggestUpgradeTo || 'business').replace(/^./, function (c) { return c.toUpperCase(); });
+      msg.textContent = 'Your ' + planName + ' plan allows ' + (info.limit === 0 ? 0 : info.limit) + ' ' + pretty(info.key) + '. Upgrade to ' + nextName + ' for unlimited usage.';
+      meta.innerHTML =
+        '<div><strong>Current usage:</strong> ' + info.current + ' / ' + info.limit + ' ' + pretty(info.key) + '</div>' +
+        '<div><strong>Recommended plan:</strong> ' + nextName + '</div>';
+      modal.removeAttribute('hidden');
+    },
+    /**
+     * Inspect a fetch Response. If it's a 402 plan_limit, show modal and
+     * return true (caller should treat as handled). Otherwise returns false.
+     */
+    handleResponse: async function (res) {
+      if (!res || res.status !== 402) return false;
+      try {
+        var data = await res.clone().json();
+        if (data && data.error === 'plan_limit') { this.show(data); return true; }
+      } catch (_) {}
+      return false;
+    }
+  };
+})();
+</script>
