@@ -9,6 +9,7 @@ const builderController = require('../controllers/builderController');
 const historyController = require('../controllers/historyController');
 const templateController = require('../controllers/templateController');
 const aiController = require('../controllers/aiController');
+const conversationController = require('../controllers/conversationController');
 const shareController = require('../controllers/shareController');
 const wizardController = require('../controllers/wizardController');
 const adminController = require('../controllers/adminController');
@@ -486,6 +487,15 @@ router.get('/ai/settings', requireAuth, aiController.settingsPage);
 router.get('/ai-settings', requireAuth, aiController.settingsPage);
 router.post('/ai-settings', requireAuth, aiController.saveSettings);
 router.post('/ai/test', requireAuth, aiController.testConnection);
+
+// ─── Ask AI conversational workspace (Phase 1) ───────────────────────
+router.get('/ask-ai', requireAuth, conversationController.page);
+router.get('/api/conversations',                requireAuth, conversationController.listThreads);
+router.post('/api/conversations',               requireAuth, conversationController.createThread);
+router.get('/api/conversations/:id',            requireAuth, conversationController.getThread);
+router.patch('/api/conversations/:id',          requireAuth, conversationController.renameThread);
+router.delete('/api/conversations/:id',         requireAuth, conversationController.deleteThread);
+router.post('/api/conversations/:id/messages',  requireAuth, conversationController.sendMessage);
 
 // ─── Billing (placeholder for Phase 3) ───────────────────────────────
 router.get('/billing', requireAuth, function (req, res) {

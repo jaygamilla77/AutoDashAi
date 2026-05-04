@@ -56,7 +56,7 @@ Object.keys(db).forEach((modelName) => {
 // context (AsyncLocalStorage). When no context is set (admin portal, scripts,
 // seeders, public share lookups) the hook is a no-op.
 const tenantCtx = require('../utils/tenantContext');
-const TENANT_MODELS = ['DataSource', 'SavedDashboard', 'PromptHistory', 'DashboardShare'];
+const TENANT_MODELS = ['DataSource', 'SavedDashboard', 'PromptHistory', 'DashboardShare', 'ConversationThread', 'ConversationMessage'];
 
 TENANT_MODELS.forEach((name) => {
   const M = db[name];

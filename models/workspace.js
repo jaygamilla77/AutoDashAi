@@ -20,6 +20,11 @@ module.exports = (sequelize, DataTypes) => {
     aiApiKey:     { type: DataTypes.TEXT,        allowNull: true }, // encrypted ciphertext
     aiDeployment: { type: DataTypes.STRING(120), allowNull: true },
     aiApiVersion: { type: DataTypes.STRING(40),  allowNull: true },
+
+    // Monthly AI prompt counter — used to enforce planService limits
+    // (aiGenerationsPerMonth). Reset at aiPromptsResetAt rollover.
+    aiPromptsUsedThisMonth: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    aiPromptsResetAt:       { type: DataTypes.DATE,    allowNull: true },
   }, {
     tableName: 'workspaces',
     indexes: [{ fields: ['ownerUserId'] }, { fields: ['plan'] }],

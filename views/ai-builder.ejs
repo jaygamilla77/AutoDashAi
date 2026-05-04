@@ -2012,13 +2012,23 @@
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prompt, chartType: chartType, dataSourceId: sourceId || null }),
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      var ct = (r.headers.get('content-type') || '').toLowerCase();
+      if (!r.ok && !ct.includes('application/json')) {
+        var msg = r.status === 503 ? 'The AI service is temporarily unavailable. Please retry in a moment.'
+                : r.status === 504 ? 'The AI service timed out. Please retry.'
+                : r.status === 502 ? 'The server returned a bad gateway error. Please retry.'
+                : 'Server error (HTTP ' + r.status + '). Please retry.';
+        throw new Error(msg);
+      }
+      return r.json().catch(function(){ throw new Error('Unexpected non-JSON response from server. Please retry.'); });
+    })
     .then(function(panel) {
       if (panel.error) { alert('Error: ' + panel.error); return; }
       __aiPreview = panel;
       aiRenderPanelOnCanvas(panel, true);
     })
-    .catch(function(err){ alert('Request failed: ' + err.message); })
+    .catch(function(err){ alert(err && err.message ? err.message : 'Request failed.'); })
     .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-eye me-1"></i>Preview on Canvas'; } });
   };
 

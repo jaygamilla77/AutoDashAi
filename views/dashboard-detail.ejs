@@ -423,7 +423,17 @@ html, body { overflow: hidden !important; height: 100vh !important; }
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prompt, chartType: chartType, dataSourceId: sourceId || null }),
     })
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      var ct = (r.headers.get('content-type') || '').toLowerCase();
+      if (!r.ok && !ct.includes('application/json')) {
+        var msg = r.status === 503 ? 'The AI service is temporarily unavailable. Please retry in a moment.'
+                : r.status === 504 ? 'The AI service timed out. Please retry.'
+                : r.status === 502 ? 'The server returned a bad gateway error. Please retry.'
+                : 'Server error (HTTP ' + r.status + '). Please retry.';
+        throw new Error(msg);
+      }
+      return r.json().catch(function(){ throw new Error('Unexpected non-JSON response from server. Please retry.'); });
+    })
     .then(function(panel) {
       if (panel.error) { alert('Error: ' + panel.error); return; }
       var newIdx = __sp.length;
@@ -478,7 +488,7 @@ html, body { overflow: hidden !important; height: 100vh !important; }
       status.textContent = '✓ Panel added.';
       setTimeout(function(){ status.style.display='none'; }, 2500);
     })
-    .catch(function(e){ alert('Request failed: ' + e.message); })
+    .catch(function(e){ alert(e && e.message ? e.message : 'Request failed.'); })
     .finally(function(){
       btn.disabled = false;
       btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Generate &amp; Add Panel';

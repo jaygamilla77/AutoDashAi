@@ -24,6 +24,10 @@
       <i class="bi bi-stars"></i>
       <span>AI</span>
     </a>
+    <a href="/ask-ai" class="sidebar-link" title="Ask AI — chat with your data">
+      <i class="bi bi-chat-square-dots-fill"></i>
+      <span>Ask AI</span>
+    </a>
     <a href="/billing" class="sidebar-link" title="Billing & Subscription">
       <i class="bi bi-credit-card-fill"></i>
       <span>Billing</span>
@@ -73,6 +77,8 @@
               || /^\/dashboard\/\d+\/edit-canvas$/.test(path);
         case '/ai-settings':
           return path === '/ai-settings' || path === '/ai/settings';
+        case '/ask-ai':
+          return path === '/ask-ai';
         case '/admin':
         case '/admin/pages':
         case '/admin/content':
